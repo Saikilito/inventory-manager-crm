@@ -1,9 +1,7 @@
-import User from './users';
-import Post from './posts';
+import Client from './client';
 
 const models = {
-    User,
-    Post
+    Client,
 }
 
 export default models ;
