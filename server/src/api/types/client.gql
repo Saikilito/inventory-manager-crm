@@ -41,5 +41,5 @@ input iClient {
 }
 
 type Mutation {
-	setClient(input: iClient): Client!
+	setClient(input: iClient): Boolean!
 }
