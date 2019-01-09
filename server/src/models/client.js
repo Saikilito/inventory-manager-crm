@@ -2,10 +2,13 @@ import mongoose from 'mongoose';
 import validate from 'mongoose-validator';
 
 const clientSchema = mongoose.Schema({
-    nombre:String,
+    nombre: String,
     apellido:String,  
     empresa: String,
-    email:String,
+    email:{
+        type: String,
+        unique: true
+    },
     edad: Number,
     tipo: String,
     pedidos:{type:[], default:[]}
