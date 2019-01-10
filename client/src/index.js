@@ -9,7 +9,11 @@ import ApolloClient from "apollo-boost";
 const App = Routes
 
 const client = new ApolloClient({
-  uri: "http://localhost:3001/graphql"
+  uri: "http://localhost:4555/graphql",
+  onError:({networkError, graphQLErrors})=>{
+    console.log('networkError',networkError)
+    console.log('graphQLErrors',graphQLErrors)
+  }
 });
 
 const Route =   <ApolloProvider client={client}>
