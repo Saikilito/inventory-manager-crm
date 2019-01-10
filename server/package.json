@@ -1,21 +1,21 @@
 {
-  "name": "instagramclone",
+  "name": "crmapollo",
   "version": "1.0.0",
-  "description": "Clon de Instagram con Graphql, apollo, constext, node",
+  "description": "CRM con React Apollo y más",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon ./src/index.js --exec babel-node"
+    "start": "nodemon ./src/index.js --exec babel-node -e js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Saikilito/instagramclone.git"
+    "url": "git+https://github.com/Saikilito/crmreactapollo.git"
   },
   "author": "@Saikilito",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/Saikilito/instagramclone/issues"
+    "url": "https://github.com/Saikilito/crmreactapollo/issues"
   },
-  "homepage": "https://github.com/Saikilito/instagramclone#readme",
+  "homepage": "https://github.com/Saikilito/crmreactapollo#readme",
   "devDependencies": {
     "babel-cli": "^6.26.0",
     "babel-preset-env": "^1.7.0",

@@ -1,21 +1,21 @@
-import mongoose  from 'mongoose';
-import config from '.'
-let db;
+import mongoose from 'mongoose';
+import config from './';
 
-module.exports = () => {
-    if(!db){
-        mongoose.connect(config.database, {useNewUrlParser: true})
-            .then(()=>{
-                console.log('Conectado a mongo!');
-                
-                const ObjectId = mongoose.Types.ObjectId;
-                ObjectId.prototype.valueOf = function () {
-                	return this.toString();
-                };
-            })
-    }
+const db = () => {
+	
+	const mongoConfig = {
+		useNewUrlParser: true,
+		useCreateIndex: true
+	}
 
-    return db;
-}
+    mongoose.connect(config.database, mongoConfig)
+        .then(() => {
+		    console.log('Conectado a mongo!');
 
-
+		    const ObjectId = mongoose.Types.ObjectId;
+		    ObjectId.prototype.valueOf = function() {
+		    return this.toString();
+		};
+	});
+};
+export default db;

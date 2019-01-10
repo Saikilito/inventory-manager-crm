@@ -1,11 +1,15 @@
-import mongoose from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
 import validate from 'mongoose-validator';
 
-const clientSchema = mongoose.Schema({
+const clientSchema = new Schema({
     nombre:String,
     apellido:String,  
     empresa: String,
-    email:String,
+    emails:{
+        type:[],
+        default:[],
+        unique:true
+    },
     edad: Number,
     tipo: String,
     pedidos:{type:[], default:[]}
