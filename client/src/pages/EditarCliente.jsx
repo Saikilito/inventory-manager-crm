@@ -1,11 +1,35 @@
-import React, { Component } from 'react';
+import React, { Component, Fragment } from 'react';
+import { Query } from 'react-apollo';
+import { UN_CLIENTE_QUERY } from '../services/queries/'
+import { CLIENTES_QUERY } from '../services/queries/'
+
+import FormEditClient from '../components/FormEditClient';
 
 class EditarCliente extends Component {
     render() {
+        const {id} = this.props.match.params
+        
         return (
-            <div>
+            <Fragment>
                 <h2 className="text-center">Editar Cliente</h2>
-            </div>
+                <div className="row justify-content-center">
+                    <Query query={UN_CLIENTE_QUERY} variables={{id}} refetchQueries={CLIENTES_QUERY}>
+                    {
+                        ({loading,error,data, refetch})=>{
+                            if(loading) return "Loading..."
+                            if(error) return `Error ${error}`
+                            
+                            return(
+                                <FormEditClient
+                                    client={data.getClient}
+                                    refetch={refetch}
+                                />
+                            )
+                        }
+                    }
+                    </Query>
+                </div>
+            </Fragment>
         );
     }
 }

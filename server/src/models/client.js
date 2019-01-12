@@ -1,14 +1,13 @@
 import mongoose, { Schema } from 'mongoose';
-import validate from 'mongoose-validator';
+// import validate from 'mongoose-validator';
 
-const clientSchema = new Schema({
+const clientSchema = Schema({
     nombre:String,
     apellido:String,  
     empresa: String,
     emails:{
         type:[],
         default:[],
-        unique:true
     },
     edad: Number,
     tipo: String,

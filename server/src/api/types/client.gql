@@ -25,7 +25,8 @@ enum TipoCliente {
 
 type Query {
 	getClient(_id: ID!): Client!
-	getAllClients(limite:Int): [Client]
+	getAllClients(limite:Int, offset:Int): [Client]!
+	totalClients:Int
 }
 
 #Inputs Mutation!
@@ -39,6 +40,7 @@ input iEmail{
 }
 
 input iClient {
+	_id:ID
 	nombre: String!
 	apellido: String!
 	empresa: String!
@@ -52,7 +54,7 @@ type Mutation {
 	#Crear
 	setClient(input: iClient): Boolean!
 	#Update
-	updateClient(_id:ID!, input:iClient):Boolean!
+	updateClient(input:iClient):Boolean!
 	#Delete
 	deleteClient(_id:ID!):Boolean!
 }

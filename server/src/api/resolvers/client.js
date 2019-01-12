@@ -2,8 +2,9 @@
 
 export default {
     Query:{
-        getAllClients: (parent, args, {models}) => models.Client.find().limit(args.limite),
-        getClient: (parent, args, {models}) => models.Client.findOne(args)
+        getAllClients: (parent, {limite, offset}, {models}) => models.Client.find().limit(limite).skip(offset),
+        getClient: (parent, args, {models}) => models.Client.findOne(args),
+        totalClients: (parent, args, {models}) => models.Client.countDocuments().catch((err)=>console.error(err))
     },
     Mutation:{
         setClient: async (parent, args, {models:{Client}}) =>{
@@ -24,15 +25,18 @@ export default {
         },
         updateClient: async (parent, args, {models:{Client}})=>{
             try{
-                console.log("Recibiendo-------", args)
-                const {_id,input} = args;
-                await Client.findOneAndUpdate({_id},input, {new:false})
+                const {input} = args;
+                console.log("inputID", input._id)
+                const {nombre, apellido, empresa, edad, emails, tipo} = input
+                const argsInput = {nombre, apellido, empresa, edad, emails, tipo}
+                // console.log("Enviando-------", argsInput)
+                await Client.findOneAndUpdate({_id: input._id},input, {new:false})
                             .then( resp => console.log("Mongo",resp))
                             .catch( err => {throw err} )
                 return true
             }
             catch(err){
-                console.log(err)
+                console.error(err)
                 return false
             }
         },

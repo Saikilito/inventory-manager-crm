@@ -5,7 +5,8 @@ const db = () => {
 	
 	const mongoConfig = {
 		useNewUrlParser: true,
-		useCreateIndex: true
+		useCreateIndex: true,
+		useFindAndModify:false
 	}
 
     mongoose.connect(config.database, mongoConfig)
