@@ -51,19 +51,10 @@ input iClient {
 }
 
 type Mutation {
-<<<<<<< HEAD
 	#Crear
 	setClient(input: iClient): Boolean!
 	#Update
 	updateClient(input:iClient):Boolean!
 	#Delete
 	deleteClient(_id:ID!):Boolean!
-=======
-	#Crear un Cliente
-	setClient(input: iClient): Boolean!
-	#Actualizar un cliente
-	updateClient(input: iClient): Boolean!
-	#Eliminar un cliente
-	deleteClient(_id: ID!):Boolean!
->>>>>>> aaa222272f9eeb1928dcad033fcfc1ee75474a5d
 }
