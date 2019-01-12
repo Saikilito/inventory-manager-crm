@@ -15,7 +15,6 @@ export default {
                             .then( resp => console.log(resp))
                             .catch( err => {throw err} )
                 return true
-
             }
             catch(err){
                 console.log(err)
@@ -37,21 +36,20 @@ export default {
             }
             catch(err){
                 console.error(err)
-                return false
+                return false;
             }
         },
-        deleteClient: async (parent, args, {models:{Client}})=>{
-            try{
-                console.log("--id-- ",args);
+        deleteClient: async(parent, args, {models:{Client}})=>{
+            try{                
                 await Client.findOneAndDelete(args)
-                            .then( resp => console.log("Cliente Eliminado", resp))
-                            .catch( err => {throw err} )
-                return true
+                    .then("Cliente Eliminado")
+                    .catch(err=>{throw err})
+                return true;
             }
             catch(err){
-                console.log(err)
-                return false
+                console.error(err)
+                return false;
             }
         }
     }
-}
+}   
