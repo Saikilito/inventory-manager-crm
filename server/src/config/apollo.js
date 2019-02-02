@@ -10,8 +10,16 @@ const typeDefs = mergeTypes(fileLoader(path.join(__dirname, '../api/types')));
 const resolvers = mergeResolvers(fileLoader(path.join(__dirname, '../api/resolvers')));
 
 const server = new ApolloServer({typeDefs, resolvers,
-    context:{models}
+    context: {
+        token: async ({req}) =>{
+            console.log(req.headers['authorization'])
+        }
+    }
+    
+
 });
+
+
 
 export default server
     

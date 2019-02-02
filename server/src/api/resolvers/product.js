@@ -1,17 +1,15 @@
-// import bcrypt from 'bcrypt';
-
-export default {
+export default{
     Query:{
-        getAllClients: (parent, {limite, offset}, {models}) => models.Client.find().limit(limite).skip(offset),
-        getClient: (parent, args, {models}) => models.Client.findOne(args),
-        totalClients: (parent, args, {models}) => models.Client.countDocuments().catch((err)=>console.error(err))
+        getProduct: (parent, args, {models:{Product}})=> Product.findOne(args).catch((err)=>console.error(err)),
+        getAllProducts: (parent, {limite, offset}, {models:{Product}})=> Product.find({}).limit(limite).skip(offset).catch((err)=>console.error(err)),
+        totalProducts: (parent, args, {models:{Product}}) => Product.countDocuments().catch((err)=>console.error(err))
     },
     Mutation:{
-        setClient: async (parent, args, {models:{Client}}) =>{
+        setProduct: async (parent, args, {models:{Product}}) =>{
             try{
                 console.log("Recibiendo-------", args)
-                const client = new Client(args.input)
-                await client.save()
+                const product = new Product(args.input)
+                await product.save()
                             .then( resp => console.log(resp))
                             .catch( err => {throw err} )
                 return true
@@ -20,15 +18,14 @@ export default {
                 console.log(err)
                 return false
             }
-            
         },
-        updateClient: async (parent, args, {models:{Client}})=>{
+        updateProduct: async (parent, args, {models:{Product}})=>{
             try{
                 const {input} = args;
-                console.log("inputID", input._id)
-                const {nombre, apellido, empresa, edad, emails, tipo} = input
-                const argsInput = {nombre, apellido, empresa, edad, emails, tipo}
-                await Client.findOneAndUpdate({_id: input._id},input, {new:false})
+                console.log("inputID", args)
+                const {nombre, precio, stock} = input
+                const argsInput = {nombre, precio, stock}
+                await Product.findOneAndUpdate({_id: input._id},argsInput, {new:false})
                             .then( resp => console.log("Mongo",resp))
                             .catch( err => {throw err} )
                 return true
@@ -38,9 +35,9 @@ export default {
                 return false;
             }
         },
-        deleteClient: async(parent, args, {models:{Client}})=>{
+        deleteProduct: async(parent, args, {models:{Product}})=>{
             try{                
-                await Client.findOneAndDelete(args)
+                await Product.findOneAndDelete(args)
                     .then("Cliente Eliminado")
                     .catch(err=>{throw err})
                 return true;
@@ -51,4 +48,4 @@ export default {
             }
         }
     }
-}   
+}

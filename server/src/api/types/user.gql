@@ -1,0 +1,9 @@
+type Token{
+    token: String!
+}
+type Mutation {
+    #Crear usuario
+    setUser(user: String!, password: String!):Boolean!
+    #Autenticar Usuario
+    authenticateUser(user: String!, password: String!):Token!
+}

@@ -1,0 +1,8 @@
+type totalClient{
+    total: Float
+    client:[Client]!
+}
+
+type Query{
+    topClients:[totalClient]!
+}
