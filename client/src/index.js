@@ -11,6 +11,18 @@ const App = Routes
 
 const client = new ApolloClient({
   uri: "http://localhost:4555/graphql",
+  //Send Token
+  fetchOptions:{
+    credentials: 'include'
+  },
+  request: operation=>{
+    const token = localStorage.getItem('Token');
+    operation.setContext({
+      headers:{
+        authorization: token
+      }
+    })
+  },
   cache: new InMemoryCache({addTypename:false}),
   onError:({networkError, graphQLErrors})=>{
     console.log('networkError',networkError)

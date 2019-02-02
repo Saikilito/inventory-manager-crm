@@ -1,9 +1,9 @@
 import React, { Component, Fragment } from 'react';
 import { Query } from 'react-apollo';
-import { UN_CLIENTE_QUERY } from '../services/queries/'
-import { CLIENTES_QUERY } from '../services/queries/'
+import { UN_CLIENTE_QUERY } from '../../services/queries/clients'
+import { CLIENTES_QUERY } from '../../services/queries/clients'
 
-import FormEditClient from '../components/FormEditClient';
+import FormEditClient from '../../containers/FormEditClient';
 
 class EditarCliente extends Component {
     render() {

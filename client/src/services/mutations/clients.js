@@ -1,12 +1,12 @@
 import gql from 'graphql-tag';
 
 export const CREAR_CLIENTE = gql`
-    mutation crearCliente($input: iClient){
+    mutation crearCliente($input: iClient!){
         setClient(input: $input)
     }`;
 
 export const UPDATE_CLIENT = gql`
-    mutation updateClient($input: iClient){
+    mutation updateClient($input: iClient!){
         updateClient(input: $input)
   }`;
 
@@ -16,3 +16,4 @@ mutation deleteClient($_id:ID!){
   deleteClient(_id:$_id)
 }
 `;
+

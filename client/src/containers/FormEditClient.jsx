@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import  { withRouter } from 'react-router-dom';
 import { Mutation } from 'react-apollo';
-import { UPDATE_CLIENT } from '../services/mutations/';
+import { UPDATE_CLIENT } from '../services/mutations/clients';
 
 class FormEditClient extends Component {
 	state = {
@@ -36,11 +36,11 @@ class FormEditClient extends Component {
 	};
 	render() {
 		const { emails } = this.state;
-		const { nombre, apellido, empresa, edad, tipo } = this.state.client;
+        const { nombre, apellido, empresa, edad, tipo } = this.state.client;
 		return (
             <Mutation mutation={UPDATE_CLIENT} 
                 onCompleted={()=>this.props.refetch().then(()=>{
-                    this.props.history.push('/')
+                    this.props.history.push('/clientes')
                 })} 
             >
 			{
@@ -49,13 +49,12 @@ class FormEditClient extends Component {
                         onSubmit={
                             (e)=>{
                                 e.preventDefault()
-
                                 const input = {
                                     ...this.state.client,
                                     emails:[...this.state.emails],
                                     edad: Number(this.state.client.edad)
                                 }
-
+                                
                                 console.log({input})
 
                                 updateClient({ variables: {input} })
