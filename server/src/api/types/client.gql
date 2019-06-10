@@ -3,49 +3,48 @@ type Client {
 	nombre: String!
 	apellido: String!
 	empresa: String!
-	email: String!
+	emails: [Email]
 	edad: Int!
-	tipo: TipoCliente!
-	pedidos: [Pedido]!
+	tipo: TipoCliente!,
+	sellerID: ID
 }
 
-type Pedido {
-	producto: String
-	precio: Int
+type Email {
+	email: String
 }
 
 enum TipoCliente {
 	BASICO
-	PREMIUN
+	PREMIUM
 }
 
 type Query {
 	getClient(_id: ID!): Client!
-	getAllClients: [Client]
+	getAllClients(limite:Int, offset:Int, sellerID:ID): [Client]!
+	totalClients(sellerID:ID):Int
 }
 
 #Inputs Mutation!
-input iPedido {
-	producto: String
-	precio: Int
+input iEmail{
+	email:String
 }
 
 input iClient {
-	_id: String
+	_id:ID
 	nombre: String!
 	apellido: String!
 	empresa: String!
-	email: String!
+	emails: [iEmail]
 	edad: Int!
-	tipo: TipoCliente!
-	pedidos: [iPedido]
+	tipo: TipoCliente!,
+	sellerID: ID
 }
 
 type Mutation {
-	#Crear un Cliente
-	setClient(input: iClient): Boolean!
+	#Registrar un cliente
+	setClient(input: iClient!): Boolean!
 	#Actualizar un cliente
-	updateClient(input: iClient): Boolean!
+	updateClient(input:iClient!):Boolean!
 	#Eliminar un cliente
-	deleteClient(_id: ID!):Boolean!
+	deleteClient(_id:ID!):Boolean!
 }

@@ -1,0 +1,24 @@
+.resaltar-texto{
+    background-color: #2c3e50;
+    color: white;
+    font-size: 1.4rem;
+    font-weight: bold;
+    padding:.3rem;
+}
+
+.border-success{
+    border-top: .5rem solid #18BC9C !important
+}
+
+.border-danger{
+    border-top: .5rem solid #E74C3C !important
+}
+
+.border-ligth{
+    border-top: .5rem solid #ecf0f1 !important
+}
+
+.bg-amarillo{
+    background-color:#FFEB3B;
+    color: black;
+}

@@ -1,0 +1,12 @@
+type totalClient{
+    total: Float
+    client:[Client]!
+}
+type totalSellers{
+    total: Float
+    seller:[User]!  
+}
+type Query{
+    topClients:[totalClient]!
+    topSellers:[totalSellers]!
+}

@@ -11,6 +11,7 @@ const app = express();
 server.applyMiddleware({ app });
 
 //DB y Server
-db(
-    app.listen( config.PORT , () => console.log(`🚀 Server ready at http://localhost:${config.PORT}${server.graphqlPath}`))
-)
+app.listen( config.PORT ,() => {
+    db()
+    console.log(`🚀 Server ready at http://localhost:${config.PORT}${server.graphqlPath}`)
+})

@@ -1,0 +1,47 @@
+type Order{
+    _id:ID
+    pedido:[PedidoProducto]!
+    total: Int!
+    fecha: String
+    cliente: ID!
+    estado: EstadoPedido
+    sellerID:ID
+}
+type PedidoProducto{ 
+    _id: ID!
+    cantidad:Int
+}
+type Query{
+    getOrderClient(client:ID!):[Order]!
+    getAllOrders(limite:Int, offset:Int):[Order]!
+    getOrder(_id:ID!):Order!
+    totalOrders:Int
+}
+#Enum
+enum EstadoPedido{
+    PENDIENTE
+    COMPLETADO
+    CANCELADO
+}
+#Inputs Mutation!
+input iOrder{
+    _id:ID
+    pedido:[iPedidoProducto]!
+    total: Int!
+    fecha: String
+    cliente: ID!
+    estado: EstadoPedido,
+    sellerID:ID!
+}
+input iPedidoProducto{
+    _id: ID!
+    cantidad:Int
+}
+type Mutation{
+    #Crear un nuevo Pedido
+    setOrder(input:iOrder!):Boolean!
+    #Actualizar un Pedido
+    updateOrder(input:iOrder!):Boolean!
+    #Eliminar un Pedido
+    deleteOrder(_id:ID!):Boolean!
+}

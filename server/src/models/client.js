@@ -1,17 +1,18 @@
-import mongoose from 'mongoose';
-import validate from 'mongoose-validator';
+import mongoose, { Schema } from 'mongoose';
+// import validate from 'mongoose-validator';
 
-const clientSchema = mongoose.Schema({
-    nombre: String,
+const clientSchema = Schema({
+    nombre:String,
     apellido:String,  
     empresa: String,
-    email:{
-        type: String,
-        unique: true
+    emails:{
+        type:[],
+        default:[],
     },
     edad: Number,
     tipo: String,
-    pedidos:{type:[], default:[]}
+    pedidos:{type:[], default:[]},
+    sellerID:mongoose.Types.ObjectId
 });
 
 const clientModel = mongoose.model('Client', clientSchema);
