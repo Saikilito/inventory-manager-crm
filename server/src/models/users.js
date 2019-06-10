@@ -4,7 +4,9 @@ import bcrypt from 'bcrypt'
 
 const userSchema = Schema({
     user: String,
-    password: String
+    name: String,
+    password: String,
+    rol:String
 });
 
 //no usar arrow

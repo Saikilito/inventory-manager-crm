@@ -15,7 +15,7 @@ const Pedido = (props) => {
     if(estado === 'PENDIENTE') borderClass = 'border-ligth'
     else if(estado === 'CANCELADO') borderClass = 'border-danger'
     else borderClass = 'border-success'
-
+console.log("que lo que", order)
 	return (
 		<div className="col-md-4">
 			<div className={`card mb-3 ${borderClass}`}>
@@ -58,16 +58,8 @@ const Pedido = (props) => {
 							{new Date(Number(order.fecha)).toLocaleDateString()}
 						</span>
 					</p>
-					<p className="card-text font-weight-bold">
-						Total:
-						<span className="font-weight-normal">
-							{' '}
-							${` `}
-							{order.total}
-						</span>
-					</p>
-
-					<h3 className="card-text text-center mb-3">Artículos del pedido</h3>
+					
+					<h3 className="card-text text-center mb-3 resaltar-texto">Artículos del pedido</h3>
 					{order.pedido.map((pedido, i) => {
 						// console.log("Pedido",pedido)
 						return (
@@ -87,6 +79,14 @@ const Pedido = (props) => {
 							</Query>
 						);
 					})}
+					<p className="card-text font-weight-bold justify-content-end resaltar-texto bg-amarillo">
+						Total:
+						<span className="font-weight-normal">
+							{' '}
+							${` `}
+							{order.total}
+						</span>
+					</p>
 				</div>
 			</div>
 		</div>

@@ -6,7 +6,8 @@ const pedidoSchema = Schema({
     total: Number,
     fecha: Date,
     cliente: mongoose.Types.ObjectId,
-    estado: String
+    estado: String, 
+    sellerID: mongoose.Types.ObjectId
 });
 
 const pedidoModel = mongoose.model('Order', pedidoSchema);

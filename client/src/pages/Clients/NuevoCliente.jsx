@@ -1,4 +1,6 @@
 import React, { Component, Fragment } from 'react';
+import {withRouter} from 'react-router-dom';
+
 import { Mutation } from 'react-apollo'
 import {CREAR_CLIENTE} from '../../services/mutations/clients'
 
@@ -51,6 +53,8 @@ class NuevoCliente extends Component {
 	render() {
         const respuesta = this.state.error ? 
         (<p className="alert alert-danger p-3 text-center">Todos los campos son obligatorios</p> ):('')
+        const {_id} = this.props.session
+
 		return (
 			<Fragment>
 				<h2 className="text-center">Nuevo Cliente</h2>
@@ -67,7 +71,8 @@ class NuevoCliente extends Component {
                                 const input = {
                                     ...this.state.cliente,
                                     emails:[...this.state.emails],
-                                    edad: Number(this.state.cliente.edad)
+                                    edad: Number(this.state.cliente.edad),
+                                    sellerID: _id
                                 }
 
                                 console.log(input)
@@ -153,4 +158,4 @@ class NuevoCliente extends Component {
 	}
 }
 
-export default NuevoCliente;
+export default withRouter(NuevoCliente);

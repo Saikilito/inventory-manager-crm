@@ -4,31 +4,29 @@ import {BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip} from 'recharts';
 import Spinkit from '../components/Spinkit';
 
 import { Query } from 'react-apollo';
-import { TOP_CLIENTS } from '../services/queries/graphics';
+import { TOP_SELLERS } from '../services/queries/graphics';
 
-const TopClientes = () => {
+const TopSellers = () => {
     return (
-        <Query query={TOP_CLIENTS} pollInterval={1000}>
+        <Query query={TOP_SELLERS} pollInterval={1000}>
         {({ loading, error, data, startPolling, stopPolling }) => {
 				if (loading) return <Spinkit/>;
 				if (error) return `Error ${error.message}`;
-                    console.log(data)
-
-                const topClientsGraphics = []
-
-                data.topClients.map((e,i)=>{
-                    topClientsGraphics[i] = {
-                        ...e.client[0],
+                console.log(data)
+                const topSellersGraphics = []
+            
+                data.topSellers.map((e,i)=>{
+                    topSellersGraphics[i] = {
+                        ...e.seller[0],
                         total: e.total
                     }
                     return null;
                 })
-                console.log("Graphipc Top", topClientsGraphics);
 				return (
-                     <BarChart width={600} height={300} data={topClientsGraphics}
+                     <BarChart width={600} height={300} data={topSellersGraphics}
                         margin={{top:5, right:30, left:20, bottom:5}}>
                         <CartesianGrid strokeDasharray="3 3"/>
-                        <XAxis dataKey="nombre"/>
+                        <XAxis dataKey="name"/>
                         <YAxis/>
                         <Tooltip/>
                         <Bar dataKey="total" fill="#82ca9d"/>
@@ -40,4 +38,4 @@ const TopClientes = () => {
     );
 }
 
-export default TopClientes;
+export default TopSellers;

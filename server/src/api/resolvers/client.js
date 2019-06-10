@@ -1,10 +1,14 @@
-// import bcrypt from 'bcrypt';
+import mongoose from 'mongoose';
 
 export default {
     Query:{
-        getAllClients: (parent, {limite, offset}, {models}) => models.Client.find().limit(limite).skip(offset),
-        getClient: (parent, args, {models}) => models.Client.findOne(args),
-        totalClients: (parent, args, {models}) => models.Client.countDocuments().catch((err)=>console.error(err))
+        getAllClients: (parent, {limite, offset, sellerID}, {models:{Client}}) => {
+            let idSistem = {sellerID}
+            if(!sellerID) idSistem = {}
+            return Client.find(idSistem).limit(limite).skip(offset)
+        },
+        getClient: (parent, args, {models:{Client}}) => Client.findOne(args),
+        totalClients: (parent, args, {models:{Client}}) => Client.countDocuments(args).catch((err)=>console.error(err))
     },
     Mutation:{
         setClient: async (parent, args, {models:{Client}}) =>{

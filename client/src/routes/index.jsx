@@ -1,5 +1,5 @@
 import React, { Fragment } from 'react';
-import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Switch, Redirect } from 'react-router-dom';
 
 import Header from '../containers/Header';
 
@@ -16,27 +16,31 @@ import NuevoPedido from '../pages/Pedidos/NuevoPedido';
 
 import Register from '../pages/Auth/register';
 import Login from '../pages/Auth/login';
+import Session from '../services/Session';
 
 import Panel from '../pages/Panel/Panel'
 
-const Routes = () => {
+
+const Routes = ({session, refetch}) => {
+	const msg = session.getUser ? `Bienvenido: ${session.getUser.name}`: <Redirect to='/login'/>
 	return (
 		<Router>
 			<Fragment>
-				<Header />
+				<Header session={session}/>
 				    <div className="container">
+					<p className="text-right">{msg}</p>
 				    	<Switch>
-				    		<Route exact path="/clientes" component={Clientes}/>
+				    		<Route exact path="/clientes" render={()=><Clientes session={session.getUser}/>}/>
 				    		<Route exact path="/cliente/editar/:id" component={EditarCliente}/>
-				    		<Route exact path="/cliente/nuevo" component={NuevoCliente}/>
+				    		<Route exact path="/cliente/nuevo" render={()=><NuevoCliente session={session.getUser}/>}/>
 				    		<Route exact path="/productos" component={Productos}/>
-				    		<Route exact path="/producto/nuevo" component={NuevoProducto}/>
+				    		<Route exact path="/producto/nuevo" render={()=><NuevoProducto/>}/>
 				    		<Route exact path="/producto/editar/:id" component={EditarProducto}/>
 				    		<Route exact path="/pedidos/:id" component={PedidosCliente}/>
-				    		<Route exact path="/pedido/nuevo/:id" component={NuevoPedido}/>
+				    		<Route exact path="/pedido/nuevo/:id" render={()=><NuevoPedido session={session.getUser}/> }/>
 				    		<Route exact path="/panel" component={Panel}/>
-				    		<Route exact path="/registro" component={Register}/>
-				    		<Route exact path="/login" component={Login}/>
+				    		<Route exact path="/registro" render={()=> <Register session={session.getUser} />}/>
+				    		<Route exact path="/login" render={()=><Login refetch={refetch}/>}/>
 				    	</Switch>
 				    </div>
 			</Fragment>
@@ -44,4 +48,4 @@ const Routes = () => {
 	);
 };
 
-export default Routes;
+export default Session(Routes);

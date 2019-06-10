@@ -8,5 +8,4 @@ mutation crearPedido($input:iOrder!){
 export const ACTUALIZAR_PEDIDO = gql`
 mutation actualizarPedido($input:iOrder!){
   updateOrder(input:$input)
-}
-`;
+}`;

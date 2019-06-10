@@ -57,7 +57,7 @@ class Pedidos extends Component {
         })
     }
     render() {
-
+        const sellerID = this.props.session._id
         const mensaje = ( this.state.total < 0 ) ? <Error error="Las cantidades no pueden ser negativas"></Error>:'';
         return (
             <Fragment>
@@ -87,6 +87,7 @@ class Pedidos extends Component {
                     productos={this.state.productos}
                     total={this.state.total}
                     cliente={this.props._id}
+                    sellerID={sellerID}
                 />
             </Fragment>
         );

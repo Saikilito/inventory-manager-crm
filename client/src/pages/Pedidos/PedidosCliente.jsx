@@ -6,6 +6,8 @@ import { PEDIDOS_CLIENTE_QUERY } from '../../services/queries/pedidos';
 import Spinkit from '../../components/Spinkit';
 import Pedido from '../../components/Pedidos/Pedido';
 
+import './PedidosCliente.css';
+
 const PedidosCliente = (props) => {
     const client = props.match.params.id
     

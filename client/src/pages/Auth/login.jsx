@@ -25,21 +25,23 @@ class Login extends Component {
     clearState = () =>{
         this.setState({...initialState})
     }
-    initialSesion = (e, autenticateUser) =>{
+    initialSesion = async (e, autenticateUser) =>{
         e.preventDefault();
 
-        autenticateUser().then(async ({data})=>{
+        await autenticateUser().then(({data})=>{
             localStorage.setItem('Token', data.authenticateUser.token)
         });
 
-        this.clearState()
+        await this.props.refetch();
+        
+        this.clearState();
+
+        setTimeout(()=>{this.props.history.push('/panel')},1000)
     }
     validateForm = ()=>{
         const {user, password} = this.state;
 
         const noValidate = !user || !password;
-
-        console.log(noValidate);
         return noValidate;
     }
     render() {

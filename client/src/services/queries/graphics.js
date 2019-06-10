@@ -8,5 +8,14 @@ query topClients{
             nombre
         }
     }
-  }
-`;
+  }`;
+
+  export const TOP_SELLERS = gql`
+  query topSellers{
+    topSellers{
+        total
+        seller{
+            name
+        }
+    }
+  }`;

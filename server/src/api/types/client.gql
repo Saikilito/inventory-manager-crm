@@ -5,7 +5,8 @@ type Client {
 	empresa: String!
 	emails: [Email]
 	edad: Int!
-	tipo: TipoCliente!
+	tipo: TipoCliente!,
+	sellerID: ID
 }
 
 type Email {
@@ -19,8 +20,8 @@ enum TipoCliente {
 
 type Query {
 	getClient(_id: ID!): Client!
-	getAllClients(limite:Int, offset:Int): [Client]!
-	totalClients:Int
+	getAllClients(limite:Int, offset:Int, sellerID:ID): [Client]!
+	totalClients(sellerID:ID):Int
 }
 
 #Inputs Mutation!
@@ -35,7 +36,8 @@ input iClient {
 	empresa: String!
 	emails: [iEmail]
 	edad: Int!
-	tipo: TipoCliente!
+	tipo: TipoCliente!,
+	sellerID: ID
 }
 
 type Mutation {

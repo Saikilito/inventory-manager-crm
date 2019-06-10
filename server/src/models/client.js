@@ -11,7 +11,8 @@ const clientSchema = Schema({
     },
     edad: Number,
     tipo: String,
-    pedidos:{type:[], default:[]}
+    pedidos:{type:[], default:[]},
+    sellerID:mongoose.Types.ObjectId
 });
 
 const clientModel = mongoose.model('Client', clientSchema);

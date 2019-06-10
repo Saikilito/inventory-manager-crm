@@ -12,5 +12,6 @@ query getOrderClient($client:ID!){
         cantidad
       }
       total
+      sellerID
     }
 }`

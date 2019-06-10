@@ -40,10 +40,18 @@ class Clients extends Component {
         })
     }
 	render() {
-		const {alerta:{mostrar,mensaje}} = this.state
-        const alerta = (mostrar) ? <Alerta message={mensaje}/> : ''
+		//Alertas
+		const {alerta:{mostrar,mensaje}} = this.state;
+		const alerta = (mostrar) ? <Alerta message={mensaje}/> : '';
+
+		//Obtener ID de Clientes
+		const {_id, rol} = this.props.session;
+		
+		let idSistem
+		(rol === 'adm') ? idSistem = '' : idSistem = _id
+
 		return (
-			<Query query={CLIENTES_QUERY}  variables={{limite:this.limit, offset:this.state.paginador.offset}} pollInterval={1000}>
+			<Query query={CLIENTES_QUERY}  variables={{limite:this.limit, offset:this.state.paginador.offset,sellerID:idSistem}} pollInterval={1000}>
 				{({ loading, error, data, startPolling, stopPolling }) => {
 					if (loading) return <Spinkit/>;
 					if (error) return `Error ${error.message}`;

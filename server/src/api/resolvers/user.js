@@ -10,8 +10,18 @@ const createToken = (userLogin, secret, expiresIn)=>{
 }
 
 export default {
+    Query:{
+        getUser: async (parents, args, {models:{User},token})=>{
+            const actualUser = await token();
+            
+            if(!actualUser) return null
+            const UserCheked = await User.findOne({user: actualUser.user})
+            console.log(UserCheked);
+            return UserCheked
+        }
+    },
     Mutation:{
-        setUser: async (parents, {user, password}, {models:{User}})=>{
+        setUser: async (parents, {user, name, password, rol}, {models:{User}})=>{
             try{
 
                 const userFound = await User.findOne({user})
@@ -19,7 +29,9 @@ export default {
 
                 const newUser = new User({
                     user,
-                    password
+                    name,
+                    password,
+                    rol
                 })
 
                 await newUser.save() 
@@ -30,20 +42,21 @@ export default {
             }
             catch(err){
                 console.log(err)
-                throw err
                 return false;
             }
         },
-        authenticateUser: async (parents, {user,password}, {token} )=>{
-            token()
+        authenticateUser: async (parents, {user,password}, {models:{User}, token} )=>{
             const nameUser = await User.findOne({user});
             
             if(!nameUser) throw new Error('Usuario no encontrado');
 
             const rigthPassword = await bcrypt.compare(password, nameUser.password);
             if(!rigthPassword) throw new Error('Password Incorrecto')
-            else return{
-                token: createToken(nameUser,process.env.SECRET,'1hr')
+            else{
+                token()
+                return{    
+                    token: createToken(nameUser,process.env.SECRET,'1hr')
+                } 
             } 
 
         }

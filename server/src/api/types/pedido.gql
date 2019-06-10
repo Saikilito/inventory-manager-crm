@@ -5,6 +5,7 @@ type Order{
     fecha: String
     cliente: ID!
     estado: EstadoPedido
+    sellerID:ID
 }
 type PedidoProducto{ 
     _id: ID!
@@ -29,7 +30,8 @@ input iOrder{
     total: Int!
     fecha: String
     cliente: ID!
-    estado: EstadoPedido
+    estado: EstadoPedido,
+    sellerID:ID!
 }
 input iPedidoProducto{
     _id: ID!

@@ -1,4 +1,5 @@
 import React, { Component, Fragment } from 'react';
+import {withRouter} from 'react-router-dom';
 
 import { Query } from 'react-apollo';
 import { PRODUCTOS_QUERY } from '../../services/queries/products';
@@ -29,6 +30,7 @@ class NuevoPedido extends Component {
                                 
                             return(
                                 < Pedidos
+                                    session={this.props.session}
                                     products={data.getAllProducts}
                                     _id={_id}
                                 />
@@ -43,5 +45,5 @@ class NuevoPedido extends Component {
     }
 }
 
-export default NuevoPedido;
+export default withRouter(NuevoPedido);
 
