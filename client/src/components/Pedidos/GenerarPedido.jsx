@@ -1,7 +1,7 @@
 import React from 'react';
-import { withRouter } from 'react-router-dom'
+import { withRouter } from '../RouterCompat.jsx'
 
-import { Mutation } from 'react-apollo';
+import { Mutation } from '../ApolloBridge.jsx';
 import { CREAR_PEDIDO } from '../../services/mutations/pedidos';
 
 const validarPedido = (props) => {

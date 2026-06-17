@@ -1,7 +1,7 @@
 import React, { Component, Fragment } from 'react';
-import {withRouter} from 'react-router-dom';
+import { withRouter } from '../../components/RouterCompat.jsx';
 
-import { Query } from 'react-apollo';
+import { Query } from '../../components/ApolloBridge.jsx';
 import { PRODUCTOS_QUERY } from '../../services/queries/products';
 
 import DatosCliente from '../../components/Pedidos/DatosCliente';

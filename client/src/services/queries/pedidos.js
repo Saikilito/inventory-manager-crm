@@ -1,4 +1,4 @@
-import gql from 'graphql-tag';
+import { gql } from '@apollo/client';
 
 export const PEDIDOS_CLIENTE_QUERY = gql`
 query getOrderClient($client:ID!){

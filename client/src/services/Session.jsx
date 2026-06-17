@@ -1,19 +1,11 @@
 import React from 'react';
-import { Query } from 'react-apollo';
-import { USUARIO_ACTUAL} from './queries/users'
+import { useQuery } from '@apollo/client';
+import { USUARIO_ACTUAL } from './queries/users';
 
-const Session = Component => props =>(
-        <Query query={USUARIO_ACTUAL}>
-        {
-            ({loading,error, data, refetch})=>{
-                if(loading) return null;
-                return(
-                    <Component {...props} session={data} refetch={refetch}/>
-                )
-            }
-        }
-        </Query>
-);
+const Session = Component => props => {
+  const { loading, error, data, refetch } = useQuery(USUARIO_ACTUAL);
+  if (loading) return null;
+  return <Component {...props} session={data} refetch={refetch} />;
+};
 
 export default Session;
-

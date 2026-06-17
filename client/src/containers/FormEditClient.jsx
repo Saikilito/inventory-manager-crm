@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
-import  { withRouter } from 'react-router-dom';
-import { Mutation } from 'react-apollo';
+import { withRouter } from '../components/RouterCompat.jsx';
+import { Mutation } from '../components/ApolloBridge.jsx';
 import { UPDATE_CLIENT } from '../services/mutations/clients';
 
 class FormEditClient extends Component {

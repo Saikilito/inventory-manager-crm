@@ -1,4 +1,4 @@
-import gql from 'graphql-tag';
+import { gql } from '@apollo/client';
 
 export const CLIENTES_QUERY = gql`
 query buscarClientes($limite:Int, $offset:Int, $sellerID:ID){

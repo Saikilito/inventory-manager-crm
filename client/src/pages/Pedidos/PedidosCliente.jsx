@@ -1,6 +1,6 @@
 import React, {Fragment} from 'react';
 
-import { Query } from 'react-apollo';
+import { Query } from '../../components/ApolloBridge.jsx';
 import { PEDIDOS_CLIENTE_QUERY } from '../../services/queries/pedidos';
 
 import Spinkit from '../../components/Spinkit';

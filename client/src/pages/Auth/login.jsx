@@ -1,9 +1,9 @@
 import React, { Component, Fragment } from 'react';
-import { withRouter } from 'react-router-dom'
+import { withRouter } from '../../components/RouterCompat.jsx'
 
 import Error from '../../components/Error';
 
-import { Mutation } from 'react-apollo'
+import { Mutation } from '../../components/ApolloBridge.jsx'
 import {AUTENTICAR_USUARIO} from '../../services/mutations/users';
 
 const initialState = {

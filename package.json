@@ -1,0 +1,12 @@
+{
+  "name": "inventory-manager-crm",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n server,client -c blue,green \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "start": "concurrently -n server,client \"npm start --prefix server\" \"npm start --prefix client\"",
+    "setup": "cd server && npm install && cd ../client && npm install --legacy-peer-deps"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

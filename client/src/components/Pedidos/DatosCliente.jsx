@@ -1,5 +1,5 @@
 import React, { Fragment } from 'react';
-import { Query } from 'react-apollo'
+import { Query } from '../ApolloBridge.jsx'
 import { UN_CLIENTE_QUERY} from '../../services/queries/clients';
 
 const DatosCliente = ({ _id }) => {

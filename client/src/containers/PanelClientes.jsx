@@ -3,7 +3,7 @@ import React from 'react';
 import {BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip} from 'recharts';
 import Spinkit from '../components/Spinkit';
 
-import { Query } from 'react-apollo';
+import { Query } from '../components/ApolloBridge.jsx';
 import { TOP_CLIENTS } from '../services/queries/graphics';
 
 const TopClientes = () => {

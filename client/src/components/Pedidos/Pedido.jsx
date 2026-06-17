@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Query, Mutation } from 'react-apollo';
+import { Query, Mutation } from '../ApolloBridge.jsx';
 import { UN_PRODUCTO_QUERY } from '../../services/queries/products';
 import { ACTUALIZAR_PEDIDO } from '../../services/mutations/pedidos';
 

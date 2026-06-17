@@ -1,6 +1,6 @@
 import React, { Component, Fragment } from 'react';
-import { withRouter } from 'react-router-dom'
-import { Mutation } from 'react-apollo';
+import { withRouter } from '../../components/RouterCompat.jsx'
+import { Mutation } from '../../components/ApolloBridge.jsx';
 import { CREAR_PRODUCTO } from '../../services/mutations/products';
 
 const clearState = {

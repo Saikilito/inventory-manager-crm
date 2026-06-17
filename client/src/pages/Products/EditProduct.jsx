@@ -1,6 +1,6 @@
 import React, { Component, Fragment } from 'react';
 
-import {Query} from 'react-apollo';
+import { Query } from '../../components/ApolloBridge.jsx';
 import {UN_PRODUCTO_QUERY} from '../../services/queries/products';
 
 import FormEditProduct from '../../containers/FormEditProduct';

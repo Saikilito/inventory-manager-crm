@@ -1,4 +1,4 @@
-import gql from 'graphql-tag';
+import { gql } from '@apollo/client';
 
 export const CREAR_USUARIO = gql`
    mutation setUser($user:String!, $name:String!, $password:String!, $rol:String!){

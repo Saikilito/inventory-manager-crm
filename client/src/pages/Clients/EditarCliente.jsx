@@ -1,5 +1,6 @@
 import React, { Component, Fragment } from 'react';
-import { Query } from 'react-apollo';
+import { withRouter } from '../../components/RouterCompat.jsx';
+import { Query } from '../../components/ApolloBridge.jsx';
 import { UN_CLIENTE_QUERY } from '../../services/queries/clients'
 import { CLIENTES_QUERY } from '../../services/queries/clients'
 
@@ -34,4 +35,4 @@ class EditarCliente extends Component {
     }
 }
 
-export default EditarCliente;
+export default withRouter(EditarCliente);

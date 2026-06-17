@@ -1,4 +1,4 @@
-import gql from 'graphql-tag';
+import { gql } from '@apollo/client';
 
 export const CREAR_CLIENTE = gql`
     mutation crearCliente($input: iClient!){

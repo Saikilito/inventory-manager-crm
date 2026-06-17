@@ -1,5 +1,5 @@
 import React, { Fragment } from 'react';
-import { BrowserRouter as Router, Route, Switch, Redirect } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
 import Header from '../containers/Header';
 
@@ -18,34 +18,34 @@ import Register from '../pages/Auth/register';
 import Login from '../pages/Auth/login';
 import Session from '../services/Session';
 
-import Panel from '../pages/Panel/Panel'
+import Panel from '../pages/Panel/Panel';
 
 
-const Routes = ({session, refetch}) => {
-	const msg = session.getUser ? `Bienvenido: ${session.getUser.name}`: <Redirect to='/login'/>
+const AppRoutes = ({session, refetch}) => {
+	const msg = session.getUser ? `Bienvenido: ${session.getUser.name}`: <Navigate to='/login' replace />;
 	return (
 		<Router>
 			<Fragment>
 				<Header session={session}/>
 				    <div className="container">
 					<p className="text-right">{msg}</p>
-				    	<Switch>
-				    		<Route exact path="/clientes" render={()=><Clientes session={session.getUser}/>}/>
-				    		<Route exact path="/cliente/editar/:id" component={EditarCliente}/>
-				    		<Route exact path="/cliente/nuevo" render={()=><NuevoCliente session={session.getUser}/>}/>
-				    		<Route exact path="/productos" component={Productos}/>
-				    		<Route exact path="/producto/nuevo" render={()=><NuevoProducto/>}/>
-				    		<Route exact path="/producto/editar/:id" component={EditarProducto}/>
-				    		<Route exact path="/pedidos/:id" component={PedidosCliente}/>
-				    		<Route exact path="/pedido/nuevo/:id" render={()=><NuevoPedido session={session.getUser}/> }/>
-				    		<Route exact path="/panel" component={Panel}/>
-				    		<Route exact path="/registro" render={()=> <Register session={session.getUser} />}/>
-				    		<Route exact path="/login" render={()=><Login refetch={refetch}/>}/>
-				    	</Switch>
+				    	<Routes>
+				    		<Route path="/clientes" element={<Clientes session={session.getUser} />} />
+				    		<Route path="/cliente/editar/:id" element={<EditarCliente />} />
+				    		<Route path="/cliente/nuevo" element={<NuevoCliente session={session.getUser} />} />
+				    		<Route path="/productos" element={<Productos />} />
+				    		<Route path="/producto/nuevo" element={<NuevoProducto />} />
+				    		<Route path="/producto/editar/:id" element={<EditarProducto />} />
+				    		<Route path="/pedidos/:id" element={<PedidosCliente />} />
+				    		<Route path="/pedido/nuevo/:id" element={<NuevoPedido session={session.getUser} />} />
+				    		<Route path="/panel" element={<Panel />} />
+				    		<Route path="/registro" element={<Register session={session.getUser} />} />
+				    		<Route path="/login" element={<Login refetch={refetch} />} />
+				    	</Routes>
 				    </div>
 			</Fragment>
 		</Router>
 	);
 };
 
-export default Session(Routes);
+export default Session(AppRoutes);

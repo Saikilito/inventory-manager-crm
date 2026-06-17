@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
-import { withRouter} from 'react-router-dom';
+import { withRouter } from '../components/RouterCompat.jsx';
 
-import { Mutation } from 'react-apollo';
+import { Mutation } from '../components/ApolloBridge.jsx';
 import { UPDATE_PRODUCT } from '../services/mutations/products';
 
 

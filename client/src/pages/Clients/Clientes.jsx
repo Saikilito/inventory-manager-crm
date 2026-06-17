@@ -1,7 +1,7 @@
 import React, { Fragment, Component } from 'react';
 import { Link } from 'react-router-dom';
 
-import { Query, Mutation } from 'react-apollo';
+import { Query, Mutation } from '../../components/ApolloBridge.jsx';
 import { CLIENTES_QUERY } from '../../services/queries/clients';
 import { DELETE_CLIENT } from '../../services/mutations/clients';
 

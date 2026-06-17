@@ -1,7 +1,7 @@
 import React, { Component, Fragment } from 'react';
 import { Link } from 'react-router-dom';
 
-import { Query, Mutation } from 'react-apollo';
+import { Query, Mutation } from '../../components/ApolloBridge.jsx';
 import { PRODUCTOS_QUERY } from '../../services/queries/products';
 import { DELETE_PRODUCT } from '../../services/mutations/products';
 
