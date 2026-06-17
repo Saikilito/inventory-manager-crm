@@ -1,8 +1,5 @@
 import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv';
 import bcrypt from 'bcrypt';
-
-dotenv.config({path:'variables.env'})
 const createToken = (userLogin, secret, expiresIn)=>{
     const {user} = userLogin
 

@@ -1,22 +1,15 @@
 import mongoose from 'mongoose';
-import config from './';
+import config from './index.js';
 
 const db = () => {
-	
-	const mongoConfig = {
-		useNewUrlParser: true,
-		useCreateIndex: true,
-		useFindAndModify:false
-	}
-
-    mongoose.connect(config.database, mongoConfig)
+    mongoose.connect(config.database)
         .then(() => {
-		    console.log('Conectado a mongo!');
+            console.log('Conectado a mongo!');
 
-		    const ObjectId = mongoose.Types.ObjectId;
-		    ObjectId.prototype.valueOf = function() {
-		    return this.toString();
-		};
-	});
+            const ObjectId = mongoose.Types.ObjectId;
+            ObjectId.prototype.valueOf = function() {
+                return this.toString();
+            };
+        });
 };
 export default db;

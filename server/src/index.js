@@ -1,17 +1,19 @@
-//Sistema basado en Express
 import express from 'express';
+import cors from 'cors';
+import { expressMiddleware } from '@as-integrations/express4';
+import server, { context } from './config/apollo.js';
+import config from './config/index.js';
 
-//Archivos para la configuracion de modulos
-import config from './config';
-import db from './config/db-connection';
-import server from './config/apollo';
-
-//Settings
 const app = express();
-server.applyMiddleware({ app });
+app.use(express.json());
+app.use(cors());
 
-//DB y Server
-app.listen( config.PORT ,() => {
-    db()
-    console.log(`🚀 Server ready at http://localhost:${config.PORT}${server.graphqlPath}`)
-})
+await server.start();
+app.use('/graphql', cors(), express.json(), expressMiddleware(server, { context }));
+
+const { default: db } = await import('./config/db-connection.js');
+
+app.listen(config.PORT, () => {
+  db();
+  console.log(`🚀 Server ready at http://localhost:${config.PORT}/graphql`);
+});

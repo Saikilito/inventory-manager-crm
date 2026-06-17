@@ -1,44 +1,38 @@
-import { ApolloServer } from 'apollo-server-express';
-
-//Modelos de la base de datos
-import models from '../models'
-
-//JWT
-import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv';
-dotenv.config({path:'variables.env'})
-
-//Mezclando types y resolvers
+import { ApolloServer } from '@apollo/server';
+import { loadFilesSync } from '@graphql-tools/load-files';
+import { mergeTypeDefs, mergeResolvers } from '@graphql-tools/merge';
 import path from 'path';
-import { fileLoader, mergeTypes, mergeResolvers } from 'merge-graphql-schemas';
-const typeDefs = mergeTypes(fileLoader(path.join(__dirname, '../api/types')));
-const resolvers = mergeResolvers(fileLoader(path.join(__dirname, '../api/resolvers')));
+import { fileURLToPath } from 'url';
+import models from '../models/index.js';
+import jwt from 'jsonwebtoken';
 
-const server = new ApolloServer({typeDefs, resolvers,
-    context: ({req})=>({ 
-        models,
-        token: async() =>{
-            const token = req.headers['authorization'];
-            console.log("| - Token - | : ", token)
-            if(token !== "null"){
-                try{
-                    const actualUser = await jwt.verify(token,process.env.SECRET);
-                    console.log(actualUser);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-                    req.actualUser = actualUser
-                    return actualUser
-                }
-                catch(err){
-                    console.error(err)
-                }
-                
-            }
-            else return "Soy nuur"
+const typeDefs = mergeTypeDefs(loadFilesSync(path.join(__dirname, '../api/types')));
+const resolvers = mergeResolvers(loadFilesSync(path.join(__dirname, '../api/resolvers')));
+
+const server = new ApolloServer({ typeDefs, resolvers });
+
+export default server;
+
+export const context = async ({ req }) => {
+  const tokenStr = req.headers['authorization'];
+
+  return {
+    models,
+    token: async () => {
+      if (tokenStr !== "null") {
+        try {
+          const actualUser = await jwt.verify(tokenStr, process.env.SECRET);
+          req.actualUser = actualUser;
+          return actualUser;
+        } catch (err) {
+          console.error(err);
         }
-    })
-});
-
-
-
-export default server
-    
+      } else {
+        return "Soy nuur";
+      }
+    }
+  };
+};

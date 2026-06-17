@@ -1,7 +1,7 @@
-import Client from './client';
-import Product from './product';
-import Order from './pedido';
-import User from './users';
+import Client from './client.js';
+import Product from './product.js';
+import Order from './pedido.js';
+import User from './users.js';
 
 const models = {
     Client,
