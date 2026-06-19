@@ -1,0 +1,48 @@
+type Order {
+  _id: ID
+  items: [OrderItem]!
+  total: Int!
+  createdAt: String
+  clientId: ID!
+  status: OrderStatus
+  sellerId: ID
+}
+
+type OrderItem {
+  productId: ID!
+  quantity: Int
+}
+
+enum OrderStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+type Query {
+  getOrderClient(clientId: ID!): [Order]!
+  getAllOrders(limit: Int, offset: Int): [Order]!
+  getOrder(_id: ID!): Order!
+  totalOrders: Int
+}
+
+input OrderItemInput {
+  productId: ID!
+  quantity: Int
+}
+
+input OrderInput {
+  _id: ID
+  items: [OrderItemInput]!
+  total: Int!
+  createdAt: String
+  clientId: ID!
+  status: OrderStatus
+  sellerId: ID!
+}
+
+type Mutation {
+  setOrder(input: OrderInput!): Boolean!
+  updateOrder(input: OrderInput!): Boolean!
+  deleteOrder(_id: ID!): Boolean!
+}

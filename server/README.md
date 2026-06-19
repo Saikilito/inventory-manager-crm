@@ -57,7 +57,7 @@ Si no existe `.env`, el server usa valores por defecto:
 
 - Puerto: `4555`
 - MongoDB: `mongodb://localhost:27017/CRM-Apollo`
-- Secret JWT: `MISAIKILITOSECRET`
+- Secret JWT: `JWT_SECRET_DEFAULT`
 
 ## Arquitectura
 

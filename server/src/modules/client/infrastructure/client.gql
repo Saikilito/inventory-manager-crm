@@ -1,0 +1,46 @@
+type Client {
+  _id: ID
+  firstName: String!
+  lastName: String!
+  company: String!
+  emails: [Email]
+  age: Int!
+  type: ClientType!
+  sellerId: ID
+}
+
+type Email {
+  email: String
+}
+
+enum ClientType {
+  BASIC
+  PREMIUM
+}
+
+type Query {
+  getClient(_id: ID!): Client!
+  getAllClients(limit: Int, offset: Int, sellerId: ID): [Client]!
+  totalClients(sellerId: ID): Int
+}
+
+input EmailInput {
+  email: String
+}
+
+input ClientInput {
+  _id: ID
+  firstName: String!
+  lastName: String!
+  company: String!
+  emails: [EmailInput]
+  age: Int!
+  type: ClientType!
+  sellerId: ID
+}
+
+type Mutation {
+  setClient(input: ClientInput!): Boolean!
+  updateClient(input: ClientInput!): Boolean!
+  deleteClient(_id: ID!): Boolean!
+}

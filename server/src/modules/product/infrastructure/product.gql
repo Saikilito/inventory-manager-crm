@@ -1,0 +1,25 @@
+type Product {
+  _id: ID
+  name: String!
+  price: Int!
+  stock: Int!
+}
+
+type Query {
+  getAllProducts(limit: Int, offset: Int): [Product]!
+  getProduct(_id: ID!): Product!
+  totalProducts: Int
+}
+
+input ProductInput {
+  _id: ID
+  name: String!
+  price: Int!
+  stock: Int!
+}
+
+type Mutation {
+  setProduct(input: ProductInput!): Boolean!
+  updateProduct(input: ProductInput!): Boolean!
+  deleteProduct(_id: ID!): Boolean!
+}

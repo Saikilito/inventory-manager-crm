@@ -1,1 +1,11 @@
-SECRET = superSecret
+# Server Port
+PORT=4555
+
+# MongoDB Connection String URI
+MONGODB_URI=mongodb://localhost:27017/CRM-Apollo
+
+# JWT Signature Secret Key
+SECRET=JWT_SECRET_DEFAULT
+
+# Frontend URL Client for CORS Origins
+CLIENT_URL=http://localhost:3000

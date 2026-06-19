@@ -1,225 +1,217 @@
 # AGENTS.md
 
 > [!IMPORTANT]
-> This is a high-performance **Nx Monorepo Router**. Your mission is to load
-> ONLY the context and skills necessary for the current task. Do not load
-> everything at once.
+> This is a high-performance **Full-Stack JS/TS Screaming Architecture Project Router**.
+> Your mission is to load ONLY the context and skills necessary for the current task. Do not load
+> everything at once. We are transitioning this project to **TypeScript, Clean/Screaming Architecture**,
+> and high-quality development standards.
 
 ---
 
-## 🎯 Project Mission: Content Velocity
+## 🎯 Project Mission: Inventory CRM
 
-**Content Velocity** is a strategic initiative to generate high-speed,
-high-quality digital content (currently images) using AI.
+An inventory and customer relationship management (CRM) system for managing products, clients, sellers, and orders.
 
 The core value proposition is the **intelligent fusion** of:
 
-1. **Store Product Data:** Product attributes and assets.
-2. **AI Context:** Contextual descriptions and backgrounds generated via GenAI.
-3. **Business Templates:** Visual frameworks that ground the product in the
-   brand's identity.
+1. **Client & Order Management:** Solid tracking of orders (pedidos) linked to customers (clientes) and sellers (vendedores).
+2. **Real-time Inventory control:** Product catalogs with dynamic stock deductions and updates.
+3. **Analytics Dashboard:** Graphical summaries of sales, top sellers, and customer activity.
 
-Your goal is to ensure the architecture remains as fast and scalable as the
-content it produces.
+Your goal is to guide the system through its upcoming refactor to **TypeScript, English naming, Screaming Architecture**, and high-quality standards.
 
 ---
 
-## 🚀 Quick Commands (Nx)
+## 🚀 Quick Commands (Concurrently / Local)
+
+These are the direct commands to manage the client and server.
 
 ```bash
-# Core Operations
-npx nx run-many --target=test             # Run all tests
-npx nx run-many --target=lint             # Run all linters
-npx nx run-many --target=serve            # Start dev servers
+# Core Operations (from root folder)
+npm run setup                             # Installs dependencies in client and server
+npm run dev                               # Starts client (Vite) and server (GraphQL/Node) concurrently
+npm run start                             # Starts client and server in production mode
 
 # Focused Work
-npx nx test <project-name>                # Test specific app/lib
-npx nx serve <project-name>               # Serve specific app
-npx nx affected:test                      # Run tests affected by changes
+npm run dev --prefix client               # Start client development server
+npm run dev --prefix server               # Start server development server
+npm run test --prefix client              # Run client tests (if configured)
 ```
 
 ---
 
-## 🗺️ Project Map (Monorepo Structure)
+## 🗺️ Project Map & Screaming Architecture
 
-Use this map to locate the core components of the Content Velocity system.
+We use a strict **Screaming Architecture (Folder-by-Feature)** layout. The structure must clearly "scream" what the application does (Clients, Orders, Products, Users) rather than just showing technical folders.
 
-| Category | Component    | Location                        | Description                               |
-| :------- | :----------- | :------------------------------ | :---------------------------------------- |
-| **Apps** | `web-app`    | `apps/web-app`                  | React + Vite frontend (Azure MSAL)        |
-|          | `bff-api`    | `apps/bff-api`                  | NestJS HTTP Gateway (Public API)          |
-|          | `collections`| `apps/collections`              | NestJS TCP Microservice (Collections)     |
-|          | `content-ai` | `apps/content-ai`               | NestJS TCP Microservice (AI Generation)   |
-|          | `auth`       | `apps/auth`                     | NestJS Microservice (Authentication)      |
-| **Libs** | `domain`     | `libs/domain`                   | Pure Domain Layer (Framework-agnostic)    |
-|          | `backend`    | `libs/product-context/backend`  | NestJS/TypeORM Infrastructure & Use Cases |
-|          | `frontend`   | `libs/product-context/frontend` | PLoC, Auth Use Cases, MSAL adapter        |
-|          | `shared`     | `libs/shared`                   | Shared constants and utilities            |
+We also maintain a **`shared-domain/`** folder at the workspace root containing pure domain entities and value objects shared between frontend and backend.
+
+```
+inventory-manager-crm/
+├── shared-domain/                       # Common domain shared between Client and Server (Pure TS)
+│   └── src/
+│       ├── client/                      # Shared Client entity & domain logic
+│       ├── order/                       # Shared Order entity & domain logic
+│       └── shared/                      # Base monads (Result), value objects, etc.
+├── client/                              # React Presentation & GraphQL Clients
+│   └── src/
+│       ├── modules/                     # Features/Domains (Screaming!)
+│       │   ├── client/                  # Client feature
+│       │   │   ├── application/         # Client Use Cases
+│       │   │   └── infrastructure/      # Apollo queries/mutations & React views
+│       │   └── order/                   # Order feature
+│       │       ├── application/
+│       │       └── infrastructure/
+│       └── main.tsx
+└── server/                              # Node.js GraphQL API
+    └── src/
+        ├── modules/                     # Features/Domains (Screaming!)
+        │   ├── client/                  # Client feature
+        │   │   ├── application/         # Client use cases
+        │   │   └── infrastructure/      # GQL Resolvers/schemas, Mongoose Models/Schemas
+        │   └── order/                   # Order feature
+        │       ├── application/
+        │       └── infrastructure/
+        └── index.ts
+```
 
 ---
 
-## 🧠 Software Architect Mindset
+## 📐 Non-Negotiable Architecture & Refactor Rules
 
-Act as a **World-Class Software Architect**. Do not just follow orders; protect
-the system's integrity.
+Act as a **World-Class Software Architect**. Protect the code's health at all costs during the refactor.
 
-- **Question Everything:** If a request violates Clean Architecture or DDD,
-  object and suggest a better way.
-- **Centralize Logic:** Business rules MUST live in **Value Objects**. If it
-  doesn't exist, create it.
-- **Services = Domain Logic:** Services receive VOs, never primitives. They
-  **never** call other services.
-- **Use Cases = Orchestrators:** The Use Case is the director. It coordinates
-  the flow between services.
+### 🏛️ 1. Screaming Clean Architecture
 
----
+- **Layer Purity:** Every module is split into `domain/` (optional if already in `shared-domain/`), `application/` (Use Cases), and `infrastructure/` (Framework adapters like React, Apollo, Mongoose, Express).
+- **Inward Dependencies:** Core domain logic must never import any framework or external library.
 
-## 📐 Core Architecture Rules
+### 🔄 2. Strict DRY (Don't Repeat Yourself) Policy
 
-| Feature           | Rule                                                                                   |
-| :---------------- | :------------------------------------------------------------------------------------- |
-| **Validations**   | Must be encapsulated in **Value Objects**. No spread-out validation logic.             |
-| **Service Input** | Services only accept **Value Objects**. This ensures inputs are valid by construction. |
-| **Orchestration** | Only **Use Cases** can call multiple services or handle execution flow.                |
-| **Domain Purity** | No imports from NestJS, TypeORM, or React inside `libs/domain`.                        |
-| **Errors**        | Use `Result.ok()` or `Result.fail()`. **NEVER** use `throw`.                           |
+- **Verify Before Writing:** Before writing any piece of code (utility, type, interface, class, or helper function), you **MUST** search the codebase (using `grep`, `glob`, or `search`) to see if an equivalent or reusable artifact already exists.
+- **Reusability:** Extract common logic to shared modules or to `shared-domain/` instead of duplicating.
+
+### 🏷️ 3. Strict English & Translation
+
+- All code, variable names, database schemas, GraphQL fields, directories, and comments **MUST** be written in English.
+- Spanish terms must be migrated during refactoring (e.g., `pedidos` ➡️ `orders`, `clientes` ➡️ `clients`).
+
+### ⚙️ 4. Strict TypeScript & Best Practices
+
+- **No `any`:** Strict typing is mandatory. If a type is truly dynamic, use generics or `unknown`.
+- **No Magic Numbers & No Magic Strings:**
+  - Never use raw numbers or raw strings inline for business logic.
+  - Store configuration, states, or constants in dedicated `constants.ts` or as readonly static properties / frozen objects within domain value objects.
+  - **Standard Enum-like Constant Pattern:** Use frozen readonly objects to define runtime constants and derive compile-time union types to avoid magic strings. For example:
+    ```typescript
+    // 1. Define the frozen runtime constant (Single Source of Truth)
+    export const OrderStatus = {
+      PENDING: 'PENDING',
+      COMPLETED: 'COMPLETED',
+      CANCELLED: 'CANCELLED',
+    } as const;
+
+    // 2. Derive the static TypeScript type for compile-time safety
+    export type OrderStatus = typeof OrderStatus[keyof typeof OrderStatus];
+    ```
+- **Pattern Matching with `ts-pattern`:**
+  - **Never** use traditional `switch` statements or deep nested `if-else` blocks for business-critical state evaluation.
+  - Always use the **`ts-pattern`** library (`match` API) to ensure pattern matching is complete and exhaustive.
+
+### ⚛️ 5. Functional React Components
+
+- Convert all legacy class components to React functional components utilizing hooks.
+- Follow performance rules (avoiding unnecessary re-renders or stale closures) using the `vercel-react-best-practices` skill.
+
+### 🚫 6. Avoid Classes at All Costs (Functional-First Paradigm)
+
+- **Prefer Functions Over Classes:** Always, always, always avoid using ES6 classes (`class`) wherever possible. Run away from classes!
+- **Data as Plain Objects:** Represent domain models, entities, and value objects using pure TypeScript **Types or Interfaces** rather than classes.
+- **Logic as Pure Functions & Closures:** Enforce the Functional-First approach. Implement all domain logic, services, and use cases as plain pure functions or functional factory closures (following the Make Pattern).
+- **No Class Instances:** Compose behavior using function composition, currying, and plain objects. Only allow classes if strictly forced by external third-party libraries (such as Mongoose models), but even then, encapsulate them and prevent them from leaking into our core domain or application layer.
+
+### 🛡️ 7. Schema Validation with Zod
+
+- **Always Use Zod:** Prefer and enforce the use of **Zod** schemas (`zod` library) for any type of request, input, form, API, or environment variable validation.
+- **Type Inference:** Always infer static TypeScript types directly from Zod schemas using `z.infer<typeof schema>` to maintain a single source of truth and avoid duplicating interfaces.
+- **No Manual Validation:** Avoid writing custom regexes, complex manual conditional checks, or manual validator functions when a Zod schema can handle the validation.
+
+### 🛡️ 8. Strict Validation Layering Rule (Prioritized Levels)
+
+All validation rules must be concentrated strictly by prioritizing the architectural levels:
+- **Value Objects (First Priority):** Place all basic primitive-level formatting and format validations (e.g., email syntax, non-empty strings, positive/non-negative numbers, UUID formats) directly inside the **Value Object** creation.
+- **Domain Entities (Second Priority):** Place entity-level multi-field consistency checks and domain validations (e.g., checking password complexity relative to role, validating total calculations, or verifying dependency fields) directly inside the **Domain Entity/Factory** level.
+- **Use Cases (Final Priority):** Place external, contextual, or database-dependent validations (e.g., checking if email is already taken, verifying user session permissions, or checking current database stock levels) strictly inside the **Use Case** level.
+
+### 🛡️ 9. Strict Value Object Signatures for Services and Repositories
+
+All repositories and core services must enforce Value Objects at their type boundaries:
+- **Value Objects Over Primitives:** Repositories, query parameters, query builders, and filters (`WhereField`) **MUST** use strongly-typed Value Objects (`Id`, `PositiveNumber`, `NonEmptyString`) rather than raw types (`string`, `number`, `any[]`) in their input signatures.
+- **Use Case Responsibility:** It is the sole responsibility of the **Use Case** to act as a validation gate, taking raw primitives from the delivery layer and instantiating/validating them into domain Value Objects before passing them down to the repositories or services.
+- **No `as any` Castings:** Bypassing Value Object signatures using `as any` on repository inputs is strictly prohibited. If a repository expects a `PositiveNumber` or `Id`, the Use Case must construct it natively (using `PositiveNumberVO.create` or `IdVO.create`).
+- **NIL UUID for System Actor:** When database auditing requires an actor `Id` for background or system-driven operations (such as `createdBy`, `updatedBy`, `deletedBy`), use the NIL UUID via `IdVO.generateNil()` instead of the raw string `'system' as any`.
+
 
 ---
 
 ## ⚙️ Quality & Development Standards
 
-Follow these professional coding standards to maintain system health.
-
 ### 🧩 Functional-First & DI (The "Make" Pattern)
 
-We prioritize keeping our code as simple as possible, moving most of the logic
-to functions whenever feasible.
+We prioritize keeping our code as simple as possible, moving most of the logic to functions.
+We use the "Make" Pattern for dependency injection via **Currying**. A factory function receives dependencies as the first argument group and returns another function with the business logic.
 
-See [make-pattern.md](docs/agents/make-pattern.md) for routing guidance,
-structure, and examples.
+- See [make-pattern.md](docs/agents/make-pattern.md) for routing guidance, structure, and examples.
 
-- **"Make" Pattern:** We use the "Make" Pattern for dependency injection via
-  **Currying**. A function is built that receives dependencies as the first
-  argument and returns another function with the business logic.
+### 💎 Result Over Throw & Result Composition
 
-### 🏛️ Hexagonal & Repository Pattern
+- Errors are data, not exceptions. Use the `Result<T, E>` monad. Use Cases and Services must return `Result` to the caller.
+- Avoid "if-ladders" (nested `if(result.isFailure)`) by chaining operations.
 
-- **Interfaces in the Domain (Ports):** The importance of Ports (Interfaces) in
-  the domain is critical to guarantee a total decoupling from the
-  infrastructure.
-- **Implementation:** Define the interface in `libs/domain` and implement it in
-  the infrastructure layer. Use Cases should only know the interface.
-
-### 🗄️ Data Access & Query Strategy
-
-Prefer solving read logic at the database level and explicitly avoid **N+1**
-queries.
-
-Use this escalation path:
-
-1. **Repository Queries First:** Default to the shared repository client using
-   `where.fields`, `where.relations`, `relations`, and `joins` whenever the use
-   case fits the existing API. See `docs/agents/repository-queries.md`.
-2. **Query Builder Second:** If the repository query API is not sufficient, use
-   a Query Builder, but keep the query readable and maintainable.
-3. **TypeScript Logic Last:** Only if the Query Builder becomes too complex or
-   harms readability, fetch the necessary raw data and complete the complex
-   logic in TypeScript.
-
-- **Default choice:** If `repository.getAll()` with `where.fields` or
-  `where.relations` can solve the task, use it first.
-- **Escalate intentionally:** Move to Query Builder only when the repository
-  client is no longer expressive enough.
-- **In-memory logic is a fallback:** Do not move filtering or aggregation to
-  TypeScript when the database can still solve it clearly.
-
-### 💎 Domain Purity & Immutability
-
-- **Pure Functions:** Domain logic (VOs, Entities) must be **pure functions**.
-  No side effects, no I/O, and no global state.
-- **Immutability:** Domain state **is not mutated**. New states must be
-  generated through methods like `fromPrimitives` or `create` instead of
-  modifying existing properties. This fits perfectly with our functional
-  architecture.
-
-### 🧪 Standard Rules
-
-- **TypeScript Strict Mode:**
-  - Always use strict typing.
-  - **NEVER** use `any`. Use `unknown` or generics if the type is truly dynamic.
-  - Define interfaces/types for all data structures.
-- **TDD (Test-Driven Development):**
-  - Write the test **BEFORE** the implementation.
-  - Follow the **Red-Green-Refactor** cycle.
-  - Use `npx nx test <project>` to validate changes continuously.
-- **File Size Guardrail:**
-  - When writing code, if the agent detects that a file exceeds 300 lines, it must evaluate whether the new change should be refactored into smaller units.
-  - If the refactor is safe and clearly improves maintainability, the agent should do it.
-  - If the refactor is not clearly safe within the current task scope, the agent should explicitly propose it to the user before continuing with a larger file.
-- **Result Over Throw:**
-  - Errors are data, not exceptions. Use the `Result<T, E>` monad.
-  - Use Cases and Services must return `Result` to the caller.
-- **Result Composition (ResultComposer):**
-  - Avoid "if-ladders" (nested `if(result.isFailure)`) by chaining operations.
-  - See [result-composer.md](docs/agents/result-composer.md) for routing guidance,
-    structure, and examples.
+* See [result-composer.md](docs/agents/result-composer.md) for routing guidance, structure, and examples.
 
 ---
 
 ## 🛠️ Task Routing & Context Management
 
-Before starting any task, **identify your route** in the table below and load
-the specific guide using `view_file` only when needed.
+Before starting any task, **identify your route** in the table below and load the specific guide using `view_file` only when needed.
 
-| Task Category                | Relevant Documentation                                     | When to Load                                                                                          |
-| :--------------------------- | :--------------------------------------------------------- | :---------------------------------------------------------------------------------------------------- |
-| **Architecture & Structure** | [architecture.md](docs/agents/architecture.md)             | Questions about layers, dependencies, or path aliases.                                                |
-| **Backend**                  | [backend.md](docs/agents/backend.md)                       | Working on NestJS apps, TCP microservices, controllers, Unit of Work, or backend error mapping.      |
-| **Commands**                 | [commands.md](docs/agents/commands.md)                     | Looking up Nx commands, serve/build/test flows, migrations, or request-file workflows.                |
-| **Conventions**              | [conventions.md](docs/agents/conventions.md)               | Naming files, branches, or formatting code.                                                           |
-| **Database**                 | [database.md](docs/agents/database.md)                     | Working with TypeORM entities, migrations, soft deletes, or database-layer configuration.             |
-| **Domain Layer**             | [domain.md](docs/agents/domain.md)                         | Working with pure domain logic, entities, value objects, the Result monad, or Opaque types.          |
-| **Frontend**                 | [frontend.md](docs/agents/frontend.md)                     | Working on React modules, PLoCs, presentation boundaries, or app-scoped frontend architecture.        |
-| **Make Pattern**             | [make-pattern.md](docs/agents/make-pattern.md)             | Creating or refactoring services, use cases, or dependency injection with curried factories.          |
-| **Testing**                  | [testing.md](docs/agents/testing.md)                       | Writing, updating, or running tests.                                                                  |
-| **Agent Guidelines**         | [agents-guidelines.md](docs/agents/agents-guidelines.md)   | **MANDATORY:** Load before updating `AGENTS.md` or any file within docs/agents/\*                     |
-| **Repository Queries**       | [repository-queries.md](docs/agents/repository-queries.md) | Building dynamic repository queries with `relations`, `joins`, `where.fields`, and `where.relations`. |
-| **Result Composition**       | [result-composer.md](docs/agents/result-composer.md)       | Sequential workflows with 2+ dependent `Result` steps using `ResultComposer`.                         |
+| Task Category                | Relevant Documentation                                   | When to Load                                                                      |
+| :--------------------------- | :------------------------------------------------------- | :-------------------------------------------------------------------------------- |
+| **Architecture & Structure** | [architecture.md](docs/agents/architecture.md)           | Clean/Screaming Architecture rules, feature directories, shared-domain setup.     |
+| **Conventions**              | [conventions.md](docs/agents/conventions.md)             | English naming, TS standards, ts-pattern rules, avoiding magic values.            |
+| **Philosophy & Data Flow**   | [philosophy.md](docs/agents/philosophy.md)               | Understanding Use Case orchestration, Single Responsibility, Service contracts of trust, validation layering, and database-first reading with Mongoose. |
+| **Make Pattern**             | [make-pattern.md](docs/agents/make-pattern.md)           | Creating or refactoring services or dependency injection.                         |
+| **Result Composition**       | [result-composer.md](docs/agents/result-composer.md)     | Chaining multiple operations returning `Result` types.                            |
+| **Testing**                  | [testing.md](docs/agents/testing.md)                     | Writing, updating, or running tests.                                              |
+| **Agent Guidelines**         | [agents-guidelines.md](docs/agents/agents-guidelines.md) | **MANDATORY:** Load before updating `AGENTS.md` or any file within docs/agents/\* |
 
 ---
 
 ## ✅ Definition of Done (DoD) for the AI
 
-Before considering a task finished and submitting a response or PR, you **MUST**
-verify the following checklist:
+Before considering a task finished and submitting a response or PR, you **MUST** verify the following checklist:
 
 ### 🛠️ Technical Quality
 
-- [ ] **Interfaces & Types:** Verified the use of interfaces and reusable types.
-- [ ] **Type Centralization:** If new types were created, confirmed they are not
-      duplicates and are stored in a shared directory (`libs/shared` or
-      context-specific shared folders) for future reuse.
-- [ ] **Result Composition:** Used `ResultComposer` for any workflow involving 2
-      or more sequential `Result` operations.
-- [ ] **Strict Typing:** Final check to ensure `any` is not used, opting for
-      `unknown` or generics where applicable.
-- [ ] **No Side-Effects in Domain:** Verified that logic in `libs/domain`
-      consists of pure functions with no side effects or I/O.
+- [ ] **Screaming Architecture:** Organized by domain module (folder-by-feature).
+- [ ] **Shared Domain:** Common entities and VOs placed in `shared-domain/`.
+- [ ] **Strict DRY check:** Ran search to ensure no code duplication exists.
+- [ ] **TypeScript Strict:** Strict typing with zero `any` usages.
+- [ ] **No Magic Values:** Refactored magic strings/numbers to constants.
+- [ ] **ts-pattern:** Used `match()` instead of `switch` statements for state-based logic.
+- [ ] **Clean Architecture:** Domain and Application layers are 100% pure (no framework imports).
+- [ ] **English Naming:** Code, variables, schemas, and files are written completely in English.
+- [ ] **Functional Components:** All refactored React components are functional and use React hooks.
+- [ ] **Make Pattern & Result Composition:** Used where DI or multiple `Result` chainings are present.
 
 ### 📖 Readability & Self-Documentation
 
-- [ ] **Self-Documenting Code:** The code is human-readable and its intent is
-      clear from naming and structure, minimizing the need for comments.
-- [ ] **Variable Naming:** Names are descriptive and follow the project's naming
-      conventions.
+- [ ] **Self-Documenting:** Naming and structure are clear enough to make comments redundant.
+- [ ] **No Dead Code:** Removed unused code, imports, or old comments.
 
 ### 🧪 Verification & Testing
 
-- [ ] **TDD Compliance:** Tests were written or updated _before_ the
-      implementation (or at least verified to pass after).
-- [ ] **Nx Integrity:** Ran `npx nx affected:test` and `npx nx affected:lint` to
-      ensure no regressions were introduced.
-- [ ] **Error Handling:** Every failure path is handled with a specific
-      `Result.fail()` (no `throws`).
-
----
+- [ ] **Manual/Automatic verification:** Verified that both `client/` and `server/` start up and build cleanly.
+- [ ] **No regressions:** Checked that existing features are fully intact or safely migrated.
+- [ ] **Error Handling:** Every failure path is handled with a specific `Result.fail()`.
