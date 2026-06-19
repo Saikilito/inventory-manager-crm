@@ -1,12 +1,12 @@
 type totalClient{
     total: Float
-    client:[Client]!
+    client:[Client]
 }
 type totalSellers{
     total: Float
-    seller:[User]!  
+    seller:[User]  
 }
 type Query{
-    topClients:[totalClient]!
-    topSellers:[totalSellers]!
+    topClients:[totalClient]
+    topSellers:[totalSellers]
 }

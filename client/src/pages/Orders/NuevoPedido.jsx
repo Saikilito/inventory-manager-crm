@@ -1,0 +1,44 @@
+import React, { Component, Fragment } from "react";
+import { withRouter } from "../../components/RouterCompat.jsx";
+
+import { Query } from "../../components/ApolloBridge.jsx";
+import { PRODUCTOS_QUERY } from "../../services/queries/products.js";
+
+import DatosCliente from "../../components/Pedidos/DatosCliente.jsx";
+import Pedidos from "../../containers/Pedidos.jsx";
+import Spinkit from "../../components/Spinkit.jsx";
+
+class NuevoPedido extends Component {
+  render() {
+    const _id = this.props.match.params;
+    return (
+      <Fragment>
+        <h1 className="text-center mb-5">Nuevo Pedido</h1>
+
+        <div className="row">
+          <div className="col-md-3">
+            <DatosCliente _id={_id} />
+          </div>
+          <div className="col-md-9">
+            <Query query={PRODUCTOS_QUERY}>
+              {({ loading, error, data, startPolling, stopPolling }) => {
+                if (loading) return <Spinkit />;
+                if (error) return `Error ${error.message}`;
+
+                return (
+                  <Pedidos
+                    session={this.props.session}
+                    products={data.getAllProducts}
+                    _id={_id}
+                  />
+                );
+              }}
+            </Query>
+          </div>
+        </div>
+      </Fragment>
+    );
+  }
+}
+
+export default withRouter(NuevoPedido);

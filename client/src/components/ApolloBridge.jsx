@@ -1,23 +1,16 @@
-import { useQuery, useMutation } from '@apollo/client';
+import { useQuery, useMutation } from "@apollo/client";
 
-/**
- * Render-prop wrapper for useQuery.
- * Replaces react-apollo's <Query> component.
- */
 export function Query({ query, variables, pollInterval, skip, children }) {
   const result = useQuery(query, { variables, pollInterval, skip });
   return children(result);
 }
 
-/**
- * Render-prop wrapper for useMutation.
- * Replaces react-apollo's <Mutation> component.
- */
-export function Mutation({ mutation, variables, onCompleted, refetchQueries, children }) {
+export function Mutation({ mutation, variables, onCompleted, children }) {
   const [mutate, result] = useMutation(mutation, {
     variables,
-    onCompleted,
-    refetchQueries,
+    onCompleted: (data) => {
+      if (onCompleted) onCompleted(data);
+    },
   });
   return children(mutate, result);
 }

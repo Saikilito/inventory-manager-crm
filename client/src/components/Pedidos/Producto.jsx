@@ -11,7 +11,7 @@ class Producto extends Component {
                     <td>  {stock}</td>
                     <td>  
                         <input type="number" min="1" className="form-control col-4"
-
+                            value={this.props.producto.cantidad || 1}
                             onChange={e => {
                                 if(e.target.value > stock || e.target.value < 0 ) e.target.value = 0;
                                 this.props.handleCount(e,this.props.index)

@@ -22,7 +22,7 @@ const authLink = setContext(({ headers }) => {
 
 const client = new ApolloClient({
   link: authLink.concat(httpLink),
-  cache: new InMemoryCache({ addTypename: false }),
+  cache: new InMemoryCache(),
 });
 
 const App = Routes;

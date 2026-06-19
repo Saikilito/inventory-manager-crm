@@ -19,7 +19,7 @@ const GenerarPedido = (props) => {
                     disabled={validarPedido(props)}
                     onClick={(e)=>{
                         
-                        const productosInput = props.productos.map(({nombre,precio,stock,...objeto})=> objeto);
+                        const productosInput = props.productos.map(({nombre,precio,stock,__typename,...objeto})=> objeto);
                         
                         const input = {
                             pedido: productosInput,

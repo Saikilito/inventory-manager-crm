@@ -13,7 +13,6 @@ Backend GraphQL API para el sistema CRM. Construido con Node.js, Express, Apollo
 | GraphQL       | ^16.14          |
 | JWT           | jsonwebtoken ^9 |
 | Bcrypt        | ^5.1            |
-| Dotenv        | ^16.6           |
 
 ## Requisitos
 

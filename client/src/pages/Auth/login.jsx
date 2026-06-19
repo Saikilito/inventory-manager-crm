@@ -1,108 +1,109 @@
-import React, { Component, Fragment } from 'react';
-import { withRouter } from '../../components/RouterCompat.jsx'
+import React, { useState, Fragment } from "react";
+import { useNavigate } from "react-router-dom";
 
-import Error from '../../components/Error';
+import Error from "../../components/Error";
 
-import { Mutation } from '../../components/ApolloBridge.jsx'
-import {AUTENTICAR_USUARIO} from '../../services/mutations/users';
+import { Mutation } from "../../components/ApolloBridge.jsx";
+import { AUTH_USER } from "../../services/mutations/users";
 
 const initialState = {
-    user: '',
-    password: ''
-}
+  user: "",
+  password: "",
+};
 
-class Login extends Component {
-    state = {
-        ...initialState
+function Login({ refetch }) {
+  const navigate = useNavigate();
+  const [state, setState] = useState(initialState);
+
+  const updateState = (e) => {
+    const { name, value } = e.target;
+    setState((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const clearState = () => {
+    setState(initialState);
+  };
+
+  const handleLogin = async (data) => {
+    if (data && data.userAuthentication && data.userAuthentication.token) {
+      localStorage.setItem("Token", data.userAuthentication.token);
+
+      try {
+        await refetch();
+      } catch (e) {
+        console.error("refetch error:", e);
+      }
+      clearState();
+      navigate("/panel", { replace: true });
     }
-    updateState = e =>{
-        const {name, value} = e.target;
+  };
 
-        this.setState({
-            [name]:value
-        });
-    }
-    clearState = () =>{
-        this.setState({...initialState})
-    }
-    initialSesion = async (e, autenticateUser) =>{
-        e.preventDefault();
+  const validateForm = () => {
+    const { user, password } = state;
+    return !user || !password;
+  };
 
-        await autenticateUser().then(({data})=>{
-            localStorage.setItem('Token', data.authenticateUser.token)
-        });
+  const { user, password } = state;
 
-        await this.props.refetch();
-        
-        this.clearState();
+  return (
+    <Fragment>
+      <h1 className="text-center mb-5">Iniciar Sesion</h1>
+      <div className="row justify-content-center">
+        <Mutation
+          mutation={AUTH_USER}
+          variables={{ user, password }}
+          onCompleted={handleLogin}
+        >
+          {(userAuthentication, { loading, error }) => {
+            return (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  userAuthentication();
+                }}
+                className="col-md-8"
+              >
+                {error && <Error error={error.message} />}
 
-        setTimeout(()=>{this.props.history.push('/panel')},1000)
-    }
-    validateForm = ()=>{
-        const {user, password} = this.state;
-
-        const noValidate = !user || !password;
-        return noValidate;
-    }
-    render() {
-        const {user, password} = this.state;
-        return (
-            <Fragment>
-                <h1 className="text-center mb-5">Iniciar Sesion</h1>
-                <div className="row justify-content-center">
-                    <Mutation mutation={AUTENTICAR_USUARIO} variables={{user,password}}>
-                    {
-                        (userAutenticate, {loading, error, data})=>{
-                            return(
-                                <form 
-                                onSubmit={ e => this.initialSesion(e, userAutenticate) } 
-                                className="col-md-8"
-                            >
-
-                            {error && <Error error={error.message} />}
-                            
-
-                            <div className="form-group">
-                                <label>Usuario</label>
-                                <input 
-                                    onChange={this.updateState} 
-                                    value={user}
-                                    type="text" 
-                                    name="user" 
-                                    className="form-control" 
-                                    placeholder="Nombre Usuario" 
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>Password</label>
-                                <input 
-                                    onChange={this.updateState} 
-                                    value={password}
-                                    type="password" 
-                                    name="password" 
-                                    className="form-control" 
-                                    placeholder="Password"
-                                />
-                            </div>
-
-                            <button 
-                                disabled={ 
-                                    loading || this.validateForm()
-                                }
-                                type="submit" 
-                                className="btn btn-success float-right">
-                                    Iniciar Sesión
-                            </button>
-                            
-                        </form>
-                            );
-                        }
-                    }
-                    </Mutation>
+                <div className="form-group">
+                  <label>Usuario</label>
+                  <input
+                    onChange={updateState}
+                    value={user}
+                    type="text"
+                    name="user"
+                    autoComplete="username"
+                    className="form-control"
+                    placeholder="Nombre Usuario"
+                  />
                 </div>
-            </Fragment>
-        );
-    }
+                <div className="form-group">
+                  <label>Password</label>
+                  <input
+                    onChange={updateState}
+                    value={password}
+                    type="password"
+                    name="password"
+                    autoComplete="current-password"
+                    className="form-control"
+                    placeholder="Password"
+                  />
+                </div>
+
+                <button
+                  disabled={loading || validateForm()}
+                  type="submit"
+                  className="btn btn-success float-right"
+                >
+                  Iniciar Sesión
+                </button>
+              </form>
+            );
+          }}
+        </Mutation>
+      </div>
+    </Fragment>
+  );
 }
 
-export default withRouter(Login);
+export default Login;

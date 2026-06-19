@@ -1,19 +1,21 @@
-type Token{
-    token: String!
+type Token {
+  token: String!
 }
-type User{
-    _id:ID,
-    user:String,
-    name: String,
-    rol:String
+type User {
+  _id: ID
+  user: String
+  name: String
+  rol: String
 }
-type Query{
-    #Obtener Usuario
-    getUser:User
+type Query {
+  getUser: User
 }
 type Mutation {
-    #Crear usuario
-    setUser(user: String!, name: String!, password: String!, rol: String!):Boolean!
-    #Autenticar Usuario
-    authenticateUser(user: String!, password: String!):Token!
+  setUser(
+    user: String!
+    name: String!
+    password: String!
+    rol: String!
+  ): Boolean!
+  userAuthentication(user: String!, password: String!): Token!
 }
