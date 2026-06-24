@@ -1,6 +1,7 @@
-import React, { useState, Fragment } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApolloClient } from "@apollo/client";
+import { ArrowLeft } from "lucide-react";
 
 import { ClientForm } from "./ClientForm";
 import Alert from "../../components/Alert";
@@ -55,19 +56,39 @@ export const NewClient: React.FC<NewClientProps> = ({ session }) => {
     }
   };
 
-  const alertComponent = error ? <Alert message={error} /> : "";
+  const alertComponent = error ? <Alert message={error} type="error" /> : null;
 
   return (
-    <Fragment>
-      <h1 className="text-center mb-5">Nuevo Cliente</h1>
-      {alertComponent}
-      <div className="row justify-content-center">
+    <div className="max-w-3xl mx-auto py-6 px-4">
+      <div className="mb-6">
+        <button
+          onClick={() => navigate("/clients")}
+          className="inline-flex items-center gap-2 text-sm font-semibold text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500 rounded-lg px-2 py-1 -ml-2"
+        >
+          <ArrowLeft className="w-4 h-4 shrink-0" />
+          Volver al listado
+        </button>
+      </div>
+
+      <div className="mb-8">
+        <h1 className="text-3xl font-extrabold tracking-tight text-stone-900 dark:text-stone-100">
+          Nuevo Cliente
+        </h1>
+        <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">
+          Registra un nuevo perfil de cliente en el sistema para comenzar a asociarle pedidos.
+        </p>
+      </div>
+
+      {alertComponent && <div className="mb-6">{alertComponent}</div>}
+
+      <div className="flex justify-center">
         <ClientForm
           onSubmit={handleSubmit}
           submitButtonText="Agregar Cliente"
         />
       </div>
-    </Fragment>
+    </div>
   );
 };
+
 export default NewClient;

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, Fragment } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useApolloClient } from "@apollo/client";
+import { ArrowLeft } from "lucide-react";
 import { makeApolloClientRepository } from "@modules/client/infrastructure/repositories/apollo-client.repository";
 import { makeGetClientUseCase } from "@modules/client/application/use-cases/get-client";
 import { makeUpdateClientUseCase } from "@modules/client/application/use-cases/update-client";
@@ -85,39 +86,50 @@ export const EditClient: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="d-flex justify-content-center my-5">
-        <Spinkit />
-      </div>
-    );
-  }
-
-  const alertComponent = error ? <Alert message={error} /> : "";
-
-  if (!client) {
-    return (
-      <Fragment>
-        {alertComponent}
-        <div className="alert alert-warning text-center" role="alert">
-          No se encontró el cliente solicitado.
-        </div>
-      </Fragment>
-    );
-  }
+  const alertComponent = error ? <Alert message={error} type="error" /> : null;
 
   return (
-    <Fragment>
-      <h1 className="text-center mb-5">Editar Cliente</h1>
-      {alertComponent}
-      <div className="row justify-content-center">
-        <ClientForm
-          client={client}
-          onSubmit={handleSubmit}
-          submitButtonText="Guardar Cambios"
-        />
+    <div className="max-w-3xl mx-auto py-6 px-4">
+      <div className="mb-6">
+        <button
+          onClick={() => navigate("/clients")}
+          className="inline-flex items-center gap-2 text-sm font-semibold text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500 rounded-lg px-2 py-1 -ml-2"
+        >
+          <ArrowLeft className="w-4 h-4 shrink-0" />
+          Volver al listado
+        </button>
       </div>
-    </Fragment>
+
+      <div className="mb-8">
+        <h1 className="text-3xl font-extrabold tracking-tight text-stone-900 dark:text-stone-100">
+          Editar Cliente
+        </h1>
+        <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">
+          Actualiza los datos del perfil de cliente seleccionado y guarda los cambios en el sistema.
+        </p>
+      </div>
+
+      {alertComponent && <div className="mb-6">{alertComponent}</div>}
+
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <Spinkit />
+        </div>
+      ) : !client ? (
+        <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 p-4 rounded-xl text-center text-sm font-medium text-amber-800 dark:text-amber-300">
+          No se encontró el cliente solicitado.
+        </div>
+      ) : (
+        <div className="flex justify-center">
+          <ClientForm
+            client={client}
+            onSubmit={handleSubmit}
+            submitButtonText="Guardar Cambios"
+          />
+        </div>
+      )}
+    </div>
   );
 };
+
 export default EditClient;
