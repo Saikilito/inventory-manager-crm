@@ -60,6 +60,7 @@ import { makeOrdersPloc } from '@modules/order/presentation/ploc/order-ploc';
 import { OrdersProvider } from '@contexts/order-context';
 import ClientOrdersPage from '@pages/order/ClientOrdersPage';
 import CreateOrderPage from '@pages/order/CreateOrderPage';
+import OrdersPage from '@pages/order/OrdersPage';
 
 // Dashboard Module
 import { makeApolloDashboardRepository } from '@modules/dashboard/infrastructure/repositories/apollo-dashboard.repository';
@@ -118,6 +119,38 @@ const ClientsRouteWrapper: React.FC = () => {
   return (
     <ClientsPlocProvider ploc={ploc}>
       <ClientList session={sessionInfo} />
+    </ClientsPlocProvider>
+  );
+};
+
+// Route Wrapper for Global Orders Page (Clients PLoC inside ClientsPlocProvider)
+const OrdersPageGlobalWrapper: React.FC = () => {
+  const authPloc = useAuthPloc();
+  const authState = usePlocState(authPloc);
+  const apolloClient = useApolloClient();
+
+  const [ploc] = useState(() => {
+    const repository = makeApolloClientRepository(apolloClient as any);
+    const getClients = makeGetClientsUseCase(repository);
+    const deleteClient = makeDeleteClientUseCaseObj(repository);
+    return makeClientsPloc(getClients, deleteClient);
+  });
+
+  const user = authState.kind === 'auth:authenticated' ? authState.user : null;
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Cast session info safely
+  const sessionInfo = {
+    _id: String(user.id),
+    rol: user.role === UserRole.ADMIN ? 'adm' : 'seller',
+    name: String(user.name),
+  };
+
+  return (
+    <ClientsPlocProvider ploc={ploc}>
+      <OrdersPage session={sessionInfo} />
     </ClientsPlocProvider>
   );
 };
@@ -252,6 +285,7 @@ const AppView: React.FC = () => {
                   <Route path="/products/edit/:id" element={<EditProduct />} />
 
                   {/** Orders */}
+                  <Route path="/orders" element={<OrdersPageGlobalWrapper />} />
                   <Route path="/orders/:id" element={<OrdersRouteWrapper />} />
                   <Route path="/orders/new/:id" element={<CreateOrderRouteWrapper />} />
 

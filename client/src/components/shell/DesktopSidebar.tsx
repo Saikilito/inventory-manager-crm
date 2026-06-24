@@ -14,7 +14,8 @@ import {
   Moon,
   ChevronLeft,
   ChevronRight,
-  MessageSquare
+  MessageSquare,
+  ShoppingCart
 } from 'lucide-react';
 
 export const DesktopSidebar: React.FC = () => {
@@ -44,6 +45,11 @@ export const DesktopSidebar: React.FC = () => {
       path: '/clients',
       label: 'Clients',
       icon: Users,
+    },
+    {
+      path: '/orders',
+      label: 'Orders',
+      icon: ShoppingCart,
     },
     {
       path: '/products',
