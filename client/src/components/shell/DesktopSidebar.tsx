@@ -13,7 +13,8 @@ import {
   Sun,
   Moon,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  MessageSquare
 } from 'lucide-react';
 
 export const DesktopSidebar: React.FC = () => {
@@ -48,6 +49,11 @@ export const DesktopSidebar: React.FC = () => {
       path: '/products',
       label: 'Products',
       icon: Package,
+    },
+    {
+      path: '/chat',
+      label: 'Chat',
+      icon: MessageSquare,
     },
   ];
 

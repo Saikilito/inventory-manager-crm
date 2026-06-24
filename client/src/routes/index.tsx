@@ -69,6 +69,9 @@ import { makeDashboardPloc } from '@modules/dashboard/presentation/ploc/dashboar
 import { DashboardProvider } from '@contexts/dashboard-context';
 import DashboardPage from '@pages/dashboard/DashboardPage';
 
+// Chat Module
+import AgentChatPage from '@pages/chat/AgentChatPage';
+
 // Route Wrapper for Products PLoC (Scoped lifecycle)
 const ProductsRouteWrapper: React.FC = () => {
   const apolloClient = useApolloClient();
@@ -254,6 +257,9 @@ const AppView: React.FC = () => {
 
                   {/** Dashboard */}
                   <Route path="/dashboard" element={<DashboardRouteWrapper />} />
+
+                  {/** Chat */}
+                  <Route path="/chat" element={<AgentChatPage />} />
 
                   {/** Registration (Admin only) */}
                   <Route path="/register" element={<RegisterPage />} />

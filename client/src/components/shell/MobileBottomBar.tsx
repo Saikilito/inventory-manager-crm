@@ -1,7 +1,5 @@
 import React from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { usePlocState } from '@hooks/use-ploc-state';
-import { useAuthPloc } from '@contexts/auth-context';
+import { Link, useLocation } from 'react-router-dom';
 import { useShell } from '@contexts/ShellContext';
 import {
   LayoutDashboard,
@@ -9,24 +7,14 @@ import {
   Package,
   Sun,
   Moon,
-  LogOut
+  MessageSquare
 } from 'lucide-react';
 
 export const MobileBottomBar: React.FC = () => {
   const { theme, toggleTheme } = useShell();
   const location = useLocation();
-  const navigate = useNavigate();
-  const authPloc = useAuthPloc();
-  const authState = usePlocState(authPloc);
-
-  const isAuthenticated = authState.kind === 'auth:authenticated';
 
   const isActive = (path: string) => location.pathname.startsWith(path);
-
-  const handleLogout = async () => {
-    await authPloc.logout();
-    navigate('/login', { replace: true });
-  };
 
   const navItems = [
     {
@@ -43,6 +31,11 @@ export const MobileBottomBar: React.FC = () => {
       path: '/products',
       label: 'Products',
       icon: Package,
+    },
+    {
+      path: '/chat',
+      label: 'Chat',
+      icon: MessageSquare,
     },
   ];
 
@@ -70,7 +63,7 @@ export const MobileBottomBar: React.FC = () => {
         );
       })}
 
-      {/* Theme Toggle */}
+      {/* Theme Toggle as the 5th item */}
       <button
         onClick={toggleTheme}
         className="flex flex-col items-center justify-center flex-1 h-full py-1 text-center text-stone-400 hover:text-stone-100 focus-visible:bg-stone-800 focus-visible:outline-none transition-colors"
@@ -85,18 +78,6 @@ export const MobileBottomBar: React.FC = () => {
           {theme === 'light' ? 'Dark' : 'Light'}
         </span>
       </button>
-
-      {/* Logout */}
-      {isAuthenticated && (
-        <button
-          onClick={handleLogout}
-          className="flex flex-col items-center justify-center flex-1 h-full py-1 text-center text-stone-400 hover:text-red-400 focus-visible:bg-stone-800 focus-visible:outline-none transition-colors"
-          aria-label="Sign out of application"
-        >
-          <LogOut className="w-5 h-5 mb-0.5 text-stone-400" />
-          <span className="text-[10px] font-medium leading-none">Exit</span>
-        </button>
-      )}
     </nav>
   );
 };
