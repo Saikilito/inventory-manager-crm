@@ -1,6 +1,7 @@
-import React, { useEffect, useState, Fragment } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useApolloClient } from "@apollo/client";
+import { ArrowLeft } from "lucide-react";
 import { makeApolloProductRepository } from "@modules/product/infrastructure/repositories/apollo-product.repository";
 import { makeGetProductUseCase } from "@modules/product/application/use-cases/get-product";
 import { makeUpdateProductUseCase } from "@modules/product/application/use-cases/update-product";
@@ -21,6 +22,7 @@ export const EditProduct: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState<IProduct | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const [useCases] = useState(() => {
     const repository = makeApolloProductRepository(apolloClient as any);
@@ -60,57 +62,86 @@ export const EditProduct: React.FC = () => {
   }) => {
     if (!product || !id) return;
 
-    const { makeProduct } =
-      await import("@shared-domain/product/product.entity");
-    const updatedProductEntity = makeProduct({
-      id,
-      name: formData.name,
-      price: formData.price,
-      stock: formData.stock,
-    });
+    setSubmitting(true);
+    setError(null);
 
-    const result = await useCases.updateProduct.execute(updatedProductEntity);
+    try {
+      const { makeProduct } =
+        await import("@shared-domain/product/product.entity");
+      const updatedProductEntity = makeProduct({
+        id,
+        name: formData.name,
+        price: formData.price,
+        stock: formData.stock,
+      });
 
-    if (result.isFailure) {
-      setError(result.getError().message || "Error al actualizar el producto");
-    } else {
-      navigate("/products");
+      const result = await useCases.updateProduct.execute(updatedProductEntity);
+
+      if (result.isFailure) {
+        setError(result.getError().message || "Error al actualizar el producto");
+      } else {
+        navigate("/products");
+      }
+    } catch (err: any) {
+      setError(err.message || "Error al actualizar el producto");
+    } finally {
+      setSubmitting(false);
     }
   };
 
+  const alertComponent = error ? (
+    <div className="mb-6">
+      <Alert message={error} type="error" />
+    </div>
+  ) : null;
+
   if (loading) {
     return (
-      <div className="d-flex justify-content-center my-5">
+      <div className="flex justify-center items-center py-24">
         <Spinkit />
       </div>
     );
   }
 
-  const alertComponent = error ? <Alert message={error} /> : "";
+  return (
+    <div className="max-w-3xl mx-auto py-6 px-4">
+      <div className="mb-6">
+        <button
+          onClick={() => navigate("/products")}
+          className="inline-flex items-center gap-2 text-sm font-semibold text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500 rounded-lg px-2 py-1 -ml-2"
+        >
+          <ArrowLeft className="w-4 h-4 shrink-0" />
+          Volver al listado
+        </button>
+      </div>
 
-  if (!product) {
-    return (
-      <Fragment>
-        {alertComponent}
-        <div className="alert alert-warning text-center" role="alert">
+      <div className="mb-8">
+        <h1 className="text-3xl font-extrabold tracking-tight text-stone-900 dark:text-stone-100">
+          Editar Producto
+        </h1>
+        <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">
+          Actualiza la información del producto, incluyendo su precio y nivel de existencias.
+        </p>
+      </div>
+
+      {alertComponent}
+
+      {!product ? (
+        <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 p-4 rounded-xl text-center text-sm font-medium text-amber-800 dark:text-amber-300" role="alert">
           No se encontró el producto solicitado.
         </div>
-      </Fragment>
-    );
-  }
-
-  return (
-    <Fragment>
-      <h1 className="text-center mb-5">Editar Producto</h1>
-      {alertComponent}
-      <div className="row justify-content-center">
-        <ProductForm
-          product={product}
-          onSubmit={handleSubmit}
-          submitButtonText="Guardar Cambios"
-        />
-      </div>
-    </Fragment>
+      ) : (
+        <div className="flex justify-center">
+          <ProductForm
+            product={product}
+            onSubmit={handleSubmit}
+            submitButtonText="Guardar Cambios"
+            isLoading={submitting}
+          />
+        </div>
+      )}
+    </div>
   );
 };
+
 export default EditProduct;
