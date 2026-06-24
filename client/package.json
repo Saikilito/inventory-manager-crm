@@ -7,11 +7,13 @@
     "@apollo/client": "^3.13.0",
     "@vitejs/plugin-react": "^4.4.0",
     "graphql": "^16.11.0",
+    "lucide-react": "^1.21.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.18.0",
     "react-select": "^5.9.0",
     "recharts": "^3.8.1",
+    "ts-pattern": "^5.6.0",
     "uuid": "^14.0.0",
     "vite": "^6.3.0",
     "zod": "^4.4.3"
@@ -24,6 +26,12 @@
     "test": "node --experimental-vm-modules node_modules/.bin/jest || echo 'Tests not configured yet — add Vitest or Jest when ready'"
   },
   "devDependencies": {
-    "@types/uuid": "^10.0.0"
+    "@tailwindcss/vite": "^4.3.1",
+    "@types/node": "^20.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/uuid": "^10.0.0",
+    "tailwindcss": "^4.3.1",
+    "typescript": "^5.5.0"
   }
 }

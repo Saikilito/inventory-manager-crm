@@ -1,7 +1,42 @@
-.form-control{
-    color: black !important
+@import "tailwindcss";
+
+@theme {
+  --color-brand-bg-light: oklch(0.99 0.003 240);
+  --color-brand-bg-dark: oklch(0.12 0.01 240);
+  --color-brand-ink-light: oklch(0.18 0.015 240);
+  --color-brand-ink-dark: oklch(0.95 0.005 240);
+  --color-brand-primary-light: oklch(0.55 0.18 250);
+  --color-brand-primary-dark: oklch(0.65 0.16 250);
+  --radius-card: 12px;
 }
 
-.card{
-    border-width: 2px;
+@layer base {
+  :root {
+    --background: var(--color-brand-bg-light);
+    --foreground: var(--color-brand-ink-light);
+    --primary: var(--color-brand-primary-light);
+    --radius: 0.5rem;
+  }
+
+  :root.dark {
+    --background: var(--color-brand-bg-dark);
+    --foreground: var(--color-brand-ink-dark);
+    --primary: var(--color-brand-primary-dark);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    min-height: 100vh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
