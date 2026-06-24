@@ -27,5 +27,5 @@ const server = new ApolloServer({ typeDefs, resolvers });
 export default server;
 
 // Re-export context and IContext to ensure zero-touch backward compatibility with existing resolvers
-export { context, IContext } from './apollo-context.js';
-export { ModelsType } from './apollo-context.js';
+export { context } from './apollo-context.js';
+export type { IContext, ModelsType } from './apollo-context.js';
