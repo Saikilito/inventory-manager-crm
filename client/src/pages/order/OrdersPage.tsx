@@ -1,18 +1,20 @@
-import React, { useEffect, useState, Fragment } from 'react';
-import { Link } from 'react-router-dom';
-import { match } from 'ts-pattern';
-import { usePlocState } from '@hooks/use-ploc-state';
-import { useClientsPloc } from '@contexts/clients-context';
-import { Paginator } from '@components/Paginator';
-import { ClientsStateKind } from '@modules/client/presentation/ploc/clients-state';
-import { Search, Plus, Eye } from 'lucide-react';
-// @ts-ignore
-import Spinkit from '../../components/Spinkit';
+import React, { useEffect, useState, Fragment } from "react";
+import { Link } from "react-router-dom";
+import { match } from "ts-pattern";
+import { usePlocState } from "@hooks/use-ploc-state";
+import { useClientsPloc } from "@contexts/clients-context";
+import { Paginator } from "@components/Paginator";
+import { ClientsStateKind } from "@modules/client/presentation/ploc/clients-state";
+import { ClientRatingTier } from "@shared-domain/client/client.entity";
+import { UserRole } from "@shared-domain/shared/value-objects/role.vo";
+import { Search, Plus, Eye } from "lucide-react";
+
+import Spinkit from "../../components/Spinkit";
 
 interface OrdersPageProps {
   session: {
     _id: string;
-    rol: string;
+    role: string;
     name: string;
   };
 }
@@ -20,26 +22,26 @@ interface OrdersPageProps {
 export const OrdersPage: React.FC<OrdersPageProps> = ({ session }) => {
   const ploc = useClientsPloc();
   const state = usePlocState(ploc);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const sellerId = session.rol === 'adm' ? '' : session._id;
+  const sellerId = session.role === UserRole.ADMIN ? "" : session._id;
 
   useEffect(() => {
     ploc.load(state.currentPage, state.limit, sellerId);
   }, [ploc, sellerId]);
 
-  const handlePaginaAnterior = () => {
+  const handlePrevPage = () => {
     ploc.load(state.currentPage - 1, state.limit, sellerId);
   };
 
-  const handlePaginaSiguiente = () => {
+  const handleNextPage = () => {
     ploc.load(state.currentPage + 1, state.limit, sellerId);
   };
 
   const getInitials = (firstName: string, lastName: string) => {
-    const f = firstName ? firstName.charAt(0).toUpperCase() : '';
-    const l = lastName ? lastName.charAt(0).toUpperCase() : '';
-    return `${f}${l}` || '?';
+    const f = firstName ? firstName.charAt(0).toUpperCase() : "";
+    const l = lastName ? lastName.charAt(0).toUpperCase() : "";
+    return `${f}${l}` || "?";
   };
 
   return (
@@ -48,10 +50,10 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ session }) => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-stone-200 dark:border-stone-800 pb-5">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-stone-900 dark:text-stone-100">
-            Gestión de Pedidos
+            Orders Management
           </h1>
           <p className="text-sm text-stone-500 dark:text-stone-400 mt-1 max-w-2xl">
-            Seleccioná un cliente para emitir nuevos pedidos o consultar su historial completo.
+            Select a client to issue new orders or view their full history.
           </p>
         </div>
       </div>
@@ -65,15 +67,15 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ session }) => {
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Buscar cliente por nombre o empresa..."
+          placeholder="Search client by username, name or address..."
           className="block w-full pl-10 pr-4 py-2.5 h-11 text-sm bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 border border-stone-200 dark:border-stone-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent placeholder-stone-400 dark:placeholder-stone-500 shadow-sm transition-all duration-150"
         />
         {searchQuery && (
           <button
-            onClick={() => setSearchQuery('')}
+            onClick={() => setSearchQuery("")}
             className="absolute inset-y-0 right-0 pr-3 flex items-center text-xs text-stone-400 hover:text-stone-600 dark:hover:text-stone-200"
           >
-            Limpiar
+            Clear
           </button>
         )}
       </div>
@@ -96,17 +98,22 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ session }) => {
           (st) => {
             const isReloading = st.kind === ClientsStateKind.RELOADING;
 
-            // Apply client-side search filtering
+            // Apply client-side search filtering by name, address and whatsapp
             const filteredClients = st.clients.filter((client) => {
               const term = searchQuery.toLowerCase();
-              const firstName = (client.firstName || '').toLowerCase();
-              const lastName = (client.lastName || '').toLowerCase();
-              const company = (client.company || '').toLowerCase();
+              if (!term) return true;
+
+              const firstName = (client.firstName || "").toLowerCase();
+              const lastName = (client.lastName || "").toLowerCase();
+              const address = (client.address || "").toLowerCase();
+              const whatsapp = (client.whatsapp || "").toLowerCase();
               const fullName = `${firstName} ${lastName}`;
+
               return (
                 firstName.includes(term) ||
                 lastName.includes(term) ||
-                company.includes(term) ||
+                address.includes(term) ||
+                whatsapp.includes(term) ||
                 fullName.includes(term)
               );
             });
@@ -123,14 +130,19 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ session }) => {
                   {filteredClients.length === 0 ? (
                     <div className="text-center py-12 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl">
                       <p className="text-stone-500 dark:text-stone-400">
-                        {searchQuery ? 'No se encontraron clientes que coincidan con la búsqueda.' : 'No hay clientes registrados.'}
+                        {searchQuery
+                          ? "No clients found matching the search."
+                          : "No registered clients."}
                       </p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                       {filteredClients.map((client) => {
                         const id = client.id!;
-                        const initials = getInitials(client.firstName || '', client.lastName || '');
+                        const initials = getInitials(
+                          client.firstName || "",
+                          client.lastName || "",
+                        );
 
                         return (
                           <div
@@ -148,18 +160,23 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ session }) => {
                                   <span className="font-semibold text-stone-900 dark:text-stone-100 truncate max-w-[150px] sm:max-w-none">
                                     {client.firstName} {client.lastName}
                                   </span>
-                                  {client.type === 'PREMIUM' ? (
+                                  {client.type === ClientRatingTier.PREMIUM ? (
                                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-800/40">
                                       PREMIUM
                                     </span>
+                                  ) : client.type ===
+                                    ClientRatingTier.CONCURRENT ? (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800/40">
+                                      CONCURRENT
+                                    </span>
                                   ) : (
                                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400 border border-stone-200 dark:border-stone-700/60">
-                                      BÁSICO
+                                      BASIC
                                     </span>
                                   )}
                                 </div>
                                 <span className="text-sm text-stone-500 dark:text-stone-400 truncate">
-                                  {client.company || 'Sin Empresa'}
+                                  {client.address}
                                 </span>
                               </div>
                             </div>
@@ -169,19 +186,19 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ session }) => {
                               <Link
                                 to={`/orders/new/${id}`}
                                 className="inline-flex items-center justify-center h-10 px-3 rounded-lg text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-offset-stone-950 transition-colors shadow-sm gap-1.5"
-                                aria-label={`Nuevo pedido para ${client.firstName} ${client.lastName}`}
+                                aria-label={`New order for ${client.firstName} ${client.lastName}`}
                               >
                                 <Plus className="w-4 h-4 shrink-0" />
-                                Nuevo Pedido
+                                New Order
                               </Link>
 
                               <Link
                                 to={`/orders/${id}`}
                                 className="inline-flex items-center justify-center h-10 px-3 rounded-lg text-xs font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/30 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-900/30 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-offset-stone-950 transition-colors gap-1.5"
-                                aria-label={`Ver pedidos de ${client.firstName} ${client.lastName}`}
+                                aria-label={`View orders of ${client.firstName} ${client.lastName}`}
                               >
                                 <Eye className="w-4 h-4 shrink-0" />
-                                Ver Pedidos
+                                View Orders
                               </Link>
                             </div>
                           </div>
@@ -194,17 +211,17 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ session }) => {
                 {filteredClients.length > 0 && (
                   <div className="mt-8">
                     <Paginator
-                      actual={st.currentPage}
-                      total={st.totalClients}
-                      limit={st.limit}
-                      paginaAnterior={handlePaginaAnterior}
-                      paginaSiguiente={handlePaginaSiguiente}
+                      currentPage={st.currentPage}
+                      totalItems={st.totalClients}
+                      pageSize={st.limit}
+                      onPrevPage={handlePrevPage}
+                      onNextPage={handleNextPage}
                     />
                   </div>
                 )}
               </Fragment>
             );
-          }
+          },
         )
         .exhaustive()}
     </div>

@@ -9,7 +9,6 @@ interface GQLTopClient {
   client: Array<{
     firstName: string;
     lastName: string;
-    company: string;
   }>;
 }
 
@@ -45,7 +44,7 @@ export function makeApolloDashboardRepository(
             const clientInfo = tc.client?.[0];
             const name = clientInfo 
               ? `${clientInfo.firstName} ${clientInfo.lastName}` 
-              : 'Cliente Desconocido';
+              : 'Unknown Client';
             return {
               total: tc.total || 0,
               clientName: name,
@@ -66,7 +65,7 @@ export function makeApolloDashboardRepository(
 
           return (data?.topSellers || []).map((ts) => {
             const sellerInfo = ts.seller?.[0];
-            const name = sellerInfo ? sellerInfo.name : 'Vendedor Desconocido';
+            const name = sellerInfo ? sellerInfo.name : 'Unknown Seller';
             return {
               total: ts.total || 0,
               sellerName: name,

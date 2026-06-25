@@ -3,6 +3,7 @@ import { productsInitialState, ProductsState, ProductsStateKind } from './produc
 import { GetProductsUseCase } from '@modules/product/application/use-cases/get-products';
 import { DeleteProductUseCase } from '@modules/product/application/use-cases/delete-product';
 import { PositiveNumberVO } from '@shared-domain/shared/value-objects/positive-number.vo';
+import { NonNegativeNumberVO } from '@shared-domain/shared/value-objects/non-negative-number.vo';
 import { IdVO } from '@shared-domain/shared/value-objects/id.vo';
 
 export interface ProductsPloc extends Ploc<ProductsState> {
@@ -41,7 +42,7 @@ export function makeProductsPloc(
 
     const offsetVal = (page - 1) * limit;
     const limitVO = PositiveNumberVO.create(limit);
-    const offsetVO = PositiveNumberVO.create(offsetVal);
+    const offsetVO = NonNegativeNumberVO.create(offsetVal);
 
     const result = await getProducts.execute(limitVO, offsetVO);
 

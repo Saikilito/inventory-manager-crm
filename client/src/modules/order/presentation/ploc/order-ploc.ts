@@ -28,7 +28,7 @@ export function makeOrdersPloc(
     if (result.isFailure) {
       ploc.changeState({
         kind: OrdersStateKind.ERROR,
-        errorMessage: result.getError().message || 'Error al cargar los pedidos',
+        errorMessage: result.getError().message || 'Error loading orders',
       });
     } else {
       ploc.changeState({
@@ -60,7 +60,7 @@ export function makeOrdersPloc(
       if (result.isFailure) {
         ploc.changeState({
           kind: OrdersStateKind.ERROR,
-          errorMessage: result.getError().message || 'Error al crear el pedido',
+          errorMessage: result.getError().message || 'Error creating order',
         });
       } else {
         // Reload order list
@@ -69,7 +69,7 @@ export function makeOrdersPloc(
     } catch (e: any) {
       ploc.changeState({
         kind: OrdersStateKind.ERROR,
-        errorMessage: e.message || 'Error de validación del dominio',
+        errorMessage: e.message || 'Domain validation error',
       });
     }
   };
@@ -93,7 +93,7 @@ export function makeOrdersPloc(
       if (result.isFailure) {
         ploc.changeState({
           kind: OrdersStateKind.ERROR,
-          errorMessage: result.getError().message || 'Error al actualizar el estado del pedido',
+          errorMessage: result.getError().message || 'Error updating order status',
         });
       } else {
         loadClientOrders(String(order.clientId));
@@ -101,7 +101,7 @@ export function makeOrdersPloc(
     } catch (e: any) {
       ploc.changeState({
         kind: OrdersStateKind.ERROR,
-        errorMessage: e.message || 'Error de dominio',
+        errorMessage: e.message || 'Domain error',
       });
     }
   };

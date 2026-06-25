@@ -26,6 +26,8 @@ export interface AuthenticatingState {
 export interface AuthenticatedState {
   kind: typeof AuthStateKind.AUTHENTICATED;
   user: IUser;
+  users?: IUser[];
+  usersLoading?: boolean;
 }
 
 export interface UnauthenticatedState {

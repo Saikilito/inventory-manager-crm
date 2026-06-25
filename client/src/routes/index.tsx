@@ -1,84 +1,85 @@
-import React, { useEffect, useState, Fragment } from 'react';
+import React, { useEffect, useState, Fragment } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
-} from 'react-router-dom';
-import { useApolloClient } from '@apollo/client';
-import { match } from 'ts-pattern';
+} from "react-router-dom";
+import { useApolloClient, ApolloClient, NormalizedCacheObject } from "@apollo/client";
+import { match } from "ts-pattern";
 
 // Shell & Global Contexts
-import { ShellProvider } from '@contexts/ShellContext';
-import { NavShell } from '@components/shell/NavShell';
+import { ShellProvider } from "@contexts/ShellContext";
+import { NavShell } from "@components/shell/NavShell";
 
 // Shared Components & Hooks
-import { Header } from '@components/Header';
-import { usePlocState } from '@hooks/use-ploc-state';
-import { UserRole } from '@shared-domain/shared/value-objects/role.vo';
-// @ts-ignore
-import Spinkit from '../components/Spinkit';
+import { usePlocState } from "@hooks/use-ploc-state";
+import { UserRole } from "@shared-domain/shared/value-objects/role.vo";
+
+import Spinkit from "../components/Spinkit";
 
 // Auth Module
-import { makeApolloAuthRepository } from '@modules/auth/infrastructure/repositories/apollo-auth.repository';
-import { makeLoginUseCase } from '@modules/auth/application/use-cases/login';
-import { makeRegisterUseCase } from '@modules/auth/application/use-cases/register';
-import { makeGetCurrentUserUseCase } from '@modules/auth/application/use-cases/get-current-user';
-import { makeLogoutUseCase } from '@modules/auth/application/use-cases/logout';
-import { makeAuthPloc } from '@modules/auth/presentation/ploc/auth-ploc';
-import { AuthStateKind } from '@modules/auth/presentation/ploc/auth-state';
-import { AuthProvider, useAuthPloc } from '@contexts/auth-context';
-import LoginPage from '@pages/auth/LoginPage';
-import RegisterPage from '@pages/auth/RegisterPage';
+import { makeApolloAuthRepository } from "@modules/auth/infrastructure/repositories/apollo-auth.repository";
+import { makeLoginUseCase } from "@modules/auth/application/use-cases/login";
+import { makeRegisterUseCase } from "@modules/auth/application/use-cases/register";
+import { makeGetCurrentUserUseCase } from "@modules/auth/application/use-cases/get-current-user";
+import { makeLogoutUseCase } from "@modules/auth/application/use-cases/logout";
+import { makeGetUsersUseCase } from "@modules/auth/application/use-cases/get-users";
+import { makeUpdateUserUseCase } from "@modules/auth/application/use-cases/update-user";
+import { makeAuthPloc } from "@modules/auth/presentation/ploc/auth-ploc";
+import { AuthStateKind } from "@modules/auth/presentation/ploc/auth-state";
+import { AuthProvider, useAuthPloc } from "@contexts/auth-context";
+import LoginPage from "@pages/auth/LoginPage";
+import UsersPage from "@pages/auth/UsersPage";
 
 // Clients Module
-import { makeApolloClientRepository } from '@modules/client/infrastructure/repositories/apollo-client.repository';
-import { makeGetClientsUseCase } from '@modules/client/application/use-cases/get-clients';
-import { makeDeleteClientUseCase as makeDeleteClientUseCaseObj } from '@modules/client/application/use-cases/delete-client';
-import { makeClientsPloc } from '@modules/client/presentation/ploc/clients-ploc';
-import { ClientsPlocProvider } from '@contexts/clients-context';
-import ClientList from '@pages/client/ClientList';
-import NewClient from '@pages/client/NewClient';
-import EditClient from '@pages/client/EditClient';
+import { makeApolloClientRepository } from "@modules/client/infrastructure/repositories/apollo-client.repository";
+import { makeGetClientsUseCase } from "@modules/client/application/use-cases/get-clients";
+import { makeDeleteClientUseCase as makeDeleteClientUseCaseObj } from "@modules/client/application/use-cases/delete-client";
+import { makeClientsPloc } from "@modules/client/presentation/ploc/clients-ploc";
+import { ClientsPlocProvider } from "@contexts/clients-context";
+import ClientList from "@pages/client/ClientList";
+import NewClient from "@pages/client/NewClient";
+import EditClient from "@pages/client/EditClient";
 
 // Products Module
-import { makeApolloProductRepository } from '@modules/product/infrastructure/repositories/apollo-product.repository';
-import { makeGetProductsUseCase } from '@modules/product/application/use-cases/get-products';
-import { makeDeleteProductUseCase } from '@modules/product/application/use-cases/delete-product';
-import { makeProductsPloc } from '@modules/product/presentation/ploc/products-ploc';
-import { ProductsPlocProvider } from '@contexts/products-context';
-import ProductList from '@pages/product/ProductList';
-import NewProduct from '@pages/product/NewProduct';
-import EditProduct from '@pages/product/EditProduct';
+import { makeApolloProductRepository } from "@modules/product/infrastructure/repositories/apollo-product.repository";
+import { makeGetProductsUseCase } from "@modules/product/application/use-cases/get-products";
+import { makeDeleteProductUseCase } from "@modules/product/application/use-cases/delete-product";
+import { makeProductsPloc } from "@modules/product/presentation/ploc/products-ploc";
+import { ProductsPlocProvider } from "@contexts/products-context";
+import ProductList from "@pages/product/ProductList";
+import NewProduct from "@pages/product/NewProduct";
+import EditProduct from "@pages/product/EditProduct";
 
 // Orders Module
-import { makeApolloOrderRepository } from '@modules/order/infrastructure/repositories/apollo-order.repository';
-import { makeGetClientOrdersUseCase } from '@modules/order/application/use-cases/get-client-orders';
-import { makeCreateOrderUseCase } from '@modules/order/application/use-cases/create-order';
-import { makeUpdateOrderUseCase } from '@modules/order/application/use-cases/update-order';
-import { makeOrdersPloc } from '@modules/order/presentation/ploc/order-ploc';
-import { OrdersProvider } from '@contexts/order-context';
-import ClientOrdersPage from '@pages/order/ClientOrdersPage';
-import CreateOrderPage from '@pages/order/CreateOrderPage';
-import OrdersPage from '@pages/order/OrdersPage';
+import { makeApolloOrderRepository } from "@modules/order/infrastructure/repositories/apollo-order.repository";
+import { makeGetClientOrdersUseCase } from "@modules/order/application/use-cases/get-client-orders";
+import { makeCreateOrderUseCase } from "@modules/order/application/use-cases/create-order";
+import { makeUpdateOrderUseCase } from "@modules/order/application/use-cases/update-order";
+import { makeOrdersPloc } from "@modules/order/presentation/ploc/order-ploc";
+import { OrdersProvider } from "@contexts/order-context";
+import ClientOrdersPage from "@pages/order/ClientOrdersPage";
+import CreateOrderPage from "@pages/order/CreateOrderPage";
+import OrdersPage from "@pages/order/OrdersPage";
 
 // Dashboard Module
-import { makeApolloDashboardRepository } from '@modules/dashboard/infrastructure/repositories/apollo-dashboard.repository';
-import { makeGetTopClientsUseCase } from '@modules/dashboard/application/use-cases/get-top-clients';
-import { makeGetTopSellersUseCase } from '@modules/dashboard/application/use-cases/get-top-sellers';
-import { makeDashboardPloc } from '@modules/dashboard/presentation/ploc/dashboard-ploc';
-import { DashboardProvider } from '@contexts/dashboard-context';
-import DashboardPage from '@pages/dashboard/DashboardPage';
+import { makeApolloDashboardRepository } from "@modules/dashboard/infrastructure/repositories/apollo-dashboard.repository";
+import { makeGetTopClientsUseCase } from "@modules/dashboard/application/use-cases/get-top-clients";
+import { makeGetTopSellersUseCase } from "@modules/dashboard/application/use-cases/get-top-sellers";
+import { makeDashboardPloc } from "@modules/dashboard/presentation/ploc/dashboard-ploc";
+import { DashboardProvider } from "@contexts/dashboard-context";
+import DashboardPage from "@pages/dashboard/DashboardPage";
 
 // Chat Module
-import AgentChatPage from '@pages/chat/AgentChatPage';
+import AgentChatPage from "@pages/chat/AgentChatPage";
 
 // Route Wrapper for Products PLoC (Scoped lifecycle)
 const ProductsRouteWrapper: React.FC = () => {
-  const apolloClient = useApolloClient();
+  const apolloClient = useApolloClient() as ApolloClient<NormalizedCacheObject>;
 
   const [ploc] = useState(() => {
-    const repository = makeApolloProductRepository(apolloClient as any);
+    const repository = makeApolloProductRepository(apolloClient);
     const getProducts = makeGetProductsUseCase(repository);
     const deleteProduct = makeDeleteProductUseCase(repository);
     return makeProductsPloc(getProducts, deleteProduct);
@@ -95,16 +96,16 @@ const ProductsRouteWrapper: React.FC = () => {
 const ClientsRouteWrapper: React.FC = () => {
   const authPloc = useAuthPloc();
   const authState = usePlocState(authPloc);
-  const apolloClient = useApolloClient();
+  const apolloClient = useApolloClient() as ApolloClient<NormalizedCacheObject>;
 
   const [ploc] = useState(() => {
-    const repository = makeApolloClientRepository(apolloClient as any);
+    const repository = makeApolloClientRepository(apolloClient);
     const getClients = makeGetClientsUseCase(repository);
     const deleteClient = makeDeleteClientUseCaseObj(repository);
     return makeClientsPloc(getClients, deleteClient);
   });
 
-  const user = authState.kind === 'auth:authenticated' ? authState.user : null;
+  const user = authState.kind === "auth:authenticated" ? authState.user : null;
   if (!user) {
     return <Navigate to="/login" replace />;
   }
@@ -112,7 +113,7 @@ const ClientsRouteWrapper: React.FC = () => {
   // Cast session info safely
   const sessionInfo = {
     _id: String(user.id),
-    rol: user.role === UserRole.ADMIN ? 'adm' : 'seller',
+    role: user.role === UserRole.ADMIN ? UserRole.ADMIN : UserRole.SELLER,
     name: String(user.name),
   };
 
@@ -127,16 +128,16 @@ const ClientsRouteWrapper: React.FC = () => {
 const OrdersPageGlobalWrapper: React.FC = () => {
   const authPloc = useAuthPloc();
   const authState = usePlocState(authPloc);
-  const apolloClient = useApolloClient();
+  const apolloClient = useApolloClient() as ApolloClient<NormalizedCacheObject>;
 
   const [ploc] = useState(() => {
-    const repository = makeApolloClientRepository(apolloClient as any);
+    const repository = makeApolloClientRepository(apolloClient);
     const getClients = makeGetClientsUseCase(repository);
     const deleteClient = makeDeleteClientUseCaseObj(repository);
     return makeClientsPloc(getClients, deleteClient);
   });
 
-  const user = authState.kind === 'auth:authenticated' ? authState.user : null;
+  const user = authState.kind === "auth:authenticated" ? authState.user : null;
   if (!user) {
     return <Navigate to="/login" replace />;
   }
@@ -144,7 +145,7 @@ const OrdersPageGlobalWrapper: React.FC = () => {
   // Cast session info safely
   const sessionInfo = {
     _id: String(user.id),
-    rol: user.role === UserRole.ADMIN ? 'adm' : 'seller',
+    role: user.role === UserRole.ADMIN ? UserRole.ADMIN : UserRole.SELLER,
     name: String(user.name),
   };
 
@@ -157,10 +158,10 @@ const OrdersPageGlobalWrapper: React.FC = () => {
 
 // Route Wrapper for Orders PLoC (Scoped lifecycle)
 const OrdersRouteWrapper: React.FC = () => {
-  const apolloClient = useApolloClient();
+  const apolloClient = useApolloClient() as ApolloClient<NormalizedCacheObject>;
 
   const [ploc] = useState(() => {
-    const repository = makeApolloOrderRepository(apolloClient as any);
+    const repository = makeApolloOrderRepository(apolloClient);
     const getClientOrders = makeGetClientOrdersUseCase(repository);
     const createOrder = makeCreateOrderUseCase(repository);
     const updateOrder = makeUpdateOrderUseCase(repository);
@@ -178,24 +179,24 @@ const OrdersRouteWrapper: React.FC = () => {
 const CreateOrderRouteWrapper: React.FC = () => {
   const authPloc = useAuthPloc();
   const authState = usePlocState(authPloc);
-  const apolloClient = useApolloClient();
+  const apolloClient = useApolloClient() as ApolloClient<NormalizedCacheObject>;
 
   const [ploc] = useState(() => {
-    const repository = makeApolloOrderRepository(apolloClient as any);
+    const repository = makeApolloOrderRepository(apolloClient);
     const getClientOrders = makeGetClientOrdersUseCase(repository);
     const createOrder = makeCreateOrderUseCase(repository);
     const updateOrder = makeUpdateOrderUseCase(repository);
     return makeOrdersPloc(getClientOrders, createOrder, updateOrder);
   });
 
-  const user = authState.kind === 'auth:authenticated' ? authState.user : null;
+  const user = authState.kind === "auth:authenticated" ? authState.user : null;
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
   const sessionInfo = {
     _id: String(user.id),
-    rol: String(user.role) === 'admin' ? 'adm' : 'seller',
+    role: user.role === UserRole.ADMIN ? UserRole.ADMIN : UserRole.SELLER,
     name: String(user.name),
   };
 
@@ -211,14 +212,14 @@ const NewClientRouteWrapper: React.FC = () => {
   const authPloc = useAuthPloc();
   const authState = usePlocState(authPloc);
 
-  const user = authState.kind === 'auth:authenticated' ? authState.user : null;
+  const user = authState.kind === "auth:authenticated" ? authState.user : null;
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
   const sessionInfo = {
     _id: String(user.id),
-    rol: String(user.role) === 'admin' ? 'adm' : 'seller',
+    role: user.role === UserRole.ADMIN ? UserRole.ADMIN : UserRole.SELLER,
     name: String(user.name),
   };
 
@@ -227,10 +228,10 @@ const NewClientRouteWrapper: React.FC = () => {
 
 // Route Wrapper for Dashboard PLoC (Scoped lifecycle)
 const DashboardRouteWrapper: React.FC = () => {
-  const apolloClient = useApolloClient();
+  const apolloClient = useApolloClient() as ApolloClient<NormalizedCacheObject>;
 
   const [ploc] = useState(() => {
-    const repository = makeApolloDashboardRepository(apolloClient as any);
+    const repository = makeApolloDashboardRepository(apolloClient);
     const getTopClients = makeGetTopClientsUseCase(repository);
     const getTopSellers = makeGetTopSellersUseCase(repository);
     return makeDashboardPloc(getTopClients, getTopSellers);
@@ -253,12 +254,16 @@ const AppView: React.FC = () => {
   }, [ploc]);
 
   return match(state)
-    .with({ kind: AuthStateKind.INITIAL }, { kind: AuthStateKind.AUTHENTICATING }, () => (
-      <div className="text-center p-5 my-5">
-        <Spinkit />
-        <p className="text-muted mt-3">Validando sesión...</p>
-      </div>
-    ))
+    .with(
+      { kind: AuthStateKind.INITIAL },
+      { kind: AuthStateKind.AUTHENTICATING },
+      () => (
+        <div className="text-center p-5 my-5">
+          <Spinkit />
+          <p className="text-muted mt-3">Validating session...</p>
+        </div>
+      ),
+    )
     .otherwise((st) => {
       const isAuthenticated = st.kind === AuthStateKind.AUTHENTICATED;
 
@@ -267,16 +272,31 @@ const AppView: React.FC = () => {
           <NavShell>
             <Routes>
               {/* Public Routes */}
-              <Route path="/login" element={isAuthenticated ? <Navigate to="/clients" replace /> : <LoginPage />} />
-              
+              <Route
+                path="/login"
+                element={
+                  isAuthenticated ? (
+                    <Navigate to="/clients" replace />
+                  ) : (
+                    <LoginPage />
+                  )
+                }
+              />
+
               {/* Protected Routes */}
               {isAuthenticated ? (
                 <Fragment>
-                  <Route path="/" element={<Navigate to="/clients" replace />} />
-                  
+                  <Route
+                    path="/"
+                    element={<Navigate to="/clients" replace />}
+                  />
+
                   {/** Clients */}
                   <Route path="/clients" element={<ClientsRouteWrapper />} />
-                  <Route path="/clients/new" element={<NewClientRouteWrapper />} />
+                  <Route
+                    path="/clients/new"
+                    element={<NewClientRouteWrapper />}
+                  />
                   <Route path="/clients/edit/:id" element={<EditClient />} />
 
                   {/** Products */}
@@ -287,16 +307,22 @@ const AppView: React.FC = () => {
                   {/** Orders */}
                   <Route path="/orders" element={<OrdersPageGlobalWrapper />} />
                   <Route path="/orders/:id" element={<OrdersRouteWrapper />} />
-                  <Route path="/orders/new/:id" element={<CreateOrderRouteWrapper />} />
+                  <Route
+                    path="/orders/new/:id"
+                    element={<CreateOrderRouteWrapper />}
+                  />
 
                   {/** Dashboard */}
-                  <Route path="/dashboard" element={<DashboardRouteWrapper />} />
+                  <Route
+                    path="/dashboard"
+                    element={<DashboardRouteWrapper />}
+                  />
 
                   {/** Chat */}
                   <Route path="/chat" element={<AgentChatPage />} />
 
-                  {/** Registration (Admin only) */}
-                  <Route path="/register" element={<RegisterPage />} />
+                  {/** Users Dashboard (Admin only) */}
+                  <Route path="/users" element={<UsersPage />} />
                 </Fragment>
               ) : (
                 // Catch all redirect to login for unauthenticated users
@@ -310,16 +336,25 @@ const AppView: React.FC = () => {
 };
 
 export const AppRoutes: React.FC = () => {
-  const apolloClient = useApolloClient();
+  const apolloClient = useApolloClient() as ApolloClient<NormalizedCacheObject>;
 
   // Root Auth PLoC instantiation (Global session context)
   const [authPloc] = useState(() => {
-    const repository = makeApolloAuthRepository(apolloClient as any);
+    const repository = makeApolloAuthRepository(apolloClient);
     const login = makeLoginUseCase(repository);
     const register = makeRegisterUseCase(repository);
     const getCurrentUser = makeGetCurrentUserUseCase(repository);
     const logout = makeLogoutUseCase(repository);
-    return makeAuthPloc(login, register, getCurrentUser, logout);
+    const getUsers = makeGetUsersUseCase(repository);
+    const updateUser = makeUpdateUserUseCase(repository);
+    return makeAuthPloc(
+      login,
+      register,
+      getCurrentUser,
+      logout,
+      getUsers,
+      updateUser,
+    );
   });
 
   return (

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, Fragment } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useApolloClient } from "@apollo/client";
 import { ArrowLeft } from "lucide-react";
@@ -9,9 +9,7 @@ import { ClientForm } from "./ClientForm";
 import { IClient } from "@shared-domain/client/client.entity";
 import { IdVO } from "@shared-domain/shared/value-objects/id.vo";
 
-// @ts-ignore
 import Spinkit from "../../components/Spinkit";
-// @ts-ignore
 import Alert from "../../components/Alert";
 
 export const EditClient: React.FC = () => {
@@ -40,12 +38,12 @@ export const EditClient: React.FC = () => {
         const result = await useCases.getClient.execute(idVO);
 
         if (result.isFailure) {
-          setError(result.getError().message || "Error al cargar el cliente");
+          setError(result.getError().message || "Error loading client");
         } else {
           setClient(result.getValue());
         }
       } catch (err: any) {
-        setError(err.message || "Error al cargar el cliente");
+        setError(err.message || "Error loading client");
       } finally {
         setLoading(false);
       }
@@ -57,10 +55,9 @@ export const EditClient: React.FC = () => {
   const handleSubmit = async (formData: {
     firstName: string;
     lastName: string;
-    company: string;
-    emails: string[];
+    address: string;
+    whatsapp: string;
     age: number;
-    type: string;
   }) => {
     if (!client || !id) return;
 
@@ -69,10 +66,10 @@ export const EditClient: React.FC = () => {
       id,
       firstName: formData.firstName,
       lastName: formData.lastName,
-      company: formData.company,
-      emails: formData.emails,
+      address: formData.address,
+      whatsapp: formData.whatsapp,
       age: formData.age,
-      type: formData.type,
+      type: String(client.type),
       orders: client.orders ? client.orders.map((o) => String(o)) : [],
       sellerId: String(client.sellerId),
     });
@@ -80,7 +77,7 @@ export const EditClient: React.FC = () => {
     const result = await useCases.updateClient.execute(updatedClientEntity);
 
     if (result.isFailure) {
-      setError(result.getError().message || "Error al actualizar el cliente");
+      setError(result.getError().message || "Error updating client");
     } else {
       navigate("/clients");
     }
@@ -96,16 +93,17 @@ export const EditClient: React.FC = () => {
           className="inline-flex items-center gap-2 text-sm font-semibold text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500 rounded-lg px-2 py-1 -ml-2"
         >
           <ArrowLeft className="w-4 h-4 shrink-0" />
-          Volver al listado
+          Back to list
         </button>
       </div>
 
       <div className="mb-8">
         <h1 className="text-3xl font-extrabold tracking-tight text-stone-900 dark:text-stone-100">
-          Editar Cliente
+          Edit Client
         </h1>
         <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">
-          Actualiza los datos del perfil de cliente seleccionado y guarda los cambios en el sistema.
+          Update the profile details of the selected client and save the
+          changes in the system.
         </p>
       </div>
 
@@ -117,14 +115,14 @@ export const EditClient: React.FC = () => {
         </div>
       ) : !client ? (
         <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 p-4 rounded-xl text-center text-sm font-medium text-amber-800 dark:text-amber-300">
-          No se encontró el cliente solicitado.
+          The requested client was not found.
         </div>
       ) : (
         <div className="flex justify-center">
           <ClientForm
             client={client}
             onSubmit={handleSubmit}
-            submitButtonText="Guardar Cambios"
+            submitButtonText="Save Changes"
           />
         </div>
       )}

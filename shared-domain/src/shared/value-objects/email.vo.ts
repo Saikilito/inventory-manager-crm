@@ -18,10 +18,11 @@ export const EmailVO = {
 
   createResult: (str: string): Result<Email, ValidationError> => {
     const emailSchema = z.string().email().safeParse(str);
+
     if (emailSchema.error) {
       return Result.fail(
         new ValidationError(
-          `Invalid email: ${str}: ${emailSchema.error.message}`,
+          `Invalid email format: ${str}`,
         ),
       );
     }

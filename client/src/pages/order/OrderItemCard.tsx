@@ -16,11 +16,11 @@ export const OrderItemCard: React.FC<OrderItemCardProps> = ({
   const status = order.status;
 
   let borderClass = '';
-  if (status === 'PENDING') {
+  if (status === OrderStatus.PENDING) {
     borderClass = 'border-stone-200 dark:border-stone-800 hover:shadow-md';
-  } else if (status === 'CANCELLED') {
+  } else if (status === OrderStatus.CANCELLED) {
     borderClass = 'border-red-200 dark:border-red-900 bg-red-50/10 dark:bg-red-950/5';
-  } else if (status === 'COMPLETED') {
+  } else if (status === OrderStatus.COMPLETED) {
     borderClass = 'border-emerald-200 dark:border-emerald-900 bg-emerald-50/10 dark:bg-emerald-950/5';
   }
 
@@ -44,7 +44,7 @@ export const OrderItemCard: React.FC<OrderItemCardProps> = ({
         {/* Status Dropdown selector */}
         <div className="space-y-1.5">
           <label className="text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">
-            Estado
+            Status
           </label>
           <div className="relative w-full">
             <select
@@ -52,9 +52,9 @@ export const OrderItemCard: React.FC<OrderItemCardProps> = ({
               value={status}
               onChange={(e) => onStatusChange(order, e.target.value as OrderStatus)}
             >
-              <option value="PENDING">PENDIENTE</option>
-              <option value="COMPLETED">COMPLETADO</option>
-              <option value="CANCELLED">CANCELADO</option>
+              <option value={OrderStatus.PENDING}>PENDING</option>
+              <option value={OrderStatus.COMPLETED}>COMPLETED</option>
+              <option value={OrderStatus.CANCELLED}>CANCELLED</option>
             </select>
             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-stone-500">
               <ChevronDown className="h-4 w-4" />
@@ -65,12 +65,12 @@ export const OrderItemCard: React.FC<OrderItemCardProps> = ({
         {/* Order Items Section */}
         <div>
           <h3 className="text-sm font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-2">
-            Artículos del pedido
+            Order Items
           </h3>
           <ul className="divide-y divide-stone-100 dark:divide-stone-800 border border-stone-100 dark:border-stone-800/60 rounded-lg px-3 py-1 bg-stone-50/50 dark:bg-stone-900/30">
             {order.items.map((item, i) => {
               const prodId = String(item.productId);
-              const productName = productMap.get(prodId) || 'Cargando producto...';
+              const productName = productMap.get(prodId) || 'Loading product...';
 
               return (
                 <li key={i} className="flex items-center justify-between py-2 text-sm">
@@ -78,7 +78,7 @@ export const OrderItemCard: React.FC<OrderItemCardProps> = ({
                     {productName}
                   </span>
                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 flex-shrink-0">
-                    Cant: {Number(item.quantity)}
+                    Qty: {Number(item.quantity)}
                   </span>
                 </li>
               );

@@ -6,7 +6,6 @@ import { makeApolloProductRepository } from "@modules/product/infrastructure/rep
 import { makeCreateProductUseCase } from "@modules/product/application/use-cases/create-product";
 import { ProductForm } from "./ProductForm";
 
-// @ts-ignore
 import Alert from "../../components/Alert";
 
 export const NewProduct: React.FC = () => {
@@ -40,12 +39,12 @@ export const NewProduct: React.FC = () => {
       const result = await createProductUseCase.execute(productEntity);
 
       if (result.isFailure) {
-        setError(result.getError().message || "Error al crear el producto");
+        setError(result.getError().message || "Error creating product");
       } else {
         navigate("/products");
       }
     } catch (err: any) {
-      setError(err.message || "Error al crear el producto");
+      setError(err.message || "Error creating product");
     } finally {
       setSubmitting(false);
     }
@@ -65,16 +64,16 @@ export const NewProduct: React.FC = () => {
           className="inline-flex items-center gap-2 text-sm font-semibold text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500 rounded-lg px-2 py-1 -ml-2"
         >
           <ArrowLeft className="w-4 h-4 shrink-0" />
-          Volver al listado
+          Back to list
         </button>
       </div>
 
       <div className="mb-8">
         <h1 className="text-3xl font-extrabold tracking-tight text-stone-900 dark:text-stone-100">
-          Nuevo Producto
+          New Product
         </h1>
         <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">
-          Añade un nuevo producto al catálogo especificando su nombre, precio y stock inicial.
+          Add a new product to the catalog by specifying its name, price, and initial stock.
         </p>
       </div>
 
@@ -83,7 +82,7 @@ export const NewProduct: React.FC = () => {
       <div className="flex justify-center">
         <ProductForm
           onSubmit={handleSubmit}
-          submitButtonText="Crear Producto"
+          submitButtonText="Create Product"
           isLoading={submitting}
         />
       </div>

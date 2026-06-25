@@ -1,0 +1,80 @@
+export const ElectronicBrainLogo: React.FC<{ className?: string }> = ({
+  className = "w-5 h-5",
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    className={className}
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    {/* Left Lobe (Amber Lobe) */}
+    <path
+      d="M11.5 5.5c-3.3 0-6 2.7-6 6 0 1.5 1 2.8 2.2 3.5.5.3.8.8.8 1.4v2.1c0 .8.6 1.5 1.5 1.5h1.5c.8 0 1.5-.7 1.5-1.5V5.5z"
+      fill="#F59E0B"
+      opacity="0.9"
+    />
+    {/* Right Lobe (Bright Gold Lobe) */}
+    <path
+      d="M12.5 5.5v13.1c0 .8.7 1.5 1.5 1.5h1.5c.8 0 1.5-.7 1.5-1.5v-2.1c0-.6.3-1.1.8-1.4 1.2-.7 2.2-2 2.2-3.5 0-3.3-2.7-6-6-6z"
+      fill="#FBBF24"
+    />
+
+    {/* Neural synapses - Left Hemisphere */}
+    <path
+      d="M9.5 9.5h-1"
+      stroke="#FEF08A"
+      strokeWidth="1.2"
+      strokeLinecap="round"
+    />
+    <path
+      d="M8.5 12.5h-1"
+      stroke="#FEF08A"
+      strokeWidth="1.2"
+      strokeLinecap="round"
+    />
+    <path
+      d="M9.5 15.5H8.5"
+      stroke="#FEF08A"
+      strokeWidth="1.2"
+      strokeLinecap="round"
+    />
+
+    {/* Neural synapses - Right Hemisphere */}
+    <path
+      d="M14.5 9.5h1"
+      stroke="#FFF"
+      strokeWidth="1.2"
+      strokeLinecap="round"
+    />
+    <path
+      d="M15.5 12.5h1"
+      stroke="#FFF"
+      strokeWidth="1.2"
+      strokeLinecap="round"
+    />
+    <path
+      d="M14.5 15.5h1"
+      stroke="#FFF"
+      strokeWidth="1.2"
+      strokeLinecap="round"
+    />
+
+    {/* Central Core Connection Line */}
+    <path
+      d="M12 7.5v9"
+      stroke="#78350F"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeDasharray="1 2"
+    />
+
+    {/* Synaptic Nodes (Glow circles) */}
+    <circle cx="7" cy="9.5" r="1" fill="#FEF08A" />
+    <circle cx="6" cy="12.5" r="1" fill="#FEF08A" />
+    <circle cx="7" cy="15.5" r="1" fill="#FEF08A" />
+
+    <circle cx="17" cy="9.5" r="1" fill="#FFF" />
+    <circle cx="18" cy="12.5" r="1" fill="#FFF" />
+    <circle cx="17" cy="15.5" r="1" fill="#FFF" />
+  </svg>
+);

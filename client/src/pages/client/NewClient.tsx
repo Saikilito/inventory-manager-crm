@@ -11,7 +11,7 @@ import { makeCreateClientUseCase } from "@modules/client/application/use-cases/c
 interface NewClientProps {
   session: {
     _id: string;
-    rol: string;
+    role: string;
     name: string;
   };
 }
@@ -29,20 +29,19 @@ export const NewClient: React.FC<NewClientProps> = ({ session }) => {
   const handleSubmit = async (formData: {
     firstName: string;
     lastName: string;
-    company: string;
-    emails: string[];
+    address: string;
+    whatsapp: string;
     age: number;
-    type: string;
   }) => {
-    const { makeClient } = await import("@shared-domain/client/client.entity");
+    const { makeClient, ClientRatingTier } = await import("@shared-domain/client/client.entity");
 
     const clientEntity = makeClient({
       firstName: formData.firstName,
       lastName: formData.lastName,
-      company: formData.company,
-      emails: formData.emails,
+      address: formData.address,
+      whatsapp: formData.whatsapp,
       age: formData.age,
-      type: formData.type,
+      type: ClientRatingTier.BASIC,
       orders: [],
       sellerId: session._id,
     });
@@ -50,7 +49,7 @@ export const NewClient: React.FC<NewClientProps> = ({ session }) => {
     const result = await createClientUseCase.execute(clientEntity);
 
     if (result.isFailure) {
-      setError(result.getError().message || "Error al crear el cliente");
+      setError(result.getError().message || "Error creating client");
     } else {
       navigate("/clients");
     }
@@ -66,16 +65,16 @@ export const NewClient: React.FC<NewClientProps> = ({ session }) => {
           className="inline-flex items-center gap-2 text-sm font-semibold text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500 rounded-lg px-2 py-1 -ml-2"
         >
           <ArrowLeft className="w-4 h-4 shrink-0" />
-          Volver al listado
+          Back to list
         </button>
       </div>
 
       <div className="mb-8">
         <h1 className="text-3xl font-extrabold tracking-tight text-stone-900 dark:text-stone-100">
-          Nuevo Cliente
+          New Client
         </h1>
         <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">
-          Registra un nuevo perfil de cliente en el sistema para comenzar a asociarle pedidos.
+          Register a new client profile in the system to start associating orders with them.
         </p>
       </div>
 
@@ -84,7 +83,7 @@ export const NewClient: React.FC<NewClientProps> = ({ session }) => {
       <div className="flex justify-center">
         <ClientForm
           onSubmit={handleSubmit}
-          submitButtonText="Agregar Cliente"
+          submitButtonText="Add Client"
         />
       </div>
     </div>

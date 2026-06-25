@@ -9,9 +9,7 @@ import { ProductForm } from "./ProductForm";
 import { IProduct } from "@shared-domain/product/product.entity";
 import { IdVO } from "@shared-domain/shared/value-objects/id.vo";
 
-// @ts-ignore
 import Spinkit from "../../components/Spinkit";
-// @ts-ignore
 import Alert from "../../components/Alert";
 
 export const EditProduct: React.FC = () => {
@@ -41,12 +39,12 @@ export const EditProduct: React.FC = () => {
         const result = await useCases.getProduct.execute(idVO);
 
         if (result.isFailure) {
-          setError(result.getError().message || "Error al cargar el producto");
+          setError(result.getError().message || "Error loading product");
         } else {
           setProduct(result.getValue());
         }
       } catch (err: any) {
-        setError(err.message || "Error al cargar el producto");
+        setError(err.message || "Error loading product");
       } finally {
         setLoading(false);
       }
@@ -78,12 +76,12 @@ export const EditProduct: React.FC = () => {
       const result = await useCases.updateProduct.execute(updatedProductEntity);
 
       if (result.isFailure) {
-        setError(result.getError().message || "Error al actualizar el producto");
+        setError(result.getError().message || "Error updating product");
       } else {
         navigate("/products");
       }
     } catch (err: any) {
-      setError(err.message || "Error al actualizar el producto");
+      setError(err.message || "Error updating product");
     } finally {
       setSubmitting(false);
     }
@@ -111,31 +109,34 @@ export const EditProduct: React.FC = () => {
           className="inline-flex items-center gap-2 text-sm font-semibold text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500 rounded-lg px-2 py-1 -ml-2"
         >
           <ArrowLeft className="w-4 h-4 shrink-0" />
-          Volver al listado
+          Back to list
         </button>
       </div>
 
       <div className="mb-8">
         <h1 className="text-3xl font-extrabold tracking-tight text-stone-900 dark:text-stone-100">
-          Editar Producto
+          Edit Product
         </h1>
         <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">
-          Actualiza la información del producto, incluyendo su precio y nivel de existencias.
+          Update the product information, including its price and stock level.
         </p>
       </div>
 
       {alertComponent}
 
       {!product ? (
-        <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 p-4 rounded-xl text-center text-sm font-medium text-amber-800 dark:text-amber-300" role="alert">
-          No se encontró el producto solicitado.
+        <div
+          className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 p-4 rounded-xl text-center text-sm font-medium text-amber-800 dark:text-amber-300"
+          role="alert"
+        >
+          The requested product was not found.
         </div>
       ) : (
         <div className="flex justify-center">
           <ProductForm
             product={product}
             onSubmit={handleSubmit}
-            submitButtonText="Guardar Cambios"
+            submitButtonText="Save Changes"
             isLoading={submitting}
           />
         </div>

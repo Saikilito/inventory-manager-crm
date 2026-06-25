@@ -3,22 +3,28 @@ import { usePlocState } from '@hooks/use-ploc-state';
 import { useAuthPloc } from '@contexts/auth-context';
 import { useShell } from '@contexts/ShellContext';
 import { Sun, Moon, User } from 'lucide-react';
+import { ElectronicBrainLogo } from '@components/shell/ElectronicBrainLogo';
 
 export const Header: React.FC = () => {
   const { theme, toggleTheme } = useShell();
   const authPloc = useAuthPloc();
   const authState = usePlocState(authPloc);
 
-  const isAuthenticated = authState.kind === 'auth:authenticated';
-  const user = isAuthenticated ? (authState as any).user : null;
+  const user = authState.kind === 'auth:authenticated' ? authState.user : null;
+  const isAuthenticated = user !== null;
 
   return (
     <header className="h-16 border-b border-stone-200 dark:border-stone-800 bg-white/80 dark:bg-stone-900/80 backdrop-blur-md sticky top-0 z-40 flex items-center justify-between px-4 lg:px-8">
       {/* Page Title or Brand on Mobile */}
       <div className="flex items-center gap-2">
-        <span className="lg:hidden font-extrabold text-lg tracking-tight bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">
-          CRM Suite
-        </span>
+        <div className="lg:hidden flex items-center gap-1.5">
+          <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 shadow-sm">
+            <ElectronicBrainLogo className="w-4.5 h-4.5" />
+          </div>
+          <span className="font-extrabold text-base tracking-tight text-amber-500 dark:text-amber-400">
+            Invertor-AI
+          </span>
+        </div>
         <span className="hidden lg:inline text-sm font-semibold text-stone-500 dark:text-stone-400">
           Management Console
         </span>

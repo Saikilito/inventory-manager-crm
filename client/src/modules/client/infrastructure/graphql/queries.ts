@@ -6,10 +6,8 @@ export const CLIENTS_QUERY = gql`
       _id
       firstName
       lastName
-      company
-      emails {
-        email
-      }
+      address
+      whatsapp
       age
       type
       sellerId
@@ -24,10 +22,8 @@ export const SINGLE_CLIENT_QUERY = gql`
       _id
       firstName
       lastName
-      company
-      emails {
-        email
-      }
+      address
+      whatsapp
       age
       type
       sellerId

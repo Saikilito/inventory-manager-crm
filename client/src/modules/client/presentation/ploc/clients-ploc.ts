@@ -3,6 +3,7 @@ import { clientsInitialState, ClientsState, ClientsStateKind } from './clients-s
 import { GetClientsUseCase } from '@modules/client/application/use-cases/get-clients';
 import { DeleteClientUseCase } from '@modules/client/application/use-cases/delete-client';
 import { PositiveNumberVO } from '@shared-domain/shared/value-objects/positive-number.vo';
+import { NonNegativeNumberVO } from '@shared-domain/shared/value-objects/non-negative-number.vo';
 import { IdVO } from '@shared-domain/shared/value-objects/id.vo';
 
 export interface ClientsPloc extends Ploc<ClientsState> {
@@ -40,7 +41,7 @@ export function makeClientsPloc(
 
     const offsetVal = (page - 1) * limit;
     const limitVO = PositiveNumberVO.create(limit);
-    const offsetVO = PositiveNumberVO.create(offsetVal);
+    const offsetVO = NonNegativeNumberVO.create(offsetVal);
     const sellerIdVO = sellerId ? IdVO.create(sellerId) : undefined;
 
     const result = await getClients.execute(limitVO, offsetVO, sellerIdVO);

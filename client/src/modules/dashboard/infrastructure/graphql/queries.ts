@@ -8,7 +8,6 @@ export const TOP_CLIENTS = gql`
         _id
         firstName
         lastName
-        company
       }
     }
   }

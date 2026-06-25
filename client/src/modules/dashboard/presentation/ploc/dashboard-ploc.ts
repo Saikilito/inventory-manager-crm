@@ -26,7 +26,7 @@ export function makeDashboardPloc(
       const err = clientsResult.getError();
       ploc.changeState({
         kind: DashboardStateKind.ERROR,
-        errorMessage: err.message || 'Error al cargar las estadísticas de clientes',
+        errorMessage: err.message || 'Error loading client statistics',
       });
       return;
     }
@@ -35,7 +35,7 @@ export function makeDashboardPloc(
       const err = sellersResult.getError();
       ploc.changeState({
         kind: DashboardStateKind.ERROR,
-        errorMessage: err.message || 'Error al cargar las estadísticas de vendedores',
+        errorMessage: err.message || 'Error loading seller statistics',
       });
       return;
     }

@@ -7,4 +7,6 @@ export interface AuthRepository {
   login(email: string, password: string): Promise<Result<string, DomainError>>;
   register(user: IUser): Promise<Result<string, DomainError>>;
   logout(): Promise<Result<void, DomainError>>;
+  getUsers(): Promise<Result<IUser[], DomainError>>;
+  updateUser(id: string, data: Partial<IUser>): Promise<Result<void, DomainError>>;
 }

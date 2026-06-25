@@ -1,4 +1,4 @@
-import React, { useEffect, useState, Fragment } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useApolloClient } from "@apollo/client";
 import Select from "react-select";
@@ -16,17 +16,22 @@ import { IClient } from "@shared-domain/client/client.entity";
 import { IProduct } from "@shared-domain/product/product.entity";
 import { IdVO } from "@shared-domain/shared/value-objects/id.vo";
 import { PositiveNumberVO } from "@shared-domain/shared/value-objects/positive-number.vo";
+import { NonNegativeNumberVO } from "@shared-domain/shared/value-objects/non-negative-number.vo";
 
 import Spinkit from "../../components/Spinkit";
 import Alert from "../../components/Alert";
-import { ArrowLeft, User, Briefcase, Trash2, ShoppingBag } from "lucide-react";
+import { ArrowLeft, ShoppingBag } from "lucide-react";
+
+import ClientSummary from "./components/ClientSummary";
+import SelectedProductsTable from "./components/SelectedProductsTable";
+import OrderActionsBar from "./components/OrderActionsBar";
 
 const animatedComponents = makeAnimated();
 
 interface CreateOrderPageProps {
   session: {
     _id: string;
-    rol: string;
+    role: string;
     name: string;
   };
 }
@@ -47,12 +52,12 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({
 
   // Selected products local state
   const [selectedProducts, setSelectedProducts] = useState<
-    Array<IProduct & { cantidad: number }>
+    Array<IProduct & { quantity: number }>
   >([]);
 
   // Derive total during render (Vercel Best Practice 5.1!)
   const total = selectedProducts.reduce(
-    (sum, p) => sum + Number(p.price) * p.cantidad,
+    (sum, p) => sum + Number(p.price) * p.quantity,
     0,
   );
 
@@ -70,7 +75,7 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({
 
         if (clientResult.isFailure) {
           setError(
-            clientResult.getError().message || "Error al cargar el cliente",
+            clientResult.getError().message || "Error loading client",
           );
           setLoading(false);
           return;
@@ -82,19 +87,19 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({
         const getProducts = makeGetProductsUseCase(productRepo);
         const productsResult = await getProducts.execute(
           PositiveNumberVO.create(100),
-          PositiveNumberVO.create(0),
+          NonNegativeNumberVO.create(0),
         );
 
         if (productsResult.isFailure) {
           setError(
             productsResult.getError().message ||
-              "Error al cargar los productos",
+              "Error loading products",
           );
         } else {
           setProducts(productsResult.getValue().products);
         }
       } catch (err: any) {
-        setError(err.message || "Error al inicializar la pantalla");
+        setError(err.message || "Error initializing page");
       } finally {
         setLoading(false);
       }
@@ -115,7 +120,7 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({
       );
       return {
         ...p,
-        cantidad: existing ? existing.cantidad : 1,
+        quantity: existing ? existing.quantity : 1,
       };
     });
 
@@ -137,7 +142,7 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({
 
     const updated = selectedProducts.map((p, idx) => {
       if (idx === index) {
-        return { ...p, cantidad: checkedCount };
+        return { ...p, quantity: checkedCount };
       }
       return p;
     });
@@ -156,7 +161,7 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({
 
     const items = selectedProducts.map((p) => ({
       productId: String(p.id),
-      quantity: p.cantidad,
+      quantity: p.quantity,
     }));
 
     await ploc.createOrder(clientId, items, total, session._id);
@@ -184,17 +189,17 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({
         <button
           onClick={() => navigate(-1)}
           className="p-2 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg text-stone-500 hover:text-stone-900 dark:hover:text-stone-100 transition-colors"
-          title="Volver"
+          title="Back"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="space-y-1">
           <h1 className="text-2xl font-bold tracking-tight text-stone-900 dark:text-stone-100 flex items-center gap-2">
             <ShoppingBag className="w-6 h-6 text-stone-500" />
-            Nuevo Pedido
+            New Order
           </h1>
           <p className="text-sm text-stone-500 dark:text-stone-400">
-            Crea un nuevo pedido seleccionando artículos y configurando sus cantidades.
+            Create a new order by selecting items and setting their quantities.
           </p>
         </div>
       </div>
@@ -209,74 +214,14 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column: Client Summary (col-span-4) */}
         <div className="lg:col-span-4">
-          <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl p-5 shadow-sm flex flex-col items-center">
-            <h2 className="text-sm font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-5 self-start w-full border-b border-stone-100 dark:border-stone-800 pb-2">
-              Resumen del cliente
-            </h2>
-            {client ? (
-              <>
-                <div className="w-16 h-16 rounded-full bg-stone-100 dark:bg-stone-800/80 flex items-center justify-center mb-4 text-stone-600 dark:text-stone-300">
-                  {client.type === "corporate" || client.company ? (
-                    <Briefcase className="w-8 h-8" />
-                  ) : (
-                    <User className="w-8 h-8" />
-                  )}
-                </div>
-
-                <div className="w-full divide-y divide-stone-100 dark:divide-stone-800/60 text-sm">
-                  <div className="py-3 flex justify-between gap-4">
-                    <span className="font-medium text-stone-500 dark:text-stone-400">Cliente</span>
-                    <span className="font-semibold text-stone-900 dark:text-stone-100 text-right">
-                      {client.firstName} {client.lastName}
-                    </span>
-                  </div>
-                  <div className="py-3 flex justify-between gap-4">
-                    <span className="font-medium text-stone-500 dark:text-stone-400">Edad</span>
-                    <span className="font-semibold text-stone-900 dark:text-stone-100 text-right">
-                      {client.age} años
-                    </span>
-                  </div>
-                  {client.company && (
-                    <div className="py-3 flex justify-between gap-4">
-                      <span className="font-medium text-stone-500 dark:text-stone-400">Empresa</span>
-                      <span className="font-semibold text-stone-900 dark:text-stone-100 text-right">
-                        {client.company}
-                      </span>
-                    </div>
-                  )}
-                  <div className="py-3 flex justify-between gap-4">
-                    <span className="font-medium text-stone-500 dark:text-stone-400">Tipo</span>
-                    <span className="font-semibold text-stone-900 dark:text-stone-100 capitalize text-right">
-                      {client.type === "PREMIUM" ? "Premium" : "Básico"}
-                    </span>
-                  </div>
-                  {client.emails && client.emails.length > 0 && (
-                    <div className="py-3 space-y-1">
-                      <span className="font-medium text-stone-500 dark:text-stone-400 block">Correos</span>
-                      <div className="space-y-1 text-right">
-                        {client.emails.map((e, idx) => (
-                          <span key={idx} className="block text-xs text-stone-600 dark:text-stone-400 font-medium break-all">
-                            {String(e)}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </>
-            ) : (
-              <div className="w-full">
-                <Alert type="warning" message="Cliente no encontrado" />
-              </div>
-            )}
-          </div>
+          <ClientSummary client={client} />
         </div>
 
         {/* Right Column: Order Products Selection (col-span-8) */}
         <div className="lg:col-span-8 space-y-6">
           <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl p-5 shadow-sm space-y-5">
             <h2 className="text-sm font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider border-b border-stone-100 dark:border-stone-800 pb-2">
-              Seleccionar Artículos
+              Select Items
             </h2>
 
             <Select
@@ -284,7 +229,7 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({
               options={products as any}
               isMulti
               components={animatedComponents}
-              placeholder="Seleccionar productos..."
+              placeholder="Select products..."
               getOptionValue={(option: any) => String(option.id)}
               getOptionLabel={(option: any) =>
                 `${option.name} ($${Number(option.price).toLocaleString()})`
@@ -327,135 +272,22 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({
             {selectedProducts.length > 0 && (
               <div className="space-y-4 pt-4">
                 <h3 className="text-sm font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">
-                  Resumen & Cantidades
+                  Summary & Quantities
                 </h3>
 
-                <div className="border border-stone-200 dark:border-stone-800 rounded-xl overflow-hidden bg-white dark:bg-stone-950">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse text-sm">
-                      <thead>
-                        <tr className="bg-stone-50 dark:bg-stone-900/50 border-b border-stone-200 dark:border-stone-800 text-stone-500 dark:text-stone-400 font-bold">
-                          <th className="px-4 py-3">Producto</th>
-                          <th className="px-4 py-3">Precio</th>
-                          <th className="px-4 py-3">Inventario</th>
-                          <th className="px-4 py-3 text-center w-28">Cantidad</th>
-                          <th className="px-4 py-3 text-right">Eliminar</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
-                        {selectedProducts.map((p, index) => {
-                          const id = String(p.id);
-                          const stock = Number(p.stock);
+                <SelectedProductsTable
+                  selectedProducts={selectedProducts}
+                  onCountChange={handleCountChange}
+                  onRemoveProduct={handleRemoveProduct}
+                />
 
-                          return (
-                            <tr
-                              key={id}
-                              className="text-stone-900 dark:text-stone-100 hover:bg-stone-50/50 dark:hover:bg-stone-900/20 transition-colors"
-                            >
-                              <td className="px-4 py-3.5 font-medium">{p.name}</td>
-                              <td className="px-4 py-3.5">${Number(p.price).toLocaleString()}</td>
-                              <td className="px-4 py-3.5">
-                                <span
-                                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                                    stock < 10
-                                      ? "bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400"
-                                      : "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400"
-                                  }`}
-                                >
-                                  {stock} disp.
-                                </span>
-                              </td>
-                              <td className="px-4 py-3.5 text-center">
-                                <input
-                                  type="number"
-                                  min="1"
-                                  max={stock}
-                                  className="w-20 h-11 px-3 border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950 rounded-lg text-center font-medium focus:outline-none focus:ring-2 focus:ring-stone-950 dark:focus:ring-stone-100"
-                                  value={p.cantidad}
-                                  onChange={(e) =>
-                                    handleCountChange(
-                                      index,
-                                      Number(e.target.value),
-                                      stock,
-                                    )
-                                  }
-                                />
-                              </td>
-                              <td className="px-4 py-3.5 text-right">
-                                <button
-                                  type="button"
-                                  className="inline-flex items-center justify-center p-2 rounded-lg border border-red-200 dark:border-red-900/50 bg-white dark:bg-stone-950 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors cursor-pointer"
-                                  onClick={() => handleRemoveProduct(id)}
-                                  title="Eliminar artículo"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* Total and Actions Bar */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-850 rounded-xl">
-                  <div className="flex flex-col">
-                    <span className="text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">
-                      Total del Pedido
-                    </span>
-                    <span className="text-2xl font-black text-stone-900 dark:text-stone-100">
-                      ${total.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      className="px-5 py-2.5 text-sm font-semibold rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950 text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-900 transition-colors flex items-center gap-2 cursor-pointer"
-                      onClick={() => navigate(`/orders/${clientId}`)}
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      disabled={
-                        selectedProducts.length === 0 ||
-                        state.kind === "orders:loading"
-                      }
-                      onClick={handleGenerateOrder}
-                      type="button"
-                      className="px-6 py-2.5 text-sm font-semibold rounded-lg bg-stone-900 dark:bg-stone-50 text-white dark:text-stone-950 hover:bg-stone-800 dark:hover:bg-stone-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
-                    >
-                      {state.kind === "orders:loading" ? (
-                        <>
-                          <svg
-                            className="animate-spin h-4 w-4 text-current"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                          >
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                            ></circle>
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            ></path>
-                          </svg>
-                          Generando...
-                        </>
-                      ) : (
-                        "Generar Pedido"
-                      )}
-                    </button>
-                  </div>
-                </div>
+                <OrderActionsBar
+                  total={total}
+                  onCancel={() => navigate(`/orders/${clientId}`)}
+                  onCreateOrder={handleGenerateOrder}
+                  isDisabled={selectedProducts.length === 0}
+                  isLoading={state.kind === "orders:loading"}
+                />
               </div>
             )}
           </div>

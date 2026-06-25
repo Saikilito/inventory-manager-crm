@@ -3,7 +3,11 @@ import {
   ClientRepository,
   GetAllClientsResult,
 } from "@modules/client/domain/client.repository";
-import { IClient, makeClient } from "@shared-domain/client/client.entity";
+import {
+  IClient,
+  makeClient,
+  ClientRatingTier,
+} from "@shared-domain/client/client.entity";
 import { doTryResult } from "@shared-domain/shared/do-try-result";
 import { DatabaseError } from "@shared-domain/shared/errors";
 import { CLIENTS_QUERY, SINGLE_CLIENT_QUERY } from "../graphql/queries";
@@ -14,25 +18,16 @@ import {
 } from "../graphql/mutations";
 
 const LegacyClientType = {
-  BASICO: "BASICO",
+  BASIC: "BASICO",
   PREMIUM: "PREMIUM",
 } as const;
-
-const DomainClientType = {
-  BASIC: "BASIC",
-  PREMIUM: "PREMIUM",
-} as const;
-
-interface GQLEmail {
-  email: string;
-}
 
 interface GQLClient {
   _id: string;
   firstName: string;
   lastName: string;
-  company: string;
-  emails: GQLEmail[];
+  address: string;
+  whatsapp: string;
   age: number;
   type: string;
   sellerId: string;
@@ -52,16 +47,16 @@ export function makeApolloClientRepository(
 ): ClientRepository {
   const mapGQLToDomain = (gqlClient: GQLClient): IClient => {
     let typeCoerced = gqlClient.type;
-    if (typeCoerced === LegacyClientType.BASICO) {
-      typeCoerced = DomainClientType.BASIC;
+    if (typeCoerced === LegacyClientType.BASIC) {
+      typeCoerced = ClientRatingTier.BASIC;
     }
 
     return makeClient({
       id: gqlClient._id,
       firstName: gqlClient.firstName,
       lastName: gqlClient.lastName,
-      company: gqlClient.company,
-      emails: (gqlClient.emails || []).map((e) => e.email),
+      address: gqlClient.address,
+      whatsapp: gqlClient.whatsapp,
       age: gqlClient.age,
       type: typeCoerced,
       orders: [],
@@ -114,23 +109,15 @@ export function makeApolloClientRepository(
     create: async (client) => {
       return doTryResult(
         async (): Promise<boolean> => {
-          let typeCoerced = String(client.type);
-          if (typeCoerced === LegacyClientType.BASICO) {
-            typeCoerced = DomainClientType.BASIC;
-          }
-
           const { data } = await apolloClient.mutate<{ setClient: boolean }>({
             mutation: CREATE_CLIENT,
             variables: {
               input: {
                 firstName: String(client.firstName),
                 lastName: String(client.lastName),
-                company: String(client.company),
-                emails: (client.emails || []).map((e) => ({
-                  email: String(e),
-                })),
+                address: String(client.address),
+                whatsapp: String(client.whatsapp),
                 age: Number(client.age),
-                type: typeCoerced,
                 sellerId: String(client.sellerId),
               },
             },
@@ -145,11 +132,6 @@ export function makeApolloClientRepository(
     update: async (client) => {
       return doTryResult(
         async (): Promise<boolean> => {
-          let typeCoerced = String(client.type);
-          if (typeCoerced === LegacyClientType.BASICO) {
-            typeCoerced = DomainClientType.BASIC;
-          }
-
           const { data } = await apolloClient.mutate<{ updateClient: boolean }>(
             {
               mutation: UPDATE_CLIENT,
@@ -158,12 +140,9 @@ export function makeApolloClientRepository(
                   _id: String(client.id),
                   firstName: String(client.firstName),
                   lastName: String(client.lastName),
-                  company: String(client.company),
-                  emails: (client.emails || []).map((e) => ({
-                    email: String(e),
-                  })),
+                  address: String(client.address),
+                  whatsapp: String(client.whatsapp),
                   age: Number(client.age),
-                  type: typeCoerced,
                   sellerId: String(client.sellerId),
                 },
               },

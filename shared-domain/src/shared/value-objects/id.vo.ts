@@ -21,7 +21,10 @@ export const IdVO = {
   },
 
   createResult: (str: string): Result<Id, ValidationError> => {
-    if (validate(str) === false) {
+    const isUuid = validate(str);
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(str);
+
+    if (!isUuid && !isObjectId) {
       return Result.fail(new ValidationError('UUID is not valid'));
     }
 
