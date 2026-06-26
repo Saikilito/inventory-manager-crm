@@ -10,10 +10,9 @@ export interface UpdateClientInput {
   id: string;
   firstName?: string;
   lastName?: string;
-  company?: string;
-  emails?: string[];
+  address?: string;
+  whatsapp?: string;
   age?: number;
-  type?: string;
   orders?: string[];
   sellerId?: string;
 }
@@ -35,14 +34,14 @@ export const makeUpdateClient = (clientRepository: IClientRepository): UpdateCli
         const existingCli = validateExisting as IClient;
         return Result.ok(makeClient({
           id: input.id,
-          firstName: input.firstName !== undefined ? input.firstName : (existingCli.firstName as unknown as string),
-          lastName: input.lastName !== undefined ? input.lastName : (existingCli.lastName as unknown as string),
-          company: input.company !== undefined ? input.company : (existingCli.company as unknown as string),
-          emails: input.emails !== undefined ? input.emails : (existingCli.emails as unknown as string[]),
-          age: input.age !== undefined ? input.age : (existingCli.age as unknown as number),
-          type: input.type !== undefined ? input.type : (existingCli.type as unknown as string),
-          orders: input.orders !== undefined ? input.orders : (existingCli.orders as unknown as string[]),
-          sellerId: input.sellerId !== undefined ? input.sellerId : (existingCli.sellerId as unknown as string),
+          firstName: input.firstName !== undefined ? input.firstName : (existingCli.firstName as string),
+          lastName: input.lastName !== undefined ? input.lastName : (existingCli.lastName as string),
+          address: input.address !== undefined ? input.address : (existingCli.address as string),
+          whatsapp: input.whatsapp !== undefined ? input.whatsapp : (existingCli.whatsapp as string),
+          age: input.age !== undefined ? input.age : (existingCli.age as number),
+          type: existingCli.type as string,
+          orders: input.orders !== undefined ? input.orders : (existingCli.orders as string[]),
+          sellerId: input.sellerId !== undefined ? input.sellerId : (existingCli.sellerId as string),
         }));
       })
       .run();

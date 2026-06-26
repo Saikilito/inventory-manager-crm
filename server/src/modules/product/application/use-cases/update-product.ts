@@ -30,9 +30,9 @@ export const makeUpdateProduct = (productRepository: IProductRepository): Update
         const existingProd = validateExisting as IProduct;
         return Result.ok(makeProduct({
           id: input.id,
-          name: input.name !== undefined ? input.name : (existingProd.name as unknown as string),
-          price: input.price !== undefined ? input.price : (existingProd.price as unknown as number),
-          stock: input.stock !== undefined ? input.stock : (existingProd.stock as unknown as number),
+          name: input.name !== undefined ? input.name : (existingProd.name as string),
+          price: input.price !== undefined ? input.price : (existingProd.price as number),
+          stock: input.stock !== undefined ? input.stock : (existingProd.stock as number),
         }));
       })
       .run();

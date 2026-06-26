@@ -104,6 +104,8 @@ const makeMockOrderRepository = (initialOrder: IOrder): IOrderRepository => {
   } as any;
 };
 
+const dummyRecalculateRating = async () => Result.ok<void, any>();
+
 describe('Order Use Cases (TDD)', () => {
   it('should retrieve an order by ID (GetOrder)', async () => {
     const order = orderMother.create();
@@ -128,7 +130,7 @@ describe('Order Use Cases (TDD)', () => {
   it('should successfully create a new pending order (CreateOrder)', async () => {
     const order = orderMother.create();
     const orderRepo = makeMockOrderRepository(order);
-    const createOrder = makeCreateOrder(orderRepo);
+    const createOrder = makeCreateOrder(orderRepo, dummyRecalculateRating as any);
 
     const result = await createOrder({
       items: [{ productId: VALID_PRODUCT_UUID, quantity: 10 }],
@@ -152,7 +154,7 @@ describe('Order Use Cases (TDD)', () => {
     const productRepo = makeMockProductRepository(product);
     const orderRepo = makeMockOrderRepository(order);
 
-    const updateOrder = makeUpdateOrder(orderRepo, productRepo);
+    const updateOrder = makeUpdateOrder(orderRepo, productRepo, dummyRecalculateRating as any);
 
     const result = await updateOrder({ id: VALID_ORDER_UUID, status: OrderStatus.COMPLETED });
     expect(result.isFailure).toBe(false);
@@ -175,11 +177,11 @@ describe('Order Use Cases (TDD)', () => {
     const productRepo = makeMockProductRepository(product);
     const orderRepo = makeMockOrderRepository(order);
 
-    const updateOrder = makeUpdateOrder(orderRepo, productRepo);
+    const updateOrder = makeUpdateOrder(orderRepo, productRepo, dummyRecalculateRating as any);
 
     const result = await updateOrder({ id: VALID_ORDER_UUID, status: OrderStatus.COMPLETED });
     expect(result.isFailure).toBe(true);
-    expect(result.getError().message).toContain('Insuficient stock');
+    expect(result.getError().message).toContain('Insufficient stock');
 
     // Assert that stock remained unchanged
     const getProductRes = await productRepo.getById(IdVO.create(VALID_PRODUCT_UUID));
@@ -194,7 +196,7 @@ describe('Order Use Cases (TDD)', () => {
     const productRepo = makeMockProductRepository(product);
     const orderRepo = makeMockOrderRepository(order);
 
-    const updateOrder = makeUpdateOrder(orderRepo, productRepo);
+    const updateOrder = makeUpdateOrder(orderRepo, productRepo, dummyRecalculateRating as any);
 
     const result = await updateOrder({ id: VALID_ORDER_UUID, status: OrderStatus.CANCELLED });
     expect(result.isFailure).toBe(false);
@@ -217,7 +219,7 @@ describe('Order Use Cases (TDD)', () => {
     const productRepo = makeMockProductRepository(product);
     const orderRepo = makeMockOrderRepository(order);
 
-    const updateOrder = makeUpdateOrder(orderRepo, productRepo);
+    const updateOrder = makeUpdateOrder(orderRepo, productRepo, dummyRecalculateRating as any);
 
     const result = await updateOrder({ id: VALID_ORDER_UUID, status: OrderStatus.CANCELLED });
     expect(result.isFailure).toBe(false);

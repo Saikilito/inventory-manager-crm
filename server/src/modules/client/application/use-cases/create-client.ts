@@ -3,16 +3,15 @@ import { DomainError } from '../../../../../../shared-domain/src/shared/errors.j
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { ResultComposer } from '../../../../../../shared-domain/src/shared/result-composer.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
-import { makeClient } from '../../../../../../shared-domain/src/client/client.entity.js';
+import { makeClient, ClientRatingTier } from '../../../../../../shared-domain/src/client/client.entity.js';
 import { IClientRepository } from '../repositories/client.repository.js';
 
 export interface CreateClientInput {
   firstName: string;
   lastName: string;
-  company: string;
-  emails: string[];
+  address: string;
+  whatsapp: string;
   age?: number;
-  type: string;
   orders?: string[];
   sellerId: string;
 }
@@ -25,6 +24,7 @@ export const makeCreateClient = (clientRepository: IClientRepository): CreateCli
       .useResult('client', () => {
         return Result.ok(makeClient({
           ...input,
+          type: ClientRatingTier.BASIC,
           orders: input.orders || [],
         }));
       })

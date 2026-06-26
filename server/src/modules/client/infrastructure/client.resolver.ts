@@ -1,17 +1,12 @@
 import { IContext } from '../../../config/apollo.js';
 import { IClient } from '../../../../../shared-domain/src/client/client.entity.js';
 
-interface EmailInput {
-  email: string;
-}
-
 interface SetClientInput {
   firstName: string;
   lastName: string;
-  company: string;
-  emails: EmailInput[];
+  address: string;
+  whatsapp: string;
   age: number;
-  type: string;
   sellerId: string;
 }
 
@@ -19,10 +14,9 @@ interface UpdateClientInput {
   _id: string;
   firstName?: string;
   lastName?: string;
-  company?: string;
-  emails?: EmailInput[];
+  address?: string;
+  whatsapp?: string;
   age?: number;
-  type?: string;
   sellerId?: string;
 }
 
@@ -31,8 +25,8 @@ const mapToGql = (client: IClient) => {
     _id: client.id,
     firstName: client.firstName,
     lastName: client.lastName,
-    company: client.company,
-    emails: (client.emails || []).map((emailStr) => ({ email: emailStr })),
+    address: client.address,
+    whatsapp: client.whatsapp,
     age: client.age,
     type: client.type,
     sellerId: client.sellerId,
@@ -75,10 +69,9 @@ export default {
       const result = await container.client.createClient({
         firstName: input.firstName,
         lastName: input.lastName,
-        company: input.company,
-        emails: (input.emails || []).map((e) => e.email),
+        address: input.address,
+        whatsapp: input.whatsapp,
         age: input.age,
-        type: input.type,
         sellerId: input.sellerId,
       });
       return !result.isFailure;
@@ -89,10 +82,9 @@ export default {
         id: input._id,
         firstName: input.firstName,
         lastName: input.lastName,
-        company: input.company,
-        emails: input.emails ? input.emails.map((e) => e.email) : undefined,
+        address: input.address,
+        whatsapp: input.whatsapp,
         age: input.age,
-        type: input.type,
         sellerId: input.sellerId,
       });
       return !result.isFailure;

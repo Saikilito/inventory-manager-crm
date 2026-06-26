@@ -6,8 +6,8 @@ export interface ITopClient {
   client: Array<{
     firstName: string;
     lastName: string;
-    company: string;
-    emails: string[];
+    address: string;
+    whatsapp: string;
     type: string;
   }>;
 }

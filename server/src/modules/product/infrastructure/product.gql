@@ -1,7 +1,7 @@
 type Product {
   _id: ID
   name: String!
-  price: Int!
+  price: Float!
   stock: Int!
 }
 
@@ -14,7 +14,7 @@ type Query {
 input ProductInput {
   _id: ID
   name: String!
-  price: Int!
+  price: Float!
   stock: Int!
 }
 

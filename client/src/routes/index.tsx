@@ -31,6 +31,7 @@ import { AuthStateKind } from "@modules/auth/presentation/ploc/auth-state";
 import { AuthProvider, useAuthPloc } from "@contexts/auth-context";
 import LoginPage from "@pages/auth/LoginPage";
 import UsersPage from "@pages/auth/UsersPage";
+import SettingsPage from "@pages/settings/SettingsPage";
 
 // Clients Module
 import { makeApolloClientRepository } from "@modules/client/infrastructure/repositories/apollo-client.repository";
@@ -266,6 +267,7 @@ const AppView: React.FC = () => {
     )
     .otherwise((st) => {
       const isAuthenticated = st.kind === AuthStateKind.AUTHENTICATED;
+      const isAdmin = st.kind === AuthStateKind.AUTHENTICATED && st.user.role === UserRole.ADMIN;
 
       return (
         <Router>
@@ -323,6 +325,18 @@ const AppView: React.FC = () => {
 
                   {/** Users Dashboard (Admin only) */}
                   <Route path="/users" element={<UsersPage />} />
+
+                  {/** Settings Page (Admin only) */}
+                  <Route
+                    path="/settings"
+                    element={
+                      isAdmin ? (
+                        <SettingsPage />
+                      ) : (
+                        <Navigate to="/clients" replace />
+                      )
+                    }
+                  />
                 </Fragment>
               ) : (
                 // Catch all redirect to login for unauthenticated users

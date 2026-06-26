@@ -6,7 +6,7 @@ import { expressMiddleware } from "@as-integrations/express4";
 
 import config from "./config/index.js";
 import server, { context } from "./config/apollo.js";
-import { closeDB } from "./config/db-connection.js";
+import { initDatabase, closeDB, DatabaseType } from "./modules/shared/infrastructure/database/index.js";
 import { HumanDurationVO } from "../../shared-domain/src/shared/value-objects/human-duration.vo.js";
 
 const app = express();
@@ -43,10 +43,21 @@ app.use(
   expressMiddleware(server, { context: context as any }),
 );
 
-const { default: db } = await import("./config/db-connection.js");
+const dbConfigs = [
+  {
+    type: DatabaseType.MONGO,
+    uri: config.database,
+  },
+];
+
+console.warn("Initializing database connections via Facade...");
+const dbResult = await initDatabase(dbConfigs);
+if (dbResult.isFailure) {
+  console.error("CRITICAL: Database initialization failed. Aborting startup.", dbResult.getError());
+  process.exit(1);
+}
 
 const serverInstance = app.listen(config.PORT, () => {
-  db();
   console.warn(`🚀 Server ready at http://localhost:${config.PORT}/graphql`);
 });
 

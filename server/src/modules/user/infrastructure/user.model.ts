@@ -2,15 +2,24 @@ import mongoose, { Schema, Document } from "mongoose";
 import bcrypt from "bcrypt";
 import { IUser } from "../../../../../shared-domain/src/user/user.entity.js";
 
-export interface IUserDocument extends Omit<IUser, "id">, Document {
+export interface IUserDocument extends Omit<IUser, "id" | "role" | "user" | "email" | "name">, Document {
   _id: mongoose.Types.ObjectId;
+  user: string;
+  email: string;
+  name: string;
+  role: string;
+  disabled: boolean;
+  isTesting: boolean;
 }
 
 const userSchema = new Schema<IUserDocument>({
+  user: { type: String, required: true, unique: true },
   email: { type: String, required: true, unique: true },
   name: { type: String, required: true },
   password: { type: String, required: true },
   role: { type: String, required: true },
+  disabled: { type: Boolean, required: true, default: false },
+  isTesting: { type: Boolean, default: false, index: true },
 });
 
 userSchema.pre("save", function (next) {

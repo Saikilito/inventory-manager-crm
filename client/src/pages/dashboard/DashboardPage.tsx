@@ -1,9 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { match } from 'ts-pattern';
 import { usePlocState } from '@hooks/use-ploc-state';
 import { useDashboardPloc } from '@contexts/dashboard-context';
 import { DashboardStateKind } from '@modules/dashboard/presentation/ploc/dashboard-state';
 import { useShell } from '@contexts/ShellContext';
+import { WelcomeOnboardingModal } from '../../components/dashboard/WelcomeOnboardingModal';
 
 // Import our decoupled presentational components
 import { DashboardSkeleton } from '../../modules/dashboard/infrastructure/components/DashboardSkeleton';
@@ -21,9 +22,28 @@ export const DashboardPage: React.FC = () => {
   const { theme } = useShell();
   const isDark = theme === 'dark';
 
+  const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
+
   useEffect(() => {
     ploc.loadStats();
   }, [ploc]);
+
+  useEffect(() => {
+    if (state.kind === DashboardStateKind.LOADED) {
+      if (state.topClients.length === 0 && state.topSellers.length === 0) {
+        setIsWelcomeModalOpen(true);
+      }
+    }
+  }, [state]);
+
+  const handleSeedSuccess = () => {
+    setIsWelcomeModalOpen(false);
+    ploc.loadStats();
+  };
+
+  const handleClose = () => {
+    setIsWelcomeModalOpen(false);
+  };
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-7xl">
@@ -79,6 +99,11 @@ export const DashboardPage: React.FC = () => {
           );
         })
         .exhaustive()}
+      <WelcomeOnboardingModal
+        isOpen={isWelcomeModalOpen}
+        onClose={handleClose}
+        onSeedSuccess={handleSeedSuccess}
+      />
     </div>
   );
 };

@@ -2,6 +2,8 @@ import bcrypt from "bcrypt";
 import jwt, { SignOptions } from "jsonwebtoken";
 import { Result } from "../../../../../../shared-domain/src/shared/result.js";
 import { NonEmptyStringVO } from "../../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js";
+import { EmailVO } from "../../../../../../shared-domain/src/shared/value-objects/email.vo.js";
+import { UsernameVO } from "../../../../../../shared-domain/src/shared/value-objects/username.vo.js";
 import { IUserRepository } from "../repositories/user.repository.js";
 
 export interface AuthenticateUserInput {
@@ -37,8 +39,29 @@ export const makeAuthenticateUser = (
       );
     }
 
+    let queryValue: string;
+    if (input.email.includes('@')) {
+      const emailResult = EmailVO.createResult(input.email);
+      if (emailResult.isFailure) {
+        return Result.fail<AuthenticationResult, Error>(
+          emailResult.getError()
+        );
+      }
+      queryValue = emailResult.getValue();
+    } else {
+      const usernameResult = UsernameVO.createResult(input.email);
+      if (usernameResult.isFailure) {
+        return Result.fail<AuthenticationResult, Error>(
+          usernameResult.getError()
+        );
+      }
+      queryValue = usernameResult.getValue();
+    }
+
+    const queryField = input.email.includes('@') ? 'email' : 'user';
+
     const existingResult = await userRepository.getOne([
-      { field: NonEmptyStringVO.create("email"), value: input.email, operator: "=" },
+      { field: NonEmptyStringVO.create(queryField), value: queryValue, operator: "=" },
     ]);
     if (existingResult.isFailure) {
       return Result.fail<AuthenticationResult, Error>(
@@ -50,6 +73,12 @@ export const makeAuthenticateUser = (
     if (!user) {
       return Result.fail<AuthenticationResult, Error>(
         new Error("User not found"),
+      );
+    }
+
+    if (user.disabled === true) {
+      return Result.fail<AuthenticationResult, Error>(
+        new Error("ACCOUNT_DISABLED"),
       );
     }
 

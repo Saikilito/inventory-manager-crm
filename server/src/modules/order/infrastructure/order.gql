@@ -1,7 +1,7 @@
 type Order {
   _id: ID
   items: [OrderItem]!
-  total: Int!
+  total: Float!
   createdAt: String
   clientId: ID!
   status: OrderStatus
@@ -34,7 +34,7 @@ input OrderItemInput {
 input OrderInput {
   _id: ID
   items: [OrderItemInput]!
-  total: Int!
+  total: Float!
   createdAt: String
   clientId: ID!
   status: OrderStatus

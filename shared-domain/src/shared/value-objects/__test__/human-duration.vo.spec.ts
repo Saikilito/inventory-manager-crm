@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { HumanDurationVO } from '../../../../shared-domain/src/shared/value-objects/human-duration.vo.js';
+import { HumanDurationVO } from '../human-duration.vo.js';
 
 describe('HumanDurationVO', () => {
   it('should successfully parse valid duration strings into milliseconds', () => {

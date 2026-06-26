@@ -1,0 +1,19 @@
+type DatabaseStatus {
+  clientsCount: Int!
+  testingClientsCount: Int!
+  productsCount: Int!
+  testingProductsCount: Int!
+  ordersCount: Int!
+  testingOrdersCount: Int!
+  usersCount: Int!
+  testingUsersCount: Int!
+}
+
+type Query {
+  getDatabaseStatus: DatabaseStatus!
+}
+
+type Mutation {
+  seedDatabase: Boolean!
+  wipeDatabase: Boolean!
+}

@@ -2,19 +2,16 @@ type Client {
   _id: ID
   firstName: String!
   lastName: String!
-  company: String!
-  emails: [Email]
+  address: String!
+  whatsapp: String!
   age: Int!
   type: ClientType!
   sellerId: ID
 }
 
-type Email {
-  email: String
-}
-
 enum ClientType {
   BASIC
+  CONCURRENT
   PREMIUM
 }
 
@@ -24,18 +21,13 @@ type Query {
   totalClients(sellerId: ID): Int
 }
 
-input EmailInput {
-  email: String
-}
-
 input ClientInput {
   _id: ID
   firstName: String!
   lastName: String!
-  company: String!
-  emails: [EmailInput]
+  address: String!
+  whatsapp: String!
   age: Int!
-  type: ClientType!
   sellerId: ID
 }
 

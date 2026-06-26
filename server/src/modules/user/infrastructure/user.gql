@@ -4,21 +4,33 @@ type Token {
 
 type User {
   _id: ID
+  user: String
   email: String
   name: String
   role: String
+  disabled: Boolean
 }
 
 type Query {
   getUser: User
+  getUsers: [User!]!
 }
 
 type Mutation {
   setUser(
+    user: String!
     email: String!
     name: String!
     password: String!
     role: String!
   ): Boolean!
   userAuthentication(email: String!, password: String!): Token!
+  updateUser(
+    id: ID!
+    name: String
+    user: String
+    email: String
+    role: String
+    disabled: Boolean
+  ): Boolean!
 }

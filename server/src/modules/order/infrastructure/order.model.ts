@@ -3,6 +3,7 @@ import { IOrder } from "../../../../../shared-domain/src/order/order.entity.js";
 
 export interface IOrderDocument extends Omit<IOrder, "id">, Document {
   _id: mongoose.Types.ObjectId;
+  isTesting: boolean;
 }
 
 const orderItemSchema = new Schema({
@@ -25,6 +26,7 @@ const orderSchema = new Schema<IOrderDocument>({
     default: "PENDING",
   },
   sellerId: { type: Schema.Types.ObjectId as any, ref: "User", required: true },
+  isTesting: { type: Boolean, default: false, index: true },
 });
 
 export const OrderModel = mongoose.model<IOrderDocument>("Order", orderSchema);

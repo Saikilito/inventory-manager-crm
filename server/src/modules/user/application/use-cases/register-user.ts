@@ -6,6 +6,7 @@ import { NonEmptyStringVO } from '../../../../../../shared-domain/src/shared/val
 import { IUserRepository } from '../repositories/user.repository.js';
 
 export interface RegisterUserInput {
+  user: string;
   email: string;
   name: string;
   password?: string;
@@ -17,17 +18,27 @@ export type RegisterUser = (input: RegisterUserInput) => Promise<Result<void, Er
 export const makeRegisterUser = (userRepository: IUserRepository): RegisterUser => {
   return async (input: RegisterUserInput) => {
     const composerResult = await ResultComposer.start()
-      .useResult('user', () => Result.ok(makeUser(input)))
-      .useResult('existing', ({ user }) =>
+      .useResult('user', () => makeUser(input))
+      .useResult('existingEmail', ({ user }) =>
         userRepository.getOne([{
           field: NonEmptyStringVO.create('email'),
           value: user.email,
           operator: '=',
         }])
       )
-      .useResult('validateUnique', ({ existing }) => {
-        if (existing !== null) {
-          return Result.fail(new Error('User already exists'));
+      .useResult('existingUser', ({ user }) =>
+        userRepository.getOne([{
+          field: NonEmptyStringVO.create('user'),
+          value: user.user,
+          operator: '=',
+        }])
+      )
+      .useResult('validateUnique', ({ existingEmail, existingUser }) => {
+        if (existingEmail !== null) {
+          return Result.fail(new Error('Email is already registered'));
+        }
+        if (existingUser !== null) {
+          return Result.fail(new Error('Username is already registered'));
         }
         return Result.ok();
       })

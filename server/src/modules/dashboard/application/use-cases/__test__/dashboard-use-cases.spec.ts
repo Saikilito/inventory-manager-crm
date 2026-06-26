@@ -13,8 +13,8 @@ const mockTopClient: ITopClient = {
   client: [{
     firstName: 'Lionel',
     lastName: 'Messi',
-    company: 'Inter Miami',
-    emails: ['leomessi@example.com'],
+    address: 'Miami Florida',
+    whatsapp: '+999999999',
     type: 'PREMIUM'
   }]
 };
@@ -23,9 +23,9 @@ const mockTopSeller: ITopSeller = {
   _id: VALID_SELLER_UUID,
   total: 1500,
   seller: [{
-    name: 'Vendedor Saikilo',
+    name: 'Seller Saikilo',
     email: 'seller@example.com',
-    role: 'seller'
+    role: 'SELLER'
   }]
 };
 
@@ -60,6 +60,6 @@ describe('Dashboard Use Cases (TDD)', () => {
     expect(result.isFailure).toBe(false);
     expect(result.getValue().length).toBe(1);
     expect(result.getValue()[0].total).toBe(1500);
-    expect(result.getValue()[0].seller[0].name).toBe('Vendedor Saikilo');
+    expect(result.getValue()[0].seller[0].name).toBe('Seller Saikilo');
   });
 });

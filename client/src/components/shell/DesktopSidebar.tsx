@@ -16,6 +16,7 @@ import {
   ChevronRight,
   MessageSquare,
   ShoppingCart,
+  Settings,
 } from "lucide-react";
 import { ElectronicBrainLogo } from "./ElectronicBrainLogo";
 
@@ -69,6 +70,11 @@ export const DesktopSidebar: React.FC = () => {
       path: "/users",
       label: "Users",
       icon: UserPlus,
+    });
+    navItems.push({
+      path: "/settings",
+      label: "Settings",
+      icon: Settings,
     });
   }
 

@@ -5,6 +5,7 @@ import { ResultComposer } from '../../../../../../shared-domain/src/shared/resul
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
 import { IOrder, makeOrder } from '../../../../../../shared-domain/src/order/order.entity.js';
 import { IOrderRepository } from '../repositories/order.repository.js';
+import { RecalculateClientRating } from '../../../client/application/use-cases/recalculate-client-rating.js';
 
 export interface CreateOrderInput {
   items: Array<{ productId: string; quantity: number }>;
@@ -15,7 +16,10 @@ export interface CreateOrderInput {
 
 export type CreateOrder = UseCase<CreateOrderInput, IOrder, DomainError>;
 
-export const makeCreateOrder = (orderRepository: IOrderRepository): CreateOrder => {
+export const makeCreateOrder = (
+  orderRepository: IOrderRepository,
+  recalculateClientRating: RecalculateClientRating,
+): CreateOrder => {
   return async (input: CreateOrderInput) => {
     const composerResult = await ResultComposer.start()
       .useResult('order', () => {
@@ -28,6 +32,13 @@ export const makeCreateOrder = (orderRepository: IOrderRepository): CreateOrder 
         }));
       })
       .useResult('savedOrder', ({ order }) => orderRepository.create(order, IdVO.generateNil()))
+      .useResult('recalcRating', async () => {
+        const reResult = await recalculateClientRating(input.clientId);
+        if (reResult.isFailure) {
+          return Result.fail(reResult.getError());
+        }
+        return Result.ok();
+      })
       .run();
 
     if (composerResult.isFailure) {

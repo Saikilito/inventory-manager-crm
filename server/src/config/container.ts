@@ -12,6 +12,8 @@ import { makeUserMongooseRepository } from '../modules/user/infrastructure/repos
 import { GetUserByEmail, makeGetUserByEmail } from '../modules/user/application/use-cases/get-user.js';
 import { RegisterUser, makeRegisterUser } from '../modules/user/application/use-cases/register-user.js';
 import { AuthenticateUser, makeAuthenticateUser } from '../modules/user/application/use-cases/authenticate-user.js';
+import { GetAllUsers, makeGetAllUsers } from '../modules/user/application/use-cases/get-all-users.js';
+import { UpdateUser, makeUpdateUser } from '../modules/user/application/use-cases/update-user.js';
 
 import { IClientRepository } from '../modules/client/application/repositories/client.repository.js';
 import { makeClientMongooseRepository } from '../modules/client/infrastructure/repositories/client-mongoose.repository.js';
@@ -21,6 +23,7 @@ import { TotalClients, makeTotalClients } from '../modules/client/application/us
 import { CreateClient, makeCreateClient } from '../modules/client/application/use-cases/create-client.js';
 import { UpdateClient, makeUpdateClient } from '../modules/client/application/use-cases/update-client.js';
 import { DeleteClient, makeDeleteClient } from '../modules/client/application/use-cases/delete-client.js';
+import { RecalculateClientRating, makeRecalculateClientRating } from '../modules/client/application/use-cases/recalculate-client-rating.js';
 
 import { IOrderRepository } from '../modules/order/application/repositories/order.repository.js';
 import { makeOrderMongooseRepository } from '../modules/order/infrastructure/repositories/order-mongoose.repository.js';
@@ -59,6 +62,8 @@ export type Container = Readonly<{
     getUserByEmail: GetUserByEmail;
     registerUser: RegisterUser;
     authenticateUser: AuthenticateUser;
+    getAllUsers: GetAllUsers;
+    updateUser: UpdateUser;
   }>;
 
   client: Readonly<{
@@ -68,6 +73,7 @@ export type Container = Readonly<{
     createClient: CreateClient;
     updateClient: UpdateClient;
     deleteClient: DeleteClient;
+    recalculateClientRating: RecalculateClientRating;
   }>;
 
   order: Readonly<{
@@ -93,6 +99,8 @@ export const makeContainer = (overrides: ContainerDependencies = {}): Container 
   const orderRepository = overrides.orderRepository ?? makeOrderMongooseRepository();
   const dashboardRepository = overrides.dashboardRepository ?? makeDashboardMongooseRepository();
 
+  const recalculateClientRating = makeRecalculateClientRating(clientRepository, orderRepository);
+
   const container: Container = {
     product: {
       getProduct: makeGetProduct(productRepository),
@@ -107,6 +115,8 @@ export const makeContainer = (overrides: ContainerDependencies = {}): Container 
       getUserByEmail: makeGetUserByEmail(userRepository),
       registerUser: makeRegisterUser(userRepository),
       authenticateUser: makeAuthenticateUser(userRepository),
+      getAllUsers: makeGetAllUsers(userRepository),
+      updateUser: makeUpdateUser(userRepository),
     },
 
     client: {
@@ -116,6 +126,7 @@ export const makeContainer = (overrides: ContainerDependencies = {}): Container 
       createClient: makeCreateClient(clientRepository),
       updateClient: makeUpdateClient(clientRepository),
       deleteClient: makeDeleteClient(clientRepository),
+      recalculateClientRating,
     },
 
     order: {
@@ -123,9 +134,9 @@ export const makeContainer = (overrides: ContainerDependencies = {}): Container 
       getOrderClient: makeGetOrderClient(orderRepository),
       getAllOrders: makeGetAllOrders(orderRepository),
       totalOrders: makeTotalOrders(orderRepository),
-      createOrder: makeCreateOrder(orderRepository),
-      updateOrder: makeUpdateOrder(orderRepository, productRepository),
-      deleteOrder: makeDeleteOrder(orderRepository),
+      createOrder: makeCreateOrder(orderRepository, recalculateClientRating),
+      updateOrder: makeUpdateOrder(orderRepository, productRepository, recalculateClientRating),
+      deleteOrder: makeDeleteOrder(orderRepository, recalculateClientRating),
     },
 
     dashboard: {
