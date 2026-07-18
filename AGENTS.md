@@ -151,6 +151,29 @@ All repositories and core services must enforce Value Objects at their type boun
 - **No `as any` Castings:** Bypassing Value Object signatures using `as any` on repository inputs is strictly prohibited. If a repository expects a `PositiveNumber` or `Id`, the Use Case must construct it natively (using `PositiveNumberVO.create` or `IdVO.create`).
 - **NIL UUID for System Actor:** When database auditing requires an actor `Id` for background or system-driven operations (such as `createdBy`, `updatedBy`, `deletedBy`), use the NIL UUID via `IdVO.generateNil()` instead of the raw string `'system' as any`.
 
+### 🔒 10. No Git Operations Without Explicit Authorization
+
+- No Git operations (commits, pushes, branch creation, or PR operations) are allowed unless explicitly authorized or requested by the user.
+
+### 🔀 11. Branchless Code Style (Early Return / Fail First)
+
+- Always prefer a "branchless" programming style. Instead of wrapping logic in nested `if-else` blocks or deep conditional trees, search first for negative/failing cases, handle them immediately, and perform an early return. This drastically minimizes indentation, reduces cognitive load, and keeps the code linear.
+- Example:
+  ```typescript
+  if (data.failed) {
+    return void 0;
+  }
+  
+  // other code...
+  ```
+
+### 🔍 12. Explore Before Coding (Mandatory Pre-Development Step)
+
+Before writing a single line of new code, always explore the codebase to identify existing elements that are reusable and/or easily modifiable to meet the current need. **Never build what can be adapted.**
+
+- Search with `grep`, `glob`, or `search` for existing utilities, components, entities, VOs, or patterns that already solve the problem.
+- If something reusable or extensible exists, **use or adapt it** — never duplicate.
+- This applies to domain logic, infrastructure code, React components, hooks, and utilities equally.
 
 ---
 
@@ -179,12 +202,33 @@ Before starting any task, **identify your route** in the table below and load th
 | Task Category                | Relevant Documentation                                   | When to Load                                                                      |
 | :--------------------------- | :------------------------------------------------------- | :-------------------------------------------------------------------------------- |
 | **Architecture & Structure** | [architecture.md](docs/agents/architecture.md)           | Clean/Screaming Architecture rules, feature directories, shared-domain setup.     |
+| **Code Verification & Refactoring** | [verification.md](docs/agents/verification.md) | Verifying, fixing, or refactoring existing code. Mandatory pre-commit checklist. |
 | **Conventions**              | [conventions.md](docs/agents/conventions.md)             | English naming, TS standards, ts-pattern rules, avoiding magic values.            |
 | **Philosophy & Data Flow**   | [philosophy.md](docs/agents/philosophy.md)               | Understanding Use Case orchestration, Single Responsibility, Service contracts of trust, validation layering, and database-first reading with Mongoose. |
 | **Make Pattern**             | [make-pattern.md](docs/agents/make-pattern.md)           | Creating or refactoring services or dependency injection.                         |
 | **Result Composition**       | [result-composer.md](docs/agents/result-composer.md)     | Chaining multiple operations returning `Result` types.                            |
 | **Testing**                  | [testing.md](docs/agents/testing.md)                     | Writing, updating, or running tests.                                              |
 | **Agent Guidelines**         | [agents-guidelines.md](docs/agents/agents-guidelines.md) | **MANDATORY:** Load before updating `AGENTS.md` or any file within docs/agents/\* |
+
+---
+
+## 🧭 Agent Skill & Context Discovery (CRITICAL)
+
+To ensure high-performance execution, all AI models MUST locate and load the necessary skills and context correctly:
+
+### 1. Unified Skill Locations
+- Skills in this project are stored in:
+  - Local project directory: `.agents/skills/`
+  - Global home directories: `~/.agents/skills/` and `~/.config/opencode/skills/`
+- **DO NOT look for vendor-specific directories** (such as `.gemini/` or `.claudia/`). They DO NOT exist in this workspace.
+
+### 2. Available Skills Source of Truth
+- The ultimate **Source of Truth** for which skills are loaded and active is the `<available_skills>` block provided in your system prompt.
+- This block contains the exact name, description, and physical file path (with `file://` URI) for each available skill.
+- Before executing any task that matches a skill's description, you **MUST** read that skill's markdown file using the exact location path from the system prompt (utilizing the `read` or equivalent tool).
+
+### 3. Context Retrieval Protocol
+- If a required skill file cannot be found in your default configured paths, do not assume it is missing. Check the `<available_skills>` block in your system prompt and load it from its explicit URI location.
 
 ---
 
@@ -196,6 +240,7 @@ Before considering a task finished and submitting a response or PR, you **MUST**
 
 - [ ] **Screaming Architecture:** Organized by domain module (folder-by-feature).
 - [ ] **Shared Domain:** Common entities and VOs placed in `shared-domain/`.
+- [ ] **Explore Before Coding:** Searched codebase for existing reusable elements before writing new code.
 - [ ] **Strict DRY check:** Ran search to ensure no code duplication exists.
 - [ ] **TypeScript Strict:** Strict typing with zero `any` usages.
 - [ ] **No Magic Values:** Refactored magic strings/numbers to constants.
