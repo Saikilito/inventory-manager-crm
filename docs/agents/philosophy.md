@@ -56,6 +56,19 @@ This principle saves tokens, prevents duplication, and keeps the codebase DRY by
 
 ---
 
+## 🔀 Branchless Code Style (Early Return / Fail First)
+
+Always prefer a **branchless** programming style. Instead of wrapping logic in nested `if-else` blocks or deep conditional trees, search first for negative/failing cases, handle them immediately, and **return early**. This drastically minimizes indentation, reduces cognitive load, and keeps the code linear and readable.
+
+**Core principles:**
+1. **Guard clauses first:** Validate and reject invalid inputs at the top of a function, then proceed with the happy path uninterrupted.
+2. **Ternary for binary:** Use ternary operators for simple binary assignments instead of `if-else` blocks.
+3. **No nesting past level 1:** If you find yourself at a second or third level of `if` nesting, refactor to early returns.
+
+This pattern is not just stylistic — it is a readability and maintainability strategy. Flat code is easier to reason about, easier to test, and easier to debug.
+
+---
+
 ## 🛡️ Validation Layering Rule
 
 All validation rules must be concentrated strictly by prioritizing architectural levels:

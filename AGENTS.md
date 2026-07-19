@@ -118,6 +118,13 @@ Act as a **World-Class Software Architect**. Protect the code's health at all co
   - **Never** use traditional `switch` statements or deep nested `if-else` blocks for business-critical state evaluation.
   - Always use the **`ts-pattern`** library (`match` API) to ensure pattern matching is complete and exhaustive.
 
+### 🔀 4.5 Branchless Code Style (Early Return / Fail First)
+
+- Always prefer a "branchless" programming style. Instead of wrapping logic in nested `if-else` blocks or deep conditional trees, search first for negative/failing cases, handle them immediately, and perform an early return. This drastically minimizes indentation, reduces cognitive load, and keeps the code linear.
+- Use ternary operators for simple binary assignments instead of `if-else` blocks.
+- Use guard clauses: validate and reject invalid inputs at the top, then proceed with the happy path uninterrupted.
+- See [conventions.md](docs/agents/conventions.md) for detailed examples and anti-patterns.
+
 ### ⚛️ 5. Functional React Components
 
 - Convert all legacy class components to React functional components utilizing hooks.
@@ -245,6 +252,7 @@ Before considering a task finished and submitting a response or PR, you **MUST**
 - [ ] **TypeScript Strict:** Strict typing with zero `any` usages.
 - [ ] **No Magic Values:** Refactored magic strings/numbers to constants.
 - [ ] **ts-pattern:** Used `match()` instead of `switch` statements for state-based logic.
+- [ ] **Branchless:** Used early returns, guard clauses, and ternaries instead of nested `if-else`.
 - [ ] **Clean Architecture:** Domain and Application layers are 100% pure (no framework imports).
 - [ ] **English Naming:** Code, variables, schemas, and files are written completely in English.
 - [ ] **Functional Components:** All refactored React components are functional and use React hooks.
