@@ -17,7 +17,7 @@ export const PositiveNumberVO = {
   },
 
   createResult: (value: number): Result<PositiveNumber, ValidationError> => {
-    if (z.number().min(1).safeParse(value).error) {
+    if (z.number().gt(0).safeParse(value).error) {
       return Result.fail(
         new ValidationError(`Value ${value} must be a positive number`),
       );

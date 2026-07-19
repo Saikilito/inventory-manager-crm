@@ -32,3 +32,17 @@ export class UnauthorizedError extends DomainError {
     this.name = 'UnauthorizedError';
   }
 }
+
+export class SchemaIntegrityError extends DomainError {
+  constructor(message: string) {
+    super(message);
+    this.name = 'SchemaIntegrityError';
+  }
+}
+
+export class ContextInUseError extends DomainError {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ContextInUseError';
+  }
+}

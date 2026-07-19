@@ -1,44 +1,50 @@
 import { Result } from './result.js';
 
-export class ResultComposer<Context extends Record<string, any> = {}> {
-  private steps: Array<{
-    key: string;
-    fn: (ctx: Context) => any;
-  }> = [];
+type ComposerContext = Record<string, unknown>;
+type ResultFactory<Context extends ComposerContext, Val, Err> =
+  | Result<Val, Err>
+  | Promise<Result<Val, Err>>
+  | ((ctx: Context) => Result<Val, Err>)
+  | ((ctx: Context) => Promise<Result<Val, Err>>);
 
-  private constructor(steps: Array<{ key: string; fn: (ctx: Context) => any }> = []) {
-    this.steps = steps;
-  }
+type Step<Context extends ComposerContext> = {
+  key: string;
+  fn: (ctx: Context) => Result<unknown, unknown> | Promise<Result<unknown, unknown>>;
+};
 
-  public static start(): ResultComposer<{}> {
-    return new ResultComposer<{}>();
-  }
-
-  public useResult<Key extends string, Val, Err>(
+export type ResultComposerInstance<Context extends ComposerContext = Record<never, never>> = {
+  useResult<Key extends string, Val, Err>(
     key: Key,
-    resultOrPromiseOrFn:
-      | Result<Val, Err>
-      | Promise<Result<Val, Err>>
-      | ((ctx: Context) => Result<Val, Err>)
-      | ((ctx: Context) => Promise<Result<Val, Err>>)
-  ): ResultComposer<Context & Record<Key, Val>> {
-    const fn = (ctx: Context) => {
+    resultOrPromiseOrFn: ResultFactory<Context, Val, Err>,
+  ): ResultComposerInstance<Context & Record<Key, Val>>;
+  run<Err = never>(): Promise<Result<Context, Err>>;
+};
+
+const makeResultComposer = <Context extends ComposerContext = Record<never, never>>(
+  steps: Step<ComposerContext>[] = [],
+): ResultComposerInstance<Context> => ({
+  useResult<Key extends string, Val, Err>(
+    key: Key,
+    resultOrPromiseOrFn: ResultFactory<Context, Val, Err>,
+  ): ResultComposerInstance<Context & Record<Key, Val>> {
+    const fn = (ctx: Context): Result<Val, Err> | Promise<Result<Val, Err>> => {
       if (typeof resultOrPromiseOrFn === 'function') {
-        return (resultOrPromiseOrFn as Function)(ctx);
+        return resultOrPromiseOrFn(ctx);
       }
+
       return resultOrPromiseOrFn;
     };
 
-    return new ResultComposer<Context & Record<Key, Val>>([
-      ...this.steps,
-      { key, fn },
-    ] as any);
-  }
+    return makeResultComposer<Context & Record<Key, Val>>([
+      ...steps,
+      { key, fn: fn as Step<ComposerContext>['fn'] },
+    ]);
+  },
 
-  public async run(): Promise<Result<Context, any>> {
-    const context = {} as Context;
+  async run<Err = never>(): Promise<Result<Context, Err>> {
+    const context: ComposerContext = {};
 
-    for (const step of this.steps) {
+    for (const step of steps) {
       try {
         let res = step.fn(context);
         if (res instanceof Promise) {
@@ -46,19 +52,23 @@ export class ResultComposer<Context extends Record<string, any> = {}> {
         }
 
         if (!(res instanceof Result)) {
-          return Result.fail(new Error(`Step ${step.key} did not return a Result instance.`));
+          return Result.fail(new Error(`Step ${step.key} did not return a Result instance.`) as Err);
         }
 
         if (res.isFailure) {
-          return Result.fail(res.getError());
+          return Result.fail(res.getError() as Err);
         }
 
-        (context as any)[step.key] = res.getValue();
+        context[step.key] = res.getValue();
       } catch (err) {
-        return Result.fail(err instanceof Error ? err : new Error(String(err)));
+        return Result.fail((err instanceof Error ? err : new Error(String(err))) as Err);
       }
     }
 
-    return Result.ok(context);
-  }
-}
+    return Result.ok(context as Context);
+  },
+});
+
+export const ResultComposer = {
+  start: (): ResultComposerInstance<Record<never, never>> => makeResultComposer(),
+};

@@ -7,7 +7,7 @@ import { NonEmptyString } from './value-objects/non-empty-string.vo.js';
 export namespace IShared {
   export type IOmitBase = 'id' | 'createdAt' | 'updatedAt' | 'deletedAt' | 'createdBy' | 'updatedBy' | 'deletedBy';
   
-  export type Literal = string | number | boolean | null | undefined;
+  export type Literal = string | number | boolean | null | undefined | Date;
   
   export namespace VO {
     export type Id = import('./value-objects/id.vo.js').Id;
@@ -34,8 +34,8 @@ export type SortInput = {
   direction?: SortDirection;
 };
 
-export type RawGetAllJoinDeclarationsInput = any;
-export type RawRelationWhereGroup = any;
+export type RawGetAllJoinDeclarationsInput = unknown;
+export type RawRelationWhereGroup = Record<string, unknown>;
 
 export interface GetAllInput {
   page?: IShared.VO.PositiveNumber;

@@ -1,4 +1,5 @@
 import { Result } from './result.js';
+import { toError } from './error-utils.js';
 
 type Callback<T> = () => Promise<T>;
 
@@ -10,6 +11,6 @@ export const doTryResult = async <T, E>(
     const result = await cb();
     return Result.ok(result);
   } catch (error) {
-    return Result.fail(errorCallback(error as Error));
+    return Result.fail(errorCallback(toError(error)));
   }
 };

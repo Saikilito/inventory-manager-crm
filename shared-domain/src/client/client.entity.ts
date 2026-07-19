@@ -1,6 +1,5 @@
 import { Id, IdVO } from '../shared/value-objects/id.vo.js';
 import { NonEmptyString, NonEmptyStringVO } from '../shared/value-objects/non-empty-string.vo.js';
-import { PositiveNumber, PositiveNumberVO } from '../shared/value-objects/positive-number.vo.js';
 import { ClientRatingTier, type RatingTier, ClientRatingTierVO } from '../shared/value-objects/client-rating-tier.vo.js';
 
 export { ClientRatingTier, type RatingTier, ClientRatingTierVO };
@@ -17,7 +16,7 @@ export interface IClient {
   lastName: NonEmptyString;
   address: NonEmptyString;
   whatsapp: NonEmptyString;
-  age?: PositiveNumber;
+  nationalId: NonEmptyString;
   type: RatingTier;
   orders: Id[];
   sellerId: Id;
@@ -29,7 +28,7 @@ export const makeClient = (props: {
   lastName: string;
   address: string;
   whatsapp: string;
-  age?: number;
+  nationalId: string;
   type: string;
   orders: string[];
   sellerId: string;
@@ -40,7 +39,7 @@ export const makeClient = (props: {
     lastName: NonEmptyStringVO.create(props.lastName),
     address: NonEmptyStringVO.create(props.address),
     whatsapp: NonEmptyStringVO.create(props.whatsapp),
-    age: props.age ? PositiveNumberVO.create(props.age) : undefined,
+    nationalId: NonEmptyStringVO.create(props.nationalId),
     type: ClientRatingTierVO.create(props.type),
     orders: (props.orders || []).map(IdVO.create),
     sellerId: IdVO.create(props.sellerId),
