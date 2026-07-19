@@ -132,7 +132,7 @@ export const DailyArqueoPage: React.FC = () => {
         setIsClosing(false);
       } catch (err: unknown) {
         setIsClosing(false);
-        setError(err.message || "Failed to close the financial day.");
+        setError((err as Error).message || "Failed to close the financial day.");
       }
     }
   };

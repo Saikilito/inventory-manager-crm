@@ -22,3 +22,26 @@ export const SINGLE_PRODUCT_QUERY = gql`
     }
   }
 `;
+
+export const GET_ALL_CONTEXTS = gql`
+  query getAllContexts {
+    getAllContexts {
+      _id
+      name
+    }
+  }
+`;
+
+export const GET_CONTEXT_METRICS = gql`
+  query getContextMetrics($contextId: ID!) {
+    getContextMetrics(contextId: $contextId) {
+      _id
+    }
+  }
+`;
+
+export const GET_CONTEXT_REPORT = gql`
+  query getContextReport($contextId: ID, $periodType: String!) {
+    getContextReport(contextId: $contextId, periodType: $periodType)
+  }
+`;

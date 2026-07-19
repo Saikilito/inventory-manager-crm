@@ -37,3 +37,12 @@ export interface Message {
   image?: string;
   sticker?: string;
 }
+
+export interface Agent {
+  id: string;
+  name: string;
+  systemPrompt: string;
+  status: string;
+  role: "SALES" | "SUPPORT" | "CRM_OPERATOR";
+  enabledTools: string[];
+}

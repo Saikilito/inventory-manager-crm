@@ -52,7 +52,7 @@ export function makeOrdersPloc(
         items,
         total,
         sellerId,
-        status: OrderStatus.PENDING,
+        status: OrderStatus.ACTIVE,
       });
 
       const result = await createOrderUseCase.execute(orderEntity);

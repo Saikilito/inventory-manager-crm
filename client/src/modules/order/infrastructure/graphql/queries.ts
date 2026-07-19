@@ -16,3 +16,22 @@ export const CLIENT_ORDERS_QUERY = gql`
     }
   }
 `;
+
+export const GET_ALL_ORDERS = gql`
+  query getAllOrders($limit: Int) {
+    getAllOrders(limit: $limit) {
+      _id
+      clientId
+      createdAt
+      status
+      paymentStatus
+      deliveryStatus
+      items {
+        productId
+        quantity
+        sellingPriceAtSale
+        purchasePriceAtSale
+      }
+    }
+  }
+`;

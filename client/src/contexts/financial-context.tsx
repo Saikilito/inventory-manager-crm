@@ -1,7 +1,5 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext } from "react";
 import { FinancialPloc } from "../modules/financial/presentation/ploc/financial-ploc";
-import { usePlocState } from "../hooks/use-ploc-state";
-import { FinancialState } from "../modules/financial/presentation/ploc/financial-state";
 
 const FinancialContext = createContext<FinancialPloc | null>(null);
 
