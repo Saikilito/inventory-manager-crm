@@ -22,6 +22,7 @@ export interface IFinancialDay {
   closingBalances: IFinancialDayBalance[];
   openedAt: DateTime;
   closedAt?: DateTime;
+  isOpen: () => boolean;
 }
 
 export const makeFinancialDay = (props: {
@@ -52,5 +53,6 @@ export const makeFinancialDay = (props: {
     })),
     openedAt: DateTimeVO.create(props.openedAt),
     closedAt: props.closedAt ? DateTimeVO.create(props.closedAt) : undefined,
+    isOpen: (): boolean => parsedStatus === FinancialDayStatus.OPEN,
   };
 };

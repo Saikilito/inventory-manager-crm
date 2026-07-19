@@ -16,7 +16,7 @@ const orderSchema = new Schema<IOrderDocument>({
   total: { type: Number, required: true },
   createdAt: { type: Date, default: Date.now },
   clientId: {
-    type: Schema.Types.ObjectId as any,
+    type: Schema.Types.ObjectId,
     ref: "Client",
     required: true,
   },
@@ -25,7 +25,7 @@ const orderSchema = new Schema<IOrderDocument>({
     enum: ["PENDING", "COMPLETED", "CANCELLED"],
     default: "PENDING",
   },
-  sellerId: { type: Schema.Types.ObjectId as any, ref: "User", required: true },
+  sellerId: { type: Schema.Types.ObjectId, ref: "User", required: true },
   isTesting: { type: Boolean, default: false, index: true },
 });
 

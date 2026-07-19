@@ -1,9 +1,9 @@
 import { match } from "ts-pattern";
-import { UseCase } from "../../../../../../shared-domain/src/shared/use-case.js";
 import {
   DomainError,
   NotFoundError,
 } from "../../../../../../shared-domain/src/shared/errors.js";
+import { UseCase } from "../../../../../../shared-domain/src/shared/use-case.js";
 import { Result } from "../../../../../../shared-domain/src/shared/result.js";
 import { ResultComposer } from "../../../../../../shared-domain/src/shared/result-composer.js";
 import { IdVO } from "../../../../../../shared-domain/src/shared/value-objects/id.vo.js";
@@ -20,6 +20,7 @@ import {
   makeProduct,
 } from "../../../../../../shared-domain/src/product/product.entity.js";
 import { RecalculateClientRating } from "../../../client/application/use-cases/recalculate-client-rating.js";
+import { StockOperation } from "./update-order.constants.js";
 
 export interface UpdateOrderInput {
   id: string;
@@ -76,11 +77,11 @@ export const makeUpdateOrder = (
     });
 
     const operation = match([existing.status, updated.status])
-      .with([OrderStatus.PENDING, OrderStatus.COMPLETED], () => "-")
-      .with([OrderStatus.COMPLETED, OrderStatus.CANCELLED], () => "+")
-      .otherwise(() => "");
+      .with([OrderStatus.PENDING, OrderStatus.COMPLETED], () => StockOperation.DEDUCT)
+      .with([OrderStatus.COMPLETED, OrderStatus.CANCELLED], () => StockOperation.RESTORE)
+      .otherwise(() => StockOperation.NONE);
 
-    if (operation !== "") {
+    if (operation !== StockOperation.NONE) {
       for (const item of updated.items) {
         const prodResult = await productRepository.getById(
           IdVO.create(item.productId),
@@ -98,7 +99,7 @@ export const makeUpdateOrder = (
 
         const quantity = item.quantity;
         const newStock =
-          operation === "-"
+          operation === StockOperation.DEDUCT
             ? product.stock - quantity
             : product.stock + quantity;
 

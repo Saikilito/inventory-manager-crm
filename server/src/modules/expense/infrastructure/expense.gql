@@ -1,0 +1,63 @@
+enum ExpenseCategory {
+  REPLENISHMENT
+  SALARY
+  RENT
+  UTILITIES
+  MARKETING
+  TRANSPORTATION
+  TAX
+  OTHER
+}
+
+enum ExpenseReferenceType {
+  PRODUCT
+  SELLER
+}
+
+type Expense {
+  id: ID!
+  _id: ID
+  amount: Float!
+  description: String!
+  category: ExpenseCategory!
+  contextId: ID
+  referenceId: ID
+  referenceType: ExpenseReferenceType
+  createdAt: String
+  updatedAt: String
+}
+
+type PaginatedExpenses {
+  items: [Expense]!
+  total: Int!
+}
+
+type Query {
+  getExpense(_id: ID!): Expense!
+  getAllExpenses(limit: Int, offset: Int, contextId: ID, category: ExpenseCategory): PaginatedExpenses!
+}
+
+input CreateExpenseInput {
+  amount: Float!
+  description: String!
+  category: ExpenseCategory!
+  contextId: ID
+  referenceId: ID
+  referenceType: ExpenseReferenceType
+}
+
+input UpdateExpenseInput {
+  id: ID!
+  amount: Float
+  description: String
+  category: ExpenseCategory
+  contextId: ID
+  referenceId: ID
+  referenceType: ExpenseReferenceType
+}
+
+type Mutation {
+  createExpense(input: CreateExpenseInput!): Expense!
+  updateExpense(input: UpdateExpenseInput!): Expense!
+  deleteExpense(_id: ID!): Boolean!
+}

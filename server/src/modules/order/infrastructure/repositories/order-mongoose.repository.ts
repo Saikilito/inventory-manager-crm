@@ -14,7 +14,7 @@ const mapToDomain = (doc: IOrderDocument): IOrder => {
 
   return makeOrder({
     id: doc._id.toString(),
-    items: doc.items.map((item: any) => ({
+    items: doc.items.map((item: NonNullable<IOrderDocument['items']>[number]) => ({
       productId: item.productId.toString(),
       quantity: item.quantity,
     })),
@@ -31,10 +31,10 @@ export const makeOrderMongooseRepository = (): IOrderRepository => {
     model: OrderModel,
     mapToDomain,
     mapToDocumentData: (order) => {
-      const data: any = {};
+      const data: Partial<IOrderDocument> = {};
       if (order.items !== undefined) {
-        data.items = order.items.map((item: any) => ({
-          productId: new mongoose.Types.ObjectId(item.productId),
+        data.items = order.items.map((item: NonNullable<IOrder['items']>[number]) => ({
+          productId: new mongoose.Types.ObjectId(item.productId) as unknown as mongoose.Types.ObjectId,
           quantity: item.quantity,
         }));
       }

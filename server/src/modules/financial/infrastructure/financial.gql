@@ -1,0 +1,76 @@
+type Account {
+  id: ID!
+  name: String!
+  currency: String!
+  balance: Float!
+}
+
+type Transaction {
+  id: ID!
+  accountId: ID!
+  type: String!
+  amount: Float!
+  currency: String!
+  description: String!
+  date: String!
+  financialDayId: ID!
+  referenceId: ID
+  createdAt: String!
+}
+
+type FinancialDayBalance {
+  accountId: ID!
+  balance: Float!
+}
+
+type FinancialDay {
+  id: ID!
+  date: String!
+  status: String!
+  openingBalances: [FinancialDayBalance!]!
+  closingBalances: [FinancialDayBalance!]!
+  openedAt: String!
+  closedAt: String
+}
+
+type FinancialDayResult {
+  financialDay: FinancialDay
+  exchangeRate: Float
+}
+
+type ExchangeRate {
+  id: ID!
+  date: String!
+  rate: Float!
+}
+
+type Query {
+  getFinancialDayByDate(date: String): FinancialDayResult!
+  getAccounts: [Account!]!
+  getTransactions(accountId: ID!): [Transaction!]!
+}
+
+type Mutation {
+  createAccount(name: String!, currency: String!, balance: Float): Account!
+  createTransaction(
+    accountId: ID!
+    type: String!
+    amount: Float!
+    description: String!
+    date: String
+    referenceId: ID
+  ): Transaction!
+  deleteTransaction(id: ID!): Boolean!
+  updateExchangeRate(date: String, rate: Float!): ExchangeRate!
+  openFinancialDay(date: String): FinancialDay!
+  closeFinancialDay(date: String): FinancialDay!
+  transferFunds(
+    sourceAccountId: ID!
+    targetAccountId: ID!
+    amount: Float!
+    targetAmount: Float
+    exchangeRate: Float
+    description: String
+    date: String
+  ): Boolean!
+}

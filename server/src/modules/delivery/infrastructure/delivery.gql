@@ -1,0 +1,37 @@
+enum DeliveryStatus {
+  PENDING
+  DISPATCHED
+  DELIVERED
+  CANCELLED
+}
+
+type Delivery {
+  id: ID!
+  _id: ID!
+  orderId: ID!
+  scheduledDate: String!
+  deliveryTime: String!
+  address: String!
+  status: DeliveryStatus!
+  notes: String
+  deliveryCost: Float
+  paymentAccounts: [String!]
+}
+
+input ScheduleDeliveryInput {
+  orderId: ID!
+  scheduledDate: String! # Expects date format YYYY-MM-DD or full ISO string
+  deliveryTime: String!
+  address: String!
+  notes: String
+}
+
+type Query {
+  getDelivery(id: ID!): Delivery!
+  getAllDeliveries: [Delivery!]!
+}
+
+type Mutation {
+  scheduleDelivery(input: ScheduleDeliveryInput!): Delivery!
+  updateDeliveryStatus(id: ID!, status: DeliveryStatus!): Delivery!
+}

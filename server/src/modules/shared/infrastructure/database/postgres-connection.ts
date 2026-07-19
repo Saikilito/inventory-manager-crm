@@ -17,8 +17,8 @@ export const makePostgresConnection = (config: unknown): DatabaseConnection => {
       isConnectedState = true;
       console.warn('Connected to Postgres stub successfully! 🔥');
       return Result.ok();
-    } catch (err: any) {
-      return Result.fail(new DatabaseError(err?.message || 'Postgres stub connection error'));
+    } catch (err: unknown) {
+      return Result.fail(new DatabaseError(err instanceof Error ? err.message : 'Postgres stub connection error'));
     }
   };
 
@@ -31,8 +31,8 @@ export const makePostgresConnection = (config: unknown): DatabaseConnection => {
       console.warn('Disconnecting from Postgres stub...');
       isConnectedState = false;
       return Result.ok();
-    } catch (err: any) {
-      return Result.fail(new DatabaseError(err?.message || 'Postgres stub disconnection error'));
+    } catch (err: unknown) {
+      return Result.fail(new DatabaseError(err instanceof Error ? err.message : 'Postgres stub disconnection error'));
     }
   };
 

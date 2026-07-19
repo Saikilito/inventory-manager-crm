@@ -6,7 +6,7 @@ import OrderModel from "../../order/infrastructure/order.model.js";
 import UserModel from "../../user/infrastructure/user.model.js";
 import { UserRole } from "../../../../../shared-domain/src/shared/value-objects/role.vo.js";
 
-const checkAdmin = async (token: () => Promise<unknown>, container: any) => {
+const checkAdmin = async (token: () => Promise<unknown>, container: IContext['container']) => {
   const actualUserToken = (await token()) as { email: string } | null;
   if (!actualUserToken) {
     throw new Error("Not authenticated");

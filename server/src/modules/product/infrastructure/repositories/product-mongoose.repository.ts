@@ -17,7 +17,7 @@ export const makeProductMongooseRepository = (): IProductRepository => {
     model: ProductModel,
     mapToDomain,
     mapToDocumentData: (product) => {
-      const data: any = {};
+      const data: Partial<IProductDocument> = {};
       if (product.name !== undefined) data.name = product.name;
       if (product.price !== undefined) data.price = product.price;
       if (product.stock !== undefined) data.stock = product.stock;

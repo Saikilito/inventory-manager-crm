@@ -70,7 +70,7 @@ export const makeUpdateUser = (userRepository: IUserRepository): UpdateUser => {
           input.email === undefined ||
           input.email === String(targetUser.email)
         ) {
-          return Result.ok<IUser | null, any>(null);
+          return Result.ok<IUser | null, Error>(null);
         }
         return userRepository.getOne([
           {
@@ -85,7 +85,7 @@ export const makeUpdateUser = (userRepository: IUserRepository): UpdateUser => {
           input.user === undefined ||
           input.user === String(targetUser.user)
         ) {
-          return Result.ok<IUser | null, any>(null);
+          return Result.ok<IUser | null, Error>(null);
         }
         return userRepository.getOne([
           {

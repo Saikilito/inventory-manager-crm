@@ -33,15 +33,14 @@ export const makeMongoConnection = (config: unknown): DatabaseConnection => {
       console.warn('Connected to MongoDB successfully via Factory! 🔥');
 
       // ObjectId workaround
-      const ObjectId = mongoose.Types.ObjectId as any;
-      ObjectId.prototype.valueOf = function () {
+      (mongoose.Types.ObjectId.prototype as unknown as { valueOf: () => string }).valueOf = function () {
         return this.toString();
       };
 
       return Result.ok();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error connecting to MongoDB:', err);
-      return Result.fail(new DatabaseError(err?.message || 'Unknown MongoDB connection error'));
+      return Result.fail(new DatabaseError(err instanceof Error ? err.message : 'Unknown MongoDB connection error'));
     }
   };
 
@@ -55,8 +54,8 @@ export const makeMongoConnection = (config: unknown): DatabaseConnection => {
       isConnectedState = false;
       console.warn('MongoDB connection closed successfully via Factory 🔌');
       return Result.ok();
-    } catch (err: any) {
-      return Result.fail(new DatabaseError(err?.message || 'Error disconnecting MongoDB'));
+    } catch (err: unknown) {
+      return Result.fail(new DatabaseError(err instanceof Error ? err.message : 'Error disconnecting MongoDB'));
     }
   };
 

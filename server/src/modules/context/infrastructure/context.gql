@@ -1,0 +1,101 @@
+type Context {
+  _id: ID!
+  name: String!
+  attributes: [ContextAttributeDef!]!
+}
+
+type ContextAttributeDef {
+  name: String!
+  type: String!
+  required: Boolean!
+  label: String!
+}
+
+input ContextAttributeDefInput {
+  name: String!
+  type: String!
+  required: Boolean!
+  label: String
+}
+
+input CreateContextInput {
+  name: String!
+  attributes: [ContextAttributeDefInput!]!
+}
+
+enum ReportPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  SEMESTRALLY
+  ANNUALLY
+}
+
+type PeriodMetric {
+  period: String!
+  revenue: Float!
+  profit: Float!
+  salesCount: Int!
+}
+
+type ContextMetricsPeriods {
+  daily: [PeriodMetric!]!
+  weekly: [PeriodMetric!]!
+  monthly: [PeriodMetric!]!
+  quarterly: [PeriodMetric!]!
+  semestral: [PeriodMetric!]!
+  annual: [PeriodMetric!]!
+}
+
+type AccountDistribution {
+  accountId: ID!
+  accountName: String!
+  currency: String!
+  totalReceivedUsd: Float!
+  percentage: Float!
+}
+
+type ContextMetrics {
+  totalStock: Float!
+  investedCapital: Float!
+  projectedGrossMargin: Float!
+  topSellers: [TopSellerMetric!]!
+  totalExpenses: Float!
+  netProfit: Float!
+  totalRevenue: Float!
+  periods: ContextMetricsPeriods
+  totalCOGS: Float!
+  revenueTrend: Float
+  profitTrend: Float
+  expenseTrend: Float
+  accountDistribution: [AccountDistribution!]!
+  favoriteAccountName: String
+}
+
+type TopSellerMetric {
+  productId: ID!
+  productName: String!
+  quantitySold: Float!
+  revenue: Float!
+  profit: Float
+}
+
+type Query {
+  getAllContexts: [Context!]!
+  getContext(_id: ID!): Context!
+  getContextMetrics(contextId: ID, period: ReportPeriod, startDate: String, endDate: String): ContextMetrics!
+  getContextReport(contextId: ID, periodType: String!): String!
+}
+
+input UpdateContextInput {
+  _id: ID!
+  name: String
+  attributes: [ContextAttributeDefInput!]
+}
+
+type Mutation {
+  createContext(input: CreateContextInput!): Context!
+  updateContext(input: UpdateContextInput!): Context!
+  deleteContext(_id: ID!): Boolean!
+}

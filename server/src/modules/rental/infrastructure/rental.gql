@@ -1,0 +1,36 @@
+enum RentalStatus {
+  RESERVED
+  ACTIVE
+  RETURNED
+  OVERDUE
+  CANCELLED
+}
+
+type Rental {
+  _id: ID!
+  productId: ID!
+  orderId: ID!
+  startDateTime: String!
+  endDateTime: String!
+  quantity: Float!
+  status: RentalStatus!
+}
+
+input CreateRentalReservationInput {
+  productId: ID!
+  orderId: ID!
+  startDateTime: String!
+  durationHours: Float!
+  quantity: Float!
+}
+
+type Query {
+  getRental(id: ID!): Rental!
+  getOverlappingReservations(productId: ID!, startDateTime: String!, endDateTime: String!): [Rental!]!
+  getAllRentals: [Rental!]!
+}
+
+type Mutation {
+  createRentalReservation(input: CreateRentalReservationInput!): Rental!
+  returnRentalEquipment(rentalId: ID!): Rental!
+}

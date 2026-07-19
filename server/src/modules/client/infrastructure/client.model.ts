@@ -14,7 +14,7 @@ const clientSchema = new Schema<IClientDocument>({
   age: { type: Number },
   type: { type: String, required: true },
   orders: { type: [String], default: [] },
-  sellerId: { type: Schema.Types.ObjectId as any, ref: "User", required: true },
+  sellerId: { type: Schema.Types.ObjectId, ref: "User", required: true },
   isTesting: { type: Boolean, default: false, index: true },
 });
 

@@ -18,8 +18,8 @@ export const initDatabase = async (configs: DatabaseConfig[]): Promise<Result<vo
       }
 
       activeConnections.push(conn);
-    } catch (err: any) {
-      const dbErr = err instanceof DatabaseError ? err : new DatabaseError(err?.message || 'Database initialization failed');
+    } catch (err: unknown) {
+      const dbErr = err instanceof DatabaseError ? err : new DatabaseError(err instanceof Error ? err.message : 'Database initialization failed');
       console.error(`[DB Facade] Failure encountered during initialization. Initiating atomic rollback...`, dbErr);
 
       for (let i = activeConnections.length - 1; i >= 0; i--) {
@@ -49,8 +49,8 @@ export const closeDB = async (): Promise<Result<void, DatabaseError>> => {
       if (res.isFailure) {
         lastFailure = res;
       }
-    } catch (err: any) {
-      lastFailure = Result.fail(new DatabaseError(err?.message || 'Error closing database during shutdown'));
+    } catch (err: unknown) {
+      lastFailure = Result.fail(new DatabaseError(err instanceof Error ? err.message : 'Error closing database during shutdown'));
     }
   }
 

@@ -1,0 +1,158 @@
+type ChatMessage {
+  id: ID!
+  text: String!
+  sender: String!
+  isPrivate: Boolean
+  createdAt: String!
+}
+
+enum WhatsAppConnectionStatus {
+  DISCONNECTED
+  CONNECTING
+  QR
+  CONNECTED
+}
+
+type WhatsAppConnectionState {
+  status: WhatsAppConnectionStatus!
+  qr: String
+}
+
+type ExtractedClient {
+  firstName: String
+  lastName: String
+  nationalId: String
+  address: String
+}
+
+type ExtractedCartItem {
+  productId: ID
+  productName: String
+  quantity: Int
+  price: Float
+}
+
+type ExtractedData {
+  client: ExtractedClient
+  cart: [ExtractedCartItem!]
+}
+
+type ChatSession {
+  id: ID!
+  _id: ID
+  whatsappId: String!
+  status: String!
+  driftCount: Int!
+  assignedUserId: ID
+  assignedAgentId: ID
+  contactName: String
+  assignedAgent: Agent
+  extractedData: ExtractedData
+  tags: [String!]!
+  historicalSummary: String
+  createdAt: String!
+  updatedAt: String!
+}
+
+type ChatSettings {
+  pagoMovilBank: String!
+  pagoMovilPhone: String!
+  pagoMovilId: String!
+  whatsappOriginLatitude: Float!
+  whatsappOriginLongitude: Float!
+  whatsappAlertGroupJid: String!
+  systemPrompt: String!
+  binancePayUser: String!
+}
+
+input UpdateChatSettingsInput {
+  pagoMovilBank: String
+  pagoMovilPhone: String
+  pagoMovilId: String
+  whatsappOriginLatitude: Float
+  whatsappOriginLongitude: Float
+  whatsappAlertGroupJid: String
+  systemPrompt: String
+  binancePayUser: String
+}
+
+enum AgentStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum AgentRole {
+  SALES
+  SUPPORT
+  CRM_OPERATOR
+}
+
+enum AgentTool {
+  searchStock
+  calculateDeliveryFee
+  createClient
+  createOrder
+  queryMongoDB
+}
+
+type Agent {
+  id: ID!
+  _id: ID
+  name: String!
+  systemPrompt: String!
+  status: AgentStatus!
+  role: AgentRole!
+  enabledTools: [AgentTool!]!
+  createdAt: String!
+  updatedAt: String!
+}
+
+input CreateAgentInput {
+  name: String!
+  systemPrompt: String!
+  status: AgentStatus
+  role: AgentRole
+  enabledTools: [AgentTool!]
+}
+
+input UpdateAgentInput {
+  id: ID!
+  name: String
+  systemPrompt: String
+  status: AgentStatus
+  role: AgentRole
+  enabledTools: [AgentTool!]
+}
+
+type Query {
+  getChatSessions: [ChatSession!]!
+  getChatMessages(whatsappId: String!): [ChatMessage!]!
+  getChatSettings: ChatSettings!
+  getWhatsAppConnectionState: WhatsAppConnectionState!
+  getAgents: [Agent!]!
+  getAgent(id: ID!): Agent!
+}
+
+type Mutation {
+  createChatSession(whatsappId: String!): ChatSession!
+  claimChatSession(whatsappId: String!): ChatSession!
+  sendMessageToChat(whatsappId: String!, text: String!): Boolean!
+  updateChatSessionStatus(whatsappId: String!, status: String!): ChatSession!
+  updateChatSettings(input: UpdateChatSettingsInput!): ChatSettings!
+  askCrmAssistant(text: String!): String!
+  askAgent(agentId: ID!, text: String!): String!
+  deleteChatSession(whatsappId: String!): Boolean!
+
+  createAgent(input: CreateAgentInput!): Agent!
+  updateAgent(input: UpdateAgentInput!): Agent!
+  deleteAgent(id: ID!): Boolean!
+  assignAgentToSession(whatsappId: String!, agentId: ID): ChatSession!
+  sendWhisperToAgent(whatsappId: String!, text: String!): ChatMessage!
+  saveContactName(whatsappId: String!, name: String!): ChatSession!
+}
+
+type Subscription {
+  chatMessageReceived(whatsappId: String!): ChatMessage!
+  chatSessionUpdated: ChatSession!
+  whatsAppConnectionUpdated: WhatsAppConnectionState!
+}

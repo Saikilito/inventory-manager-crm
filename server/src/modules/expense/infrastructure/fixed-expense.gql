@@ -1,0 +1,65 @@
+type FixedExpense {
+  id: ID!
+  name: String!
+  category: ExpenseCategory!
+  amount: Float!
+  isActive: Boolean!
+  contextId: ID
+}
+
+type FixedExpensePayment {
+  id: ID!
+  fixedExpenseId: ID!
+  billingMonth: String!
+  isPaid: Boolean!
+  amountPaid: Float!
+  paidAt: String
+  generatedExpenseId: ID
+}
+
+type FixedExpenseChecklistItem {
+  fixedExpense: FixedExpense!
+  payment: FixedExpensePayment
+}
+
+input CreateFixedExpenseTemplateInput {
+  name: String!
+  category: ExpenseCategory!
+  amount: Float!
+  isActive: Boolean
+  contextId: ID
+}
+
+input UpdateFixedExpenseTemplateInput {
+  id: ID!
+  name: String
+  category: ExpenseCategory
+  amount: Float
+  isActive: Boolean
+  contextId: ID
+}
+
+input PayFixedExpenseInput {
+  fixedExpenseId: ID!
+  billingMonth: String!
+  amountPaid: Float!
+  contextId: ID
+}
+
+input UnpayFixedExpenseInput {
+  fixedExpenseId: ID!
+  billingMonth: String!
+}
+
+extend type Query {
+  getFixedExpenseTemplates(contextId: ID): [FixedExpense!]!
+  getFixedExpenseChecklist(billingMonth: String!, contextId: ID): [FixedExpenseChecklistItem!]!
+}
+
+extend type Mutation {
+  createFixedExpenseTemplate(input: CreateFixedExpenseTemplateInput!): FixedExpense!
+  updateFixedExpenseTemplate(input: UpdateFixedExpenseTemplateInput!): FixedExpense!
+  deleteFixedExpenseTemplate(id: ID!): Boolean!
+  payFixedExpense(input: PayFixedExpenseInput!): FixedExpensePayment!
+  unpayFixedExpense(input: UnpayFixedExpenseInput!): Boolean!
+}

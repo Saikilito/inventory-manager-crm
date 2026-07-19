@@ -122,6 +122,30 @@ const description = match(order.status)
   .exhaustive();
 ```
 
+### 🚫 No Inline Imports (Anti-Pattern)
+- **Never** place `import` statements inside functions, methods, conditional blocks, loops, or any other non-top-level scope. All imports **MUST** be declared at the **top of the file**, grouped logically (external libs first, then internal modules).
+- Inline imports hide real dependencies, hurt readability, complicate tree-shaking, and make circular dependency issues harder to detect and reason about.
+
+**Example:**
+```typescript
+// ❌ WRONG: Inline import hides a real dependency
+export const processOrder = async (order: Order): Promise<Result<Order, Error>> => {
+  const { validateStock } = await import('./inventory.service');
+  return validateStock(order);
+};
+
+// ✅ CORRECT: Static top-level import
+import { validateStock } from './inventory.service';
+
+export const processOrder = (order: Order): Result<Order, Error> => {
+  return validateStock(order);
+};
+```
+
+**Allowed exceptions** (must be rare and justified by a clear business need):
+- Genuine dynamic plugin or locale loading driven by runtime configuration.
+- Approved circular dependency workarounds documented in code.
+
 ---
 
 ## 💎 Errors & Data Integrity

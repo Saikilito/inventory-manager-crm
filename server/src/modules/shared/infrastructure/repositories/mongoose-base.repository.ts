@@ -11,9 +11,9 @@ import {
   IShared,
 } from '../../../../../../shared-domain/src/shared/repository.js';
 
-export const mapWhereFieldsToMongooseQuery = (fields?: WhereField[]): Record<string, any> => {
+export const mapWhereFieldsToMongooseQuery = (fields?: WhereField[]): Record<string, unknown> => {
   if (!fields || fields.length === 0) return {};
-  const query: Record<string, any> = {};
+  const query: Record<string, unknown> = {};
 
   for (const f of fields) {
     const fieldNames = Array.isArray(f.field) ? f.field : [f.field];
@@ -72,7 +72,7 @@ export const mapWhereFieldsToMongooseQuery = (fields?: WhereField[]): Record<str
 export interface MongooseBaseRepositoryProps<T, Doc extends mongoose.Document> {
   model: mongoose.Model<Doc>;
   mapToDomain: (doc: Doc) => T;
-  mapToDocumentData: (domain: any) => Partial<any>;
+  mapToDocumentData: (domain: CreateEntityInput<T> | UpdateEntityInput<T>) => Partial<Doc>;
 }
 
 export const makeMongooseBaseRepository = <T, Doc extends mongoose.Document>({
@@ -83,8 +83,8 @@ export const makeMongooseBaseRepository = <T, Doc extends mongoose.Document>({
   return {
     async create(
       input: CreateEntityInput<T> | CreateEntityInput<T>[],
-      createdBy: any,
-    ): Promise<Result<any, DatabaseError>> {
+      createdBy: IShared.VO.Id,
+    ): Promise<Result<T | T[], DatabaseError>> {
       return doTryResult(
         async () => {
           const inputs = Array.isArray(input) ? input : [input];
@@ -130,7 +130,7 @@ export const makeMongooseBaseRepository = <T, Doc extends mongoose.Document>({
           let query = model.findById(id);
           if (relations && relations.length > 0) {
             for (const rel of relations) {
-              query = query.populate(rel) as any;
+              query = query.populate(rel.toString()) as unknown as typeof query;
             }
           }
           const doc = await query.exec();
@@ -143,7 +143,7 @@ export const makeMongooseBaseRepository = <T, Doc extends mongoose.Document>({
       );
     },
 
-    async getAll<R = T>(input?: GetAllInput): Promise<Result<any, DatabaseError>> {
+    async getAll<R = T>(input?: GetAllInput): Promise<Result<IShared.PaginatedResult<R>, DatabaseError>> {
       return doTryResult(
         async () => {
           const page = input?.page ? Number(input.page) : 1;
@@ -156,7 +156,7 @@ export const makeMongooseBaseRepository = <T, Doc extends mongoose.Document>({
 
           if (input?.relations && input.relations.length > 0) {
             for (const rel of input.relations) {
-              query = query.populate(rel) as any;
+              query = query.populate(rel.toString()) as unknown as typeof query;
             }
           }
 
@@ -218,7 +218,7 @@ export const makeMongooseBaseRepository = <T, Doc extends mongoose.Document>({
     ): Promise<Result<boolean, DatabaseError>> {
       return doTryResult(
         async () => {
-          const filter: Record<string, any> = { _id: id };
+          const filter: Record<string, unknown> = { _id: id.toString() };
           for (const [key, value] of Object.entries(where)) {
             const docKey = key === 'id' ? '_id' : key;
             filter[docKey] = value;
