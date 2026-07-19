@@ -75,6 +75,13 @@ import DashboardPage from "@pages/dashboard/DashboardPage";
 // Chat Module
 import AgentChatPage from "@pages/chat/AgentChatPage";
 
+import { FinancialProvider } from "@contexts/financial-context";
+import { makeApolloFinancialRepository } from "@modules/financial/infrastructure/repositories/apollo-financial.repository";
+import { makeFinancialPloc } from "@modules/financial/presentation/ploc/financial-ploc";
+import { FinancialDashboardPage } from "@pages/financial/FinancialDashboardPage";
+import { ProfitDetailPage } from "@pages/dashboard/ProfitDetailPage";
+import { RentalsPage } from "@pages/rental/RentalsPage";
+
 // Route Wrapper for Products PLoC (Scoped lifecycle)
 const ProductsRouteWrapper: React.FC = () => {
   const apolloClient = useApolloClient() as ApolloClient<NormalizedCacheObject>;
@@ -245,6 +252,22 @@ const DashboardRouteWrapper: React.FC = () => {
   );
 };
 
+// Route Wrapper for Financial PLoC (Scoped lifecycle)
+const FinancialRouteWrapper: React.FC = () => {
+  const apolloClient = useApolloClient() as ApolloClient<NormalizedCacheObject>;
+
+  const [ploc] = useState(() => {
+    const repository = makeApolloFinancialRepository(apolloClient);
+    return makeFinancialPloc(repository);
+  });
+
+  return (
+    <FinancialProvider ploc={ploc}>
+      <FinancialDashboardPage />
+    </FinancialProvider>
+  );
+};
+
 const AppView: React.FC = () => {
   const ploc = useAuthPloc();
   const state = usePlocState(ploc);
@@ -319,6 +342,11 @@ const AppView: React.FC = () => {
                     path="/dashboard"
                     element={<DashboardRouteWrapper />}
                   />
+                  <Route path="/dashboard/profit" element={<ProfitDetailPage />} />
+                  
+                  {/** Rentals & Finance */}
+                  <Route path="/rentals" element={<RentalsPage />} />
+                  <Route path="/finance" element={<FinancialRouteWrapper />} />
 
                   {/** Chat */}
                   <Route path="/chat" element={<AgentChatPage />} />
