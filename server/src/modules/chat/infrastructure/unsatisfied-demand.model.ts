@@ -34,7 +34,7 @@ const unsatisfiedDemandSchema = new Schema<IUnsatisfiedDemandDocument>({
 });
 
 export const UnsatisfiedDemandModel =
-  mongoose.models.UnsatisfiedDemand ||
+  (mongoose.models.UnsatisfiedDemand as mongoose.Model<IUnsatisfiedDemandDocument>) ||
   mongoose.model<IUnsatisfiedDemandDocument>(
     "UnsatisfiedDemand",
     unsatisfiedDemandSchema

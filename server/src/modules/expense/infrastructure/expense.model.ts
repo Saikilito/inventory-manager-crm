@@ -23,7 +23,7 @@ const expenseSchema = new Schema<IExpenseDocument>({
 expenseSchema.index({ contextId: 1 });
 expenseSchema.index({ referenceId: 1, referenceType: 1 });
 
-export const ExpenseModel = mongoose.models.Expense || mongoose.model<IExpenseDocument>(
+export const ExpenseModel = (mongoose.models.Expense as mongoose.Model<IExpenseDocument>) || mongoose.model<IExpenseDocument>(
   "Expense",
   expenseSchema
 );

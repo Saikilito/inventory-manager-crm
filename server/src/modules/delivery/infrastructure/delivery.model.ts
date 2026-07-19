@@ -27,14 +27,18 @@ const deliverySchema = new Schema<IDeliveryDocument>({
 deliverySchema.index({ scheduledDate: 1, deliveryTime: 1 });
 deliverySchema.index({ orderId: 1 });
 
-export const DeliveryModel = mongoose.models.Delivery || mongoose.model<IDeliveryDocument>("Delivery", deliverySchema);
+export const DeliveryModel = (mongoose.models.Delivery as mongoose.Model<IDeliveryDocument>) || mongoose.model<IDeliveryDocument>("Delivery", deliverySchema);
 
-const deliveryCapacitySchema = new Schema({
+export interface IDeliveryCapacityDocument extends Document {
+  isTesting?: boolean;
+}
+
+const deliveryCapacitySchema = new Schema<IDeliveryCapacityDocument>({
   isTesting: { type: Boolean, default: false, index: true }
 }, {
   timestamps: true
 });
 
-export const DeliveryCapacityModel = mongoose.models.DeliveryCapacity || mongoose.model("DeliveryCapacity", deliveryCapacitySchema);
+export const DeliveryCapacityModel = (mongoose.models.DeliveryCapacity as mongoose.Model<IDeliveryCapacityDocument>) || mongoose.model<IDeliveryCapacityDocument>("DeliveryCapacity", deliveryCapacitySchema);
 
 export default DeliveryModel;

@@ -29,5 +29,5 @@ const rentalSchema = new Schema<IRentalReservationDocument>({
 rentalSchema.index({ productId: 1, startDateTime: 1, endDateTime: 1 });
 rentalSchema.index({ orderId: 1 });
 
-export const RentalModel = mongoose.models.Rental || mongoose.model<IRentalReservationDocument>("Rental", rentalSchema);
+export const RentalModel = (mongoose.models.Rental as mongoose.Model<IRentalReservationDocument>) || mongoose.model<IRentalReservationDocument>("Rental", rentalSchema);
 export default RentalModel;

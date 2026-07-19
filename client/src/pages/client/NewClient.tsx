@@ -31,7 +31,7 @@ export const NewClient: React.FC<NewClientProps> = ({ session }) => {
     lastName: string;
     address: string;
     whatsapp: string;
-    age: number;
+    nationalId: string;
   }) => {
     const { makeClient, ClientRatingTier } = await import("@shared-domain/client/client.entity");
 
@@ -40,7 +40,7 @@ export const NewClient: React.FC<NewClientProps> = ({ session }) => {
       lastName: formData.lastName,
       address: formData.address,
       whatsapp: formData.whatsapp,
-      age: formData.age,
+      nationalId: formData.nationalId,
       type: ClientRatingTier.BASIC,
       orders: [],
       sellerId: session._id,

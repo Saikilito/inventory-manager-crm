@@ -8,7 +8,7 @@ export const CLIENTS_QUERY = gql`
       lastName
       address
       whatsapp
-      age
+      nationalId
       type
       sellerId
     }
@@ -24,7 +24,7 @@ export const SINGLE_CLIENT_QUERY = gql`
       lastName
       address
       whatsapp
-      age
+      nationalId
       type
       sellerId
     }

@@ -59,7 +59,7 @@ const chatThreadSchema = new Schema<IChatThreadDocument>(
 chatThreadSchema.index({ whatsappId: 1, dateStr: 1 }, { unique: true });
 
 export const ChatThreadModel =
-  mongoose.models.ChatThread ||
+  (mongoose.models.ChatThread as mongoose.Model<IChatThreadDocument>) ||
   mongoose.model<IChatThreadDocument>("ChatThread", chatThreadSchema);
 
 export default ChatThreadModel;

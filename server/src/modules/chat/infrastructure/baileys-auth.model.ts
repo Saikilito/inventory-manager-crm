@@ -52,11 +52,11 @@ const baileysKeySchema = new Schema<IBaileysKeyDocument>({
 baileysKeySchema.index({ sessionId: 1, category: 1, keyId: 1 }, { unique: true });
 
 export const BaileysCredsModel =
-  mongoose.models.BaileysCreds ||
+  (mongoose.models.BaileysCreds as mongoose.Model<IBaileysCredsDocument>) ||
   mongoose.model<IBaileysCredsDocument>("BaileysCreds", baileysCredsSchema);
 
 export const BaileysKeyModel =
-  mongoose.models.BaileysKey ||
+  (mongoose.models.BaileysKey as mongoose.Model<IBaileysKeyDocument>) ||
   mongoose.model<IBaileysKeyDocument>("BaileysKey", baileysKeySchema);
 
 // Keep standard export for backward compatibility

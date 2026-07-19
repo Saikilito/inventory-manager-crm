@@ -29,7 +29,7 @@ const chatMessageSchema = new Schema<IChatMessageDocument>(
 chatMessageSchema.index({ whatsappId: 1, createdAt: 1 });
 
 export const ChatMessageModel =
-  mongoose.models.ChatMessage ||
+  (mongoose.models.ChatMessage as mongoose.Model<IChatMessageDocument>) ||
   mongoose.model<IChatMessageDocument>("ChatMessage", chatMessageSchema);
 
 export default ChatMessageModel;

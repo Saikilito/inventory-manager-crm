@@ -4,7 +4,7 @@ type Client {
   lastName: String!
   address: String!
   whatsapp: String!
-  age: Int!
+  nationalId: String!
   type: ClientType!
   sellerId: ID
 }
@@ -27,7 +27,7 @@ input ClientInput {
   lastName: String!
   address: String!
   whatsapp: String!
-  age: Int!
+  nationalId: String
   sellerId: ID
 }
 

@@ -48,7 +48,7 @@ const agentSchema = new Schema<IAgentDocument>(
 );
 
 export const AgentModel =
-  mongoose.models.Agent ||
+  (mongoose.models.Agent as mongoose.Model<IAgentDocument>) ||
   mongoose.model<IAgentDocument>("Agent", agentSchema);
 
 export default AgentModel;

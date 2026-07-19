@@ -11,7 +11,7 @@ import { IExpenseRepository } from '../repositories/expense.repository.js';
 
 export const UnpayFixedExpenseSchema = z.object({
   fixedExpenseId: zodIdString,
-  billingMonth: z.string().refine((v) => BillingMonthVO.createResult(v).isSuccess, { message: 'Billing month must be in YYYY-MM format' }),
+  billingMonth: z.string().refine((v) => !BillingMonthVO.createResult(v).isFailure, { message: 'Billing month must be in YYYY-MM format' }),
 });
 
 export type UnpayFixedExpenseInput = z.infer<typeof UnpayFixedExpenseSchema>;

@@ -81,7 +81,7 @@ export const useProfitDetail = (): UseProfitDetailResult => {
     const productsMap = new Map<string, { name: string; price: number; cost: number; category: string; [key: string]: unknown }>();
     const contextProductIds = contextId ? new Set<string>() : null;
 
-    allProducts.forEach((p: { _id: string; name: string; price: number; cost: number; category: string }) => {
+    allProducts.forEach((p: { _id: string; name: string; price: number; cost: number; category: string; contextId?: string }) => {
       productsMap.set(p._id.toString(), p);
       if (contextId && p.contextId === contextId) {
         contextProductIds?.add(p._id.toString());

@@ -190,7 +190,6 @@ export const buildClientsData = (
       lastName,
       address: faker.location.streetAddress(),
       whatsapp: faker.phone.number().replace(/[^0-9+]/g, ""),
-      age: faker.number.int({ min: 18, max: 75 }),
       type: "BASIC",
       orders: [],
       sellerId: seller._id,

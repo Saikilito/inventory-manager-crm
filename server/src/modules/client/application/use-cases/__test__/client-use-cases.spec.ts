@@ -18,14 +18,14 @@ const NON_EXISTENT_UUID = '550e8400-e29b-41d4-a716-446655440002';
 
 // Setup Mock Client Mother
 const clientMother = {
-  create(overrides: Partial<{ id: string; firstName: string; lastName: string; address: string; whatsapp: string; age?: number; type: string; orders: string[]; sellerId: string }> = {}) {
+  create(overrides: Partial<{ id: string; firstName: string; lastName: string; address: string; whatsapp: string; nationalId?: string; type: string; orders: string[]; sellerId: string }> = {}) {
     return makeClient({
       id: overrides.id ?? VALID_CLIENT_UUID,
       firstName: overrides.firstName ?? 'Kember',
       lastName: overrides.lastName ?? 'Nieves',
       address: overrides.address ?? '123 Main St',
       whatsapp: overrides.whatsapp ?? '+123456789',
-      age: overrides.age ?? 28,
+      nationalId: overrides.nationalId ?? 'V-12345678',
       type: overrides.type ?? ClientRatingTier.PREMIUM,
       orders: overrides.orders ?? [],
       sellerId: overrides.sellerId ?? VALID_SELLER_UUID,
@@ -154,7 +154,7 @@ describe('Client Use Cases (TDD)', () => {
       lastName: 'Messi',
       address: 'Miami Florida',
       whatsapp: '+999999999',
-      age: 39,
+      nationalId: 'V-88888888',
       sellerId: VALID_SELLER_UUID,
     });
 
@@ -164,20 +164,9 @@ describe('Client Use Cases (TDD)', () => {
     expect(count).toBe(2);
   });
 
-  it('should fail to create a client with negative age or empty first name (CreateClient)', async () => {
+  it('should fail to create a client with empty first name (CreateClient)', async () => {
     const repo = makeMockClientRepository();
     const createClient = makeCreateClient(repo as any);
-
-    // Negative age should throw a ValidationError upon Value Object creation
-    const resultNegAge = await createClient({
-      firstName: 'Lionel',
-      lastName: 'Messi',
-      address: 'Miami Florida',
-      whatsapp: '+999999999',
-      age: -5,
-      sellerId: VALID_SELLER_UUID,
-    });
-    expect(resultNegAge.isFailure).toBe(true);
 
     // Empty first name should throw a ValidationError upon Value Object creation
     const resultEmptyName = await createClient({
@@ -185,6 +174,7 @@ describe('Client Use Cases (TDD)', () => {
       lastName: 'Messi',
       address: 'Miami Florida',
       whatsapp: '+999999999',
+      nationalId: 'V-88888888',
       sellerId: VALID_SELLER_UUID,
     });
     expect(resultEmptyName.isFailure).toBe(true);
@@ -197,7 +187,6 @@ describe('Client Use Cases (TDD)', () => {
     const result = await updateClient({
       id: VALID_CLIENT_UUID,
       address: 'New Address St.',
-      age: 29,
     });
 
     expect(result.isFailure).toBe(false);
@@ -205,20 +194,7 @@ describe('Client Use Cases (TDD)', () => {
     const getRes = await repo.getById(VALID_CLIENT_UUID);
     const updated = getRes.getValue()!;
     expect(updated.address).toBe('New Address St.');
-    expect(updated.age).toBe(29);
     expect(updated.firstName).toBe('Kember'); // Kept original
-  });
-
-  it('should fail to update a client if value object rules are broken (UpdateClient)', async () => {
-    const repo = makeMockClientRepository();
-    const updateClient = makeUpdateClient(repo as any);
-
-    const result = await updateClient({
-      id: VALID_CLIENT_UUID,
-      age: -1 // Broken PositiveNumberVO contract
-    });
-
-    expect(result.isFailure).toBe(true);
   });
 
   it('should successfully delete an existing client (DeleteClient)', async () => {

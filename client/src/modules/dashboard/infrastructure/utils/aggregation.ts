@@ -28,7 +28,7 @@ export interface ProfitDetailSummary {
 }
 
 export const calculateTransactionLines = (
-  orders: { _id?: string; id?: string; clientId?: string; createdAt?: string; status: string; paymentStatus?: string; deliveryStatus?: string; items: { productId: string; total: number; quantity: number; sellingPriceAtSale: number; purchasePriceAtSale?: number; contextId?: string; cost?: number }[]; contextId?: string }[],
+  orders: { _id?: string; id?: string; clientId?: string; createdAt?: string; status: string; paymentStatus?: string; deliveryStatus?: string; items: { productId: string; quantity: number; sellingPriceAtSale: number; purchasePriceAtSale?: number; contextId?: string; cost?: number }[]; contextId?: string }[],
   productsMap: Map<string, { cost: number; name?: string; purchasePrice?: number; [key: string]: unknown }>,
   contextProductIds: Set<string> | null
 ): TransactionLine[] => {
@@ -41,7 +41,7 @@ export const calculateTransactionLines = (
   );
 
   return completedOrders.flatMap((order) => {
-    const orderItemsInContext = order.items.filter((item: { productId: string; total: number; contextId?: string; cost?: number }) =>
+    const orderItemsInContext = order.items.filter((item: { productId: string; quantity: number; sellingPriceAtSale: number; purchasePriceAtSale?: number; contextId?: string; cost?: number }) =>
       contextProductIds === null || contextProductIds.has(item.productId.toString())
     );
 
@@ -49,7 +49,7 @@ export const calculateTransactionLines = (
       return [];
     }
 
-    return orderItemsInContext.map((item: { productId: string; total: number; contextId?: string; cost?: number }) => {
+    return orderItemsInContext.map((item: { productId: string; quantity: number; sellingPriceAtSale: number; purchasePriceAtSale?: number; contextId?: string; cost?: number }) => {
       const qty = item.quantity;
       const sPrice = item.sellingPriceAtSale;
       let pPrice = item.purchasePriceAtSale;
@@ -67,9 +67,9 @@ export const calculateTransactionLines = (
 
       return {
         id: `${order._id || order.id}-${item.productId}`,
-        orderId: order._id || order.id,
-        clientId: order.clientId,
-        createdAt: order.createdAt,
+        orderId: String(order._id || order.id || "unknown"),
+        clientId: String(order.clientId || "unknown"),
+        createdAt: String(order.createdAt || ""),
         productName: productsMap.get(item.productId.toString())?.name || "Unknown Product",
         quantity: qty,
         unitPrice: sPrice,

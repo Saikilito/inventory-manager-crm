@@ -11,7 +11,7 @@ export interface CreateClientInput {
   lastName: string;
   address: string;
   whatsapp: string;
-  age?: number;
+  nationalId: string;
   orders?: string[];
   sellerId: string;
 }
@@ -23,9 +23,14 @@ export const makeCreateClient = (clientRepository: IClientRepository): CreateCli
     const composerResult = await ResultComposer.start()
       .useResult('client', () => {
         return Result.ok(makeClient({
-          ...input,
+          firstName: input.firstName,
+          lastName: input.lastName,
+          address: input.address,
+          whatsapp: input.whatsapp,
+          nationalId: input.nationalId,
           type: ClientRatingTier.BASIC,
           orders: input.orders || [],
+          sellerId: input.sellerId,
         }));
       })
       .useResult('save', ({ client }) => clientRepository.create(client, IdVO.generateNil()))

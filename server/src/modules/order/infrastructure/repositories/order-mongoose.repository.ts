@@ -1,8 +1,15 @@
 import mongoose from 'mongoose';
 import { IOrderRepository } from '../../application/repositories/order.repository.js';
-import { IOrder, makeOrder, OrderStatus } from '../../../../../../shared-domain/src/order/order.entity.js';
+import { IOrder, makeOrder, OrderStatus, DEFAULT_PRICE_FALLBACK } from '../../../../../../shared-domain/src/order/order.entity.js';
 import OrderModel, { IOrderDocument } from '../order.model.js';
 import { makeMongooseBaseRepository } from '../../../shared/infrastructure/repositories/mongoose-base.repository.js';
+
+interface IRawMongooseOrderItem {
+  productId: mongoose.Types.ObjectId | string;
+  quantity: number;
+  purchasePriceAtSale?: number;
+  sellingPriceAtSale?: number;
+}
 
 const mapToDomain = (doc: IOrderDocument): IOrder => {
   const createdAtRaw = doc.createdAt as unknown;
@@ -14,9 +21,11 @@ const mapToDomain = (doc: IOrderDocument): IOrder => {
 
   return makeOrder({
     id: doc._id.toString(),
-    items: doc.items.map((item: NonNullable<IOrderDocument['items']>[number]) => ({
+    items: (doc.items as unknown as IRawMongooseOrderItem[]).map((item) => ({
       productId: item.productId.toString(),
       quantity: item.quantity,
+      purchasePriceAtSale: item.purchasePriceAtSale !== undefined && item.purchasePriceAtSale !== null ? item.purchasePriceAtSale : DEFAULT_PRICE_FALLBACK,
+      sellingPriceAtSale: item.sellingPriceAtSale !== undefined && item.sellingPriceAtSale !== null ? item.sellingPriceAtSale : DEFAULT_PRICE_FALLBACK,
     })),
     total: doc.total,
     createdAt: createdAtStr,
@@ -36,6 +45,8 @@ export const makeOrderMongooseRepository = (): IOrderRepository => {
         data.items = order.items.map((item: NonNullable<IOrder['items']>[number]) => ({
           productId: new mongoose.Types.ObjectId(item.productId) as unknown as mongoose.Types.ObjectId,
           quantity: item.quantity,
+          purchasePriceAtSale: item.purchasePriceAtSale,
+          sellingPriceAtSale: item.sellingPriceAtSale,
         }));
       }
       if (order.total !== undefined) data.total = order.total;

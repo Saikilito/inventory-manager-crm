@@ -36,5 +36,5 @@ userSchema.pre("save", function (next) {
   });
 });
 
-export const UserModel = mongoose.model<IUserDocument>("User", userSchema);
+export const UserModel = (mongoose.models.User as mongoose.Model<IUserDocument>) || mongoose.model<IUserDocument>("User", userSchema);
 export default UserModel;

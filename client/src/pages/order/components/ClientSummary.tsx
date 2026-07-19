@@ -1,6 +1,5 @@
 import React from "react";
 import { IClient } from "@shared-domain/client/client.entity";
-import Alert from "../../../components/Alert";
 import { User } from "lucide-react";
 
 interface ClientSummaryProps {
@@ -27,9 +26,9 @@ export const ClientSummary: React.FC<ClientSummaryProps> = ({ client }) => {
               </span>
             </div>
             <div className="py-3 flex justify-between gap-4">
-              <span className="font-medium text-stone-500 dark:text-stone-400">Age</span>
+              <span className="font-medium text-stone-500 dark:text-stone-400">National ID</span>
               <span className="font-semibold text-stone-900 dark:text-stone-100 text-right">
-                {client.age} years old
+                {client.nationalId}
               </span>
             </div>
             {client.address && (
@@ -57,8 +56,9 @@ export const ClientSummary: React.FC<ClientSummaryProps> = ({ client }) => {
           </div>
         </>
       ) : (
-        <div className="w-full">
-          <Alert type="warning" message="Client not found" />
+        <div className="w-full text-center py-6 px-4 border-2 border-dashed border-stone-200 dark:border-stone-800 rounded-xl">
+          <p className="text-sm font-semibold text-stone-600 dark:text-stone-300">No client selected</p>
+          <p className="text-xs text-stone-400 dark:text-stone-500 mt-1">Please choose a client to proceed.</p>
         </div>
       )}
     </div>

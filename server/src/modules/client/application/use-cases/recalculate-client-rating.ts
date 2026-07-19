@@ -58,9 +58,9 @@ export const makeRecalculateClientRating = (
             lastName: client.lastName,
             address: client.address,
             whatsapp: client.whatsapp,
-            age: client.age,
+            nationalId: client.nationalId,
             type: targetTier,
-            orders: client.orders,
+            orders: client.orders as unknown as string[],
             sellerId: client.sellerId,
           });
 

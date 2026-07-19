@@ -57,7 +57,7 @@ export const EditClient: React.FC = () => {
     lastName: string;
     address: string;
     whatsapp: string;
-    age: number;
+    nationalId: string;
   }) => {
     if (!client || !id) return;
 
@@ -68,7 +68,7 @@ export const EditClient: React.FC = () => {
       lastName: formData.lastName,
       address: formData.address,
       whatsapp: formData.whatsapp,
-      age: formData.age,
+      nationalId: formData.nationalId,
       type: String(client.type),
       orders: client.orders ? client.orders.map((o) => String(o)) : [],
       sellerId: String(client.sellerId),

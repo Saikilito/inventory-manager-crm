@@ -109,7 +109,7 @@ const chatSessionSchema = new Schema<IChatSessionDocument>(
 );
 
 export const ChatSessionModel =
-  mongoose.models.ChatSession ||
+  (mongoose.models.ChatSession as mongoose.Model<IChatSessionDocument>) ||
   mongoose.model<IChatSessionDocument>("ChatSession", chatSessionSchema);
 
 export default ChatSessionModel;

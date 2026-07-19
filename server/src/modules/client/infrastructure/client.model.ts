@@ -11,14 +11,14 @@ const clientSchema = new Schema<IClientDocument>({
   lastName: { type: String, required: true },
   address: { type: String, required: true },
   whatsapp: { type: String, required: true },
-  age: { type: Number },
+  nationalId: { type: String, required: true },
   type: { type: String, required: true },
   orders: { type: [String], default: [] },
   sellerId: { type: Schema.Types.ObjectId, ref: "User", required: true },
   isTesting: { type: Boolean, default: false, index: true },
 });
 
-export const ClientModel = mongoose.model<IClientDocument>(
+export const ClientModel = (mongoose.models.Client as mongoose.Model<IClientDocument>) || mongoose.model<IClientDocument>(
   "Client",
   clientSchema,
 );

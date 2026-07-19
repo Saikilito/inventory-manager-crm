@@ -49,12 +49,12 @@ const fixedExpensePaymentSchema = new Schema<IFixedExpensePaymentDocument>({
 fixedExpensePaymentSchema.index({ contextId: 1 });
 fixedExpensePaymentSchema.index({ fixedExpenseId: 1, billingMonth: 1 }, { unique: true });
 
-export const FixedExpenseModel = mongoose.models.FixedExpense || mongoose.model<IFixedExpenseDocument>(
+export const FixedExpenseModel = (mongoose.models.FixedExpense as mongoose.Model<IFixedExpenseDocument>) || mongoose.model<IFixedExpenseDocument>(
   "FixedExpense",
   fixedExpenseSchema
 );
 
-export const FixedExpensePaymentModel = mongoose.models.FixedExpensePayment || mongoose.model<IFixedExpensePaymentDocument>(
+export const FixedExpensePaymentModel = (mongoose.models.FixedExpensePayment as mongoose.Model<IFixedExpensePaymentDocument>) || mongoose.model<IFixedExpensePaymentDocument>(
   "FixedExpensePayment",
   fixedExpensePaymentSchema
 );

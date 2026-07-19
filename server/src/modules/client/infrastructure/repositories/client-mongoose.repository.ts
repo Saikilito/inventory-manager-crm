@@ -10,7 +10,7 @@ const mapToDomain = (doc: IClientDocument): IClient => {
     lastName: doc.lastName,
     address: doc.address,
     whatsapp: doc.whatsapp,
-    age: doc.age,
+    nationalId: doc.nationalId,
     type: doc.type,
     orders: doc.orders,
     sellerId: doc.sellerId.toString(),
@@ -27,7 +27,7 @@ export const makeClientMongooseRepository = (): IClientRepository => {
       if (client.lastName !== undefined) data.lastName = client.lastName;
       if (client.address !== undefined) data.address = client.address;
       if (client.whatsapp !== undefined) data.whatsapp = client.whatsapp;
-      if (client.age !== undefined) data.age = client.age;
+      if (client.nationalId !== undefined) data.nationalId = client.nationalId;
       if (client.type !== undefined) data.type = client.type;
       if (client.orders !== undefined) data.orders = client.orders;
       if (client.sellerId !== undefined) data.sellerId = client.sellerId;

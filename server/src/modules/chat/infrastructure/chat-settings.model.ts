@@ -25,7 +25,7 @@ const chatSettingsSchema = new Schema<IChatSettingsDocument>({
 });
 
 export const ChatSettingsModel =
-  mongoose.models.ChatSettings ||
+  (mongoose.models.ChatSettings as mongoose.Model<IChatSettingsDocument>) ||
   mongoose.model<IChatSettingsDocument>("ChatSettings", chatSettingsSchema);
 
 export default ChatSettingsModel;

@@ -15,7 +15,7 @@ import { CreateEntityInput } from '../../../../../../shared-domain/src/shared/re
 
 export const PayFixedExpenseSchema = z.object({
   fixedExpenseId: zodIdString,
-  billingMonth: z.string().refine((v) => BillingMonthVO.createResult(v).isSuccess, { message: 'Billing month must be in YYYY-MM format' }),
+  billingMonth: z.string().refine((v) => !BillingMonthVO.createResult(v).isFailure, { message: 'Billing month must be in YYYY-MM format' }),
   amountPaid: zodPositiveNumber,
   contextId: zodOptionalNullableIdString,
 });

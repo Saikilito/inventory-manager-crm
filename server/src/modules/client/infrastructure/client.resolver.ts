@@ -6,7 +6,7 @@ interface SetClientInput {
   lastName: string;
   address: string;
   whatsapp: string;
-  age: number;
+  nationalId?: string;
   sellerId: string;
 }
 
@@ -16,7 +16,7 @@ interface UpdateClientInput {
   lastName?: string;
   address?: string;
   whatsapp?: string;
-  age?: number;
+  nationalId?: string;
   sellerId?: string;
 }
 
@@ -27,7 +27,7 @@ const mapToGql = (client: IClient) => {
     lastName: client.lastName,
     address: client.address,
     whatsapp: client.whatsapp,
-    age: client.age,
+    nationalId: client.nationalId,
     type: client.type,
     sellerId: client.sellerId,
   };
@@ -71,7 +71,7 @@ export default {
         lastName: input.lastName,
         address: input.address,
         whatsapp: input.whatsapp,
-        age: input.age,
+        nationalId: input.nationalId || "",
         sellerId: input.sellerId,
       });
       return !result.isFailure;
@@ -84,7 +84,7 @@ export default {
         lastName: input.lastName,
         address: input.address,
         whatsapp: input.whatsapp,
-        age: input.age,
+        nationalId: input.nationalId,
         sellerId: input.sellerId,
       });
       return !result.isFailure;

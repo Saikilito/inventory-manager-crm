@@ -15,7 +15,7 @@ export interface IPubSub {
 }
 
 export const SendWhisperToAgentInputSchema = z.object({
-  whatsappId: z.string().refine((v) => WhatsappIdVO.createResult(v).isSuccess, "Invalid whatsappId format"),
+  whatsappId: z.string().refine((v) => !WhatsappIdVO.createResult(v).isFailure, "Invalid whatsappId format"),
   text: z.string().min(1, "Text must not be empty"),
 });
 

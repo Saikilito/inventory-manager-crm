@@ -270,9 +270,9 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
             >
               <option value="">Choose Product...</option>
               {productsData?.getAllProducts?.map(
-                (p: { _id: string; name: string }) => (
+                (p: { _id: string; name: string; sellingPrice?: number }) => (
                   <option key={p._id} value={p._id}>
-                    {p.name} (${p.sellingPrice})
+                    {p.name} {p.sellingPrice !== undefined ? `($${p.sellingPrice})` : ''}
                   </option>
                 ),
               )}
@@ -286,9 +286,9 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
               disabled={loadingUsers}
             >
               <option value="">Choose User...</option>
-              {usersData?.getUsers?.map((u: { _id: string; name: string }) => (
+              {usersData?.getUsers?.map((u: { _id: string; name: string; role?: string }) => (
                 <option key={u._id} value={u._id}>
-                  {u.name} ({u.role})
+                  {u.name} {u.role ? `(${u.role})` : ''}
                 </option>
               ))}
             </select>

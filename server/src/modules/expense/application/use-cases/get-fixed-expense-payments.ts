@@ -11,7 +11,7 @@ import { IFixedExpense, IFixedExpensePayment } from '../../../../../../shared-do
 import { IFixedExpenseRepository, IFixedExpensePaymentRepository } from '../repositories/fixed-expense.repository.js';
 
 export const GetFixedExpensePaymentsSchema = z.object({
-  billingMonth: z.string().refine((v) => BillingMonthVO.createResult(v).isSuccess, { message: 'Billing month must be in YYYY-MM format' }),
+  billingMonth: z.string().refine((v) => !BillingMonthVO.createResult(v).isFailure, { message: 'Billing month must be in YYYY-MM format' }),
   contextId: z.string().optional().nullable(),
 });
 

@@ -24,7 +24,7 @@ const contextSchema = new Schema<IContextDocument>({
   }]
 });
 
-export const ContextModel = mongoose.models.Context || mongoose.model<IContextDocument>(
+export const ContextModel = (mongoose.models.Context as mongoose.Model<IContextDocument>) || mongoose.model<IContextDocument>(
   "Context",
   contextSchema
 );

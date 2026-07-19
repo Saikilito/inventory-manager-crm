@@ -9,6 +9,8 @@ export interface IOrderDocument extends Omit<IOrder, "id">, Document {
 const orderItemSchema = new Schema({
   productId: { type: Schema.Types.ObjectId, ref: "Product", required: true },
   quantity: { type: Number, required: true },
+  purchasePriceAtSale: { type: Number },
+  sellingPriceAtSale: { type: Number },
 });
 
 const orderSchema = new Schema<IOrderDocument>({
@@ -29,5 +31,5 @@ const orderSchema = new Schema<IOrderDocument>({
   isTesting: { type: Boolean, default: false, index: true },
 });
 
-export const OrderModel = mongoose.model<IOrderDocument>("Order", orderSchema);
+export const OrderModel = (mongoose.models.Order as mongoose.Model<IOrderDocument>) || mongoose.model<IOrderDocument>("Order", orderSchema);
 export default OrderModel;

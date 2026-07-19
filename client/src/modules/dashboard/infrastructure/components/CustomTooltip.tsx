@@ -12,6 +12,8 @@ export interface CustomTooltipProps {
   active?: boolean;
   payload?: TooltipPayloadItem[];
   label?: string;
+  isCurrency?: boolean;
+  valueLabel?: string;
 }
 
 export const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {

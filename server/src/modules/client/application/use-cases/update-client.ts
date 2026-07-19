@@ -12,7 +12,7 @@ export interface UpdateClientInput {
   lastName?: string;
   address?: string;
   whatsapp?: string;
-  age?: number;
+  nationalId?: string;
   orders?: string[];
   sellerId?: string;
 }
@@ -34,14 +34,14 @@ export const makeUpdateClient = (clientRepository: IClientRepository): UpdateCli
         const existingCli = validateExisting as IClient;
         return Result.ok(makeClient({
           id: input.id,
-          firstName: input.firstName !== undefined ? input.firstName : (existingCli.firstName as string),
-          lastName: input.lastName !== undefined ? input.lastName : (existingCli.lastName as string),
-          address: input.address !== undefined ? input.address : (existingCli.address as string),
-          whatsapp: input.whatsapp !== undefined ? input.whatsapp : (existingCli.whatsapp as string),
-          age: input.age !== undefined ? input.age : (existingCli.age as number),
-          type: existingCli.type as string,
-          orders: input.orders !== undefined ? input.orders : (existingCli.orders as string[]),
-          sellerId: input.sellerId !== undefined ? input.sellerId : (existingCli.sellerId as string),
+          firstName: input.firstName !== undefined ? input.firstName : existingCli.firstName,
+          lastName: input.lastName !== undefined ? input.lastName : existingCli.lastName,
+          address: input.address !== undefined ? input.address : existingCli.address,
+          whatsapp: input.whatsapp !== undefined ? input.whatsapp : existingCli.whatsapp,
+          nationalId: input.nationalId !== undefined ? input.nationalId : existingCli.nationalId,
+          type: existingCli.type,
+          orders: input.orders !== undefined ? input.orders : (existingCli.orders as unknown as string[]),
+          sellerId: input.sellerId !== undefined ? input.sellerId : existingCli.sellerId,
         }));
       })
       .run();

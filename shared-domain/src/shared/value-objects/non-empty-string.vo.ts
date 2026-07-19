@@ -17,6 +17,9 @@ export const NonEmptyStringVO = {
   },
 
   createResult: (str: string): Result<NonEmptyString, ValidationError> => {
+    if (typeof str !== 'string') {
+      return Result.fail(new ValidationError('Input must be a string'));
+    }
     const clearStr = str.trim();
 
     if (z.string().nonempty().safeParse(clearStr).error) {

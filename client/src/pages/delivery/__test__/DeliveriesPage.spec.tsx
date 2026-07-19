@@ -1,7 +1,8 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { MockedProvider } from "@apollo/client/testing";
-import { DeliveriesPage, GET_ALL_DELIVERIES } from "../DeliveriesPage";
+import { DeliveriesPage } from "../DeliveriesPage";
+import { GET_ALL_DELIVERIES } from "../../../modules/delivery/infrastructure/graphql/queries";
 import { GET_ALL_ORDERS } from "../../../modules/order/infrastructure/graphql/queries";
 import { CLIENTS_QUERY } from "../../../modules/client/infrastructure/graphql/queries";
 

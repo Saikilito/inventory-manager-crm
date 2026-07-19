@@ -40,6 +40,8 @@ export const DeliveryStatus = Object.freeze({
 export type DeliveryStatus = typeof DeliveryStatus[keyof typeof DeliveryStatus];
 
 export const OrderStatus = Object.freeze({
+  PENDING: 'PENDING',
+  COMPLETED: 'COMPLETED',
   ACTIVE: 'ACTIVE',
   CANCELLED: 'CANCELLED',
 } as const);

@@ -75,7 +75,7 @@ const financialDaySchema = new Schema<IFinancialDayDocument>({
   isTesting: { type: Boolean, default: false, index: true },
 });
 
-export const AccountModel = mongoose.models.Account || mongoose.model<IAccountDocument>("Account", accountSchema);
-export const TransactionModel = mongoose.models.Transaction || mongoose.model<ITransactionDocument>("Transaction", transactionSchema);
-export const ExchangeRateModel = mongoose.models.ExchangeRate || mongoose.model<IExchangeRateDocument>("ExchangeRate", exchangeRateSchema);
-export const FinancialDayModel = mongoose.models.FinancialDay || mongoose.model<IFinancialDayDocument>("FinancialDay", financialDaySchema);
+export const AccountModel = (mongoose.models.Account as mongoose.Model<IAccountDocument>) || mongoose.model<IAccountDocument>("Account", accountSchema);
+export const TransactionModel = (mongoose.models.Transaction as mongoose.Model<ITransactionDocument>) || mongoose.model<ITransactionDocument>("Transaction", transactionSchema);
+export const ExchangeRateModel = (mongoose.models.ExchangeRate as mongoose.Model<IExchangeRateDocument>) || mongoose.model<IExchangeRateDocument>("ExchangeRate", exchangeRateSchema);
+export const FinancialDayModel = (mongoose.models.FinancialDay as mongoose.Model<IFinancialDayDocument>) || mongoose.model<IFinancialDayDocument>("FinancialDay", financialDaySchema);

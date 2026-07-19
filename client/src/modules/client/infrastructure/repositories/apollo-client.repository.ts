@@ -28,7 +28,7 @@ interface GQLClient {
   lastName: string;
   address: string;
   whatsapp: string;
-  age: number;
+  nationalId: string;
   type: string;
   sellerId: string;
 }
@@ -57,7 +57,7 @@ export function makeApolloClientRepository(
       lastName: gqlClient.lastName,
       address: gqlClient.address,
       whatsapp: gqlClient.whatsapp,
-      age: gqlClient.age,
+      nationalId: gqlClient.nationalId,
       type: typeCoerced,
       orders: [],
       sellerId: gqlClient.sellerId,
@@ -117,7 +117,7 @@ export function makeApolloClientRepository(
                 lastName: String(client.lastName),
                 address: String(client.address),
                 whatsapp: String(client.whatsapp),
-                age: Number(client.age),
+                nationalId: String(client.nationalId),
                 sellerId: String(client.sellerId),
               },
             },
@@ -142,7 +142,7 @@ export function makeApolloClientRepository(
                   lastName: String(client.lastName),
                   address: String(client.address),
                   whatsapp: String(client.whatsapp),
-                  age: Number(client.age),
+                  nationalId: String(client.nationalId),
                   sellerId: String(client.sellerId),
                 },
               },

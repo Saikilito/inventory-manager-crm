@@ -13,7 +13,7 @@ const productSchema = new Schema<IProductDocument>({
   isTesting: { type: Boolean, default: false, index: true },
 });
 
-export const ProductModel = mongoose.model<IProductDocument>(
+export const ProductModel = (mongoose.models.Product as mongoose.Model<IProductDocument>) || mongoose.model<IProductDocument>(
   "Product",
   productSchema,
 );

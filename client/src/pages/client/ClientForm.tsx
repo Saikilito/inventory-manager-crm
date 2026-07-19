@@ -8,7 +8,7 @@ const clientFormSchema = z.object({
   lastName: z.string().min(1, 'Last name is required'),
   address: z.string().min(1, 'Address is required'),
   whatsapp: z.string().min(1, 'WhatsApp is required'),
-  age: z.number().min(1, 'Age must be greater than 0'),
+  nationalId: z.string().min(1, 'National ID is required'),
 });
 
 interface ClientFormProps {
@@ -18,7 +18,7 @@ interface ClientFormProps {
     lastName: string;
     address: string;
     whatsapp: string;
-    age: number;
+    nationalId: string;
   }) => void;
   submitButtonText?: string;
 }
@@ -33,7 +33,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({
   const [lastName, setLastName] = useState(client ? String(client.lastName) : '');
   const [address, setAddress] = useState(client ? String(client.address) : '');
   const [whatsapp, setWhatsapp] = useState(client ? String(client.whatsapp) : '');
-  const [age, setAge] = useState(client && client.age ? Number(client.age) : '');
+  const [nationalId, setNationalId] = useState(client ? String(client.nationalId) : '');
 
   // Validation error state
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -48,7 +48,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({
       lastName,
       address,
       whatsapp,
-      age: Number(age),
+      nationalId,
     });
 
     if (!validationResult.success) {
@@ -68,7 +68,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({
       lastName,
       address,
       whatsapp,
-      age: Number(age),
+      nationalId,
     });
   };
 
@@ -147,6 +147,28 @@ export const ClientForm: React.FC<ClientFormProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-semibold text-stone-700 dark:text-stone-300">
+            National ID
+          </label>
+          <input
+            name="nationalId"
+            type="text"
+            placeholder="V-12345678"
+            className={`h-11 px-4 rounded-lg bg-stone-50 dark:bg-stone-950 border text-stone-950 dark:text-stone-50 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-stone-950 dark:focus:ring-stone-100 ${
+              errors.nationalId 
+                ? 'border-red-500 dark:border-red-500/80 focus:ring-red-500' 
+                : 'border-stone-300 dark:border-stone-800 hover:border-stone-400 dark:hover:border-stone-700'
+            }`}
+            value={nationalId}
+            onChange={(e) => setNationalId(e.target.value)}
+          />
+          {errors.nationalId && (
+            <span className="text-xs text-red-500 dark:text-red-400 font-medium">
+              {errors.nationalId}
+            </span>
+          )}
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-semibold text-stone-700 dark:text-stone-300">
             WhatsApp
           </label>
           <input
@@ -164,27 +186,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({
           {errors.whatsapp && (
             <span className="text-xs text-red-500 dark:text-red-400 font-medium">
               {errors.whatsapp}
-            </span>
-          )}
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-semibold text-stone-700 dark:text-stone-300">
-            Age
-          </label>
-          <input
-            name="age"
-            type="number"
-            className={`h-11 px-4 rounded-lg bg-stone-50 dark:bg-stone-950 border text-stone-950 dark:text-stone-50 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-stone-950 dark:focus:ring-stone-100 ${
-              errors.age 
-                ? 'border-red-500 dark:border-red-500/80 focus:ring-red-500' 
-                : 'border-stone-300 dark:border-stone-800 hover:border-stone-400 dark:hover:border-stone-700'
-            }`}
-            value={age}
-            onChange={(e) => setAge(e.target.value === '' ? '' : Number(e.target.value))}
-          />
-          {errors.age && (
-            <span className="text-xs text-red-500 dark:text-red-400 font-medium">
-              {errors.age}
             </span>
           )}
         </div>

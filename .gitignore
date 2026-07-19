@@ -5,3 +5,7 @@ node_modules/
 skills-lock.json
 
 docs/
+e2e/
+playwright-report/
+test-results/
+*.log

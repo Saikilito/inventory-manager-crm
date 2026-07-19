@@ -14,7 +14,7 @@ export interface IPubSub {
 }
 
 export const AssignAgentToSessionInputSchema = z.object({
-  whatsappId: z.string().refine((v) => WhatsappIdVO.createResult(v).isSuccess, "Invalid whatsappId format"),
+  whatsappId: z.string().refine((v) => !WhatsappIdVO.createResult(v).isFailure, "Invalid whatsappId format"),
   agentId: z.string().nullable(),
 });
 

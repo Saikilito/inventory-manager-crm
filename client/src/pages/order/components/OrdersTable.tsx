@@ -37,6 +37,17 @@ export const OrdersTable: React.FC<OrdersTableProps> = ({
           Cancelled
         </span>
       ))
+      .with(OrderStatus.PENDING, () => (
+        <span className="bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/30 px-2 py-0.5 rounded-md text-[10px] font-semibold inline-flex items-center gap-1">
+          Pending
+        </span>
+      ))
+      .with(OrderStatus.COMPLETED, () => (
+        <span className="bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/30 px-2 py-0.5 rounded-md text-[10px] font-semibold inline-flex items-center gap-1">
+          <CheckCircle2 className="w-3 h-3" />
+          Completed
+        </span>
+      ))
       .exhaustive();
   };
 
