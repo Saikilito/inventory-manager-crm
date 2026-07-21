@@ -4,6 +4,11 @@ import react from '@vitejs/plugin-react';
 import tailwind from '@tailwindcss/vite';
 import path from 'path';
 
+const parseFlag = (raw: string | undefined, fallback: boolean): boolean => {
+  if (raw === undefined || raw === '') return fallback;
+  return ['1', 'true', 'yes', 'on'].includes(raw.toLowerCase());
+};
+
 export default defineConfig({
   plugins: [react(), tailwind()],
   resolve: {
@@ -16,6 +21,14 @@ export default defineConfig({
       '@hooks': path.resolve(__dirname, './src/hooks'),
       '@utils': path.resolve(__dirname, './src/utils'),
     },
+  },
+  define: {
+    'import.meta.env.VITE_LIBRARIAN_ENABLED': JSON.stringify(
+      parseFlag(process.env.LIBRARIAN_ENABLED, true),
+    ),
+    'import.meta.env.VITE_GRAPH_UI_ENABLED': JSON.stringify(
+      parseFlag(process.env.GRAPH_UI_ENABLED, true),
+    ),
   },
   server: {
     port: 3000,

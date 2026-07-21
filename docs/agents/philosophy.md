@@ -40,35 +40,6 @@ Services must adhere to a strict Single Responsibility Principle (SRP) and a "Co
 
 ---
 
-## 🔍 1.5 Explore Before Coding (Mandatory Pre-Development Step)
-
-Before writing a single line of new code, always explore the codebase to identify existing elements that are reusable and/or easily modifiable to meet the current need. **Never build what can be adapted.**
-
-This is not optional. Every development task begins with a search:
-
-1. Use `grep`, `glob`, or `search` to find existing utilities, components, entities, value objects, or patterns that solve a similar or overlapping role.
-2. If reusable or adaptable logic is found:
-   - **Reuse it** directly.
-   - Or **refactor/extend it** to make it generic if it almost matches the need.
-   - **Do not duplicate it.** Never create what can be adapted.
-
-This principle saves tokens, prevents duplication, and keeps the codebase DRY by default.
-
----
-
-## 🔀 Branchless Code Style (Early Return / Fail First)
-
-Always prefer a **branchless** programming style. Instead of wrapping logic in nested `if-else` blocks or deep conditional trees, search first for negative/failing cases, handle them immediately, and **return early**. This drastically minimizes indentation, reduces cognitive load, and keeps the code linear and readable.
-
-**Core principles:**
-1. **Guard clauses first:** Validate and reject invalid inputs at the top of a function, then proceed with the happy path uninterrupted.
-2. **Ternary for binary:** Use ternary operators for simple binary assignments instead of `if-else` blocks.
-3. **No nesting past level 1:** If you find yourself at a second or third level of `if` nesting, refactor to early returns.
-
-This pattern is not just stylistic — it is a readability and maintainability strategy. Flat code is easier to reason about, easier to test, and easier to debug.
-
----
-
 ## 🛡️ Validation Layering Rule
 
 All validation rules must be concentrated strictly by prioritizing architectural levels:
@@ -76,6 +47,17 @@ All validation rules must be concentrated strictly by prioritizing architectural
 1. **Value Objects:** Always place basic primitive-level formatting and validation rules (like email format, UUID format, positive numbers, non-empty strings) directly in the **Value Object** creation level (using Zod or UUID).
 2. **Entities:** Place entity-level multi-field consistency validation rules (like checking password strength relative to role) in the **Domain Entity** creation level.
 3. **Use Cases:** Place external or contextual validation rules (such as checking if a record exists in the database, validating permissions against session tokens, or checking transaction limits) directly in the **Use Case** level.
+
+---
+
+## 🛡️ Strict Value Object Signatures for Services and Repositories
+
+All repositories and core services must enforce Value Objects at their type boundaries:
+
+- **Value Objects Over Primitives:** Repositories, query parameters, query builders, and filters (`WhereField`) **MUST** use strongly-typed Value Objects (`Id`, `PositiveNumber`, `NonEmptyString`) rather than raw types (`string`, `number`, `any[]`) in their input signatures.
+- **Use Case Responsibility:** It is the sole responsibility of the **Use Case** to act as a validation gate, taking raw primitives from the delivery layer and instantiating/validating them into domain Value Objects before passing them down to the repositories or services.
+- **No `as any` Castings:** Bypassing Value Object signatures using `as any` on repository inputs is strictly prohibited. If a repository expects a `PositiveNumber` or `Id`, the Use Case must construct it natively (using `PositiveNumberVO.create` or `IdVO.create`).
+- **NIL UUID for System Actor:** When database auditing requires an actor `Id` for background or system-driven operations (such as `createdBy`, `updatedBy`, `deletedBy`), use the NIL UUID via `IdVO.generateNil()` instead of the raw string `'system' as any`.
 
 ---
 

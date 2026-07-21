@@ -24,13 +24,13 @@ To prepare for a clean, global codebase, all new or modified files, variables, d
 
 ---
 
-## 🔄 Strict DRY (Don't Repeat Yourself) Policy
+## 🔄 Strict DRY & Explore Before Coding Policy (MANDATORY)
 
 Before writing any new function, type, interface, constant, or class, the agent **MUST** perform a search using the repository tools (`grep`, `glob`, or `search`) to check if a similar or equivalent utility already exists in:
 - `shared-domain/` (e.g., base monads, validators, reusable types)
 - Shared folders in `client/` or `server/`.
 
-If an existing utility is found, reuse or refactor it to accommodate your needs rather than duplicating.
+**Never build what can be adapted.** If an existing utility is found, reuse or refactor it to accommodate your needs rather than duplicating. This saves tokens, prevents duplication, and keeps the codebase DRY by default.
 
 ---
 

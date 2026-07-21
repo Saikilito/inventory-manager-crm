@@ -3,15 +3,13 @@ import {
   Truck,
   Calendar,
   Coins,
-  ArrowLeft,
-  ArrowRight,
 } from "lucide-react";
 import { DeliveryStatus } from "@shared-domain/delivery/delivery.entity";
-import { DateTimeVO } from "@shared-domain/shared/value-objects/date-time.vo";
 import Spinkit from "../../components/Spinkit";
 import Alert from "../../components/Alert";
 import { useDeliveriesLogic } from "./hooks/useDeliveriesLogic";
 import { DeliveriesTable } from "./components/DeliveriesTable";
+import { DateNavigator } from "../../components/ui/DateNavigator";
 
 export const DeliveriesPage: React.FC = () => {
   const {
@@ -28,15 +26,7 @@ export const DeliveriesPage: React.FC = () => {
     totalCollected,
     handleStatusChange,
     getClientNameByOrder,
-    adjustDate,
   } = useDeliveriesLogic();
-
-  const formatDayLabel = (dayStr: string) => {
-    const parts = dayStr.split("-");
-    if (parts.length !== 3) return dayStr;
-    const [year, month, day] = parts;
-    return `${day}/${month}/${year}`;
-  };
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-8">
@@ -121,45 +111,10 @@ export const DeliveriesPage: React.FC = () => {
               <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">
                 Selected Day:
               </span>
-              <div className="flex items-center gap-3 bg-white dark:bg-stone-950 border border-stone-200 dark:border-stone-850 rounded-full shadow-sm px-4 py-1.5 h-10 w-fit">
-                <button
-                  onClick={() => adjustDate(-1)}
-                  className="p-1 text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 transition-colors focus:outline-none cursor-pointer"
-                  title="Previous Day"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                </button>
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                  <span className="text-sm font-extrabold text-stone-800 dark:text-stone-100 select-none">
-                    {formatDayLabel(selectedDate)}
-                  </span>
-                </div>
-                <div className="relative flex items-center cursor-pointer text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 transition-colors">
-                  <Calendar className="w-4 h-4" />
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val) {
-                        const res = DateTimeVO.createResult(val);
-                        if (!res.isFailure) {
-                          setSelectedDate(val);
-                        }
-                      }
-                    }}
-                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                  />
-                </div>
-                <button
-                  onClick={() => adjustDate(1)}
-                  className="p-1 text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 transition-colors focus:outline-none cursor-pointer"
-                  title="Next Day"
-                >
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
+              <DateNavigator
+                selectedDate={selectedDate}
+                onChangeDate={setSelectedDate}
+              />
             </div>
           ) : (
             <div className="md:col-span-2 flex items-center gap-3 py-1">

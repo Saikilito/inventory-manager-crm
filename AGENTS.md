@@ -6,6 +6,9 @@
 > everything at once. We are transitioning this project to **TypeScript, Clean/Screaming Architecture**,
 > and high-quality development standards.
 
+> [!WARNING]
+> **STRICT GIT PROHIBITION:** You are absolutely FORBIDDEN from executing any Git operations (including `git commit`, `git push`, `git merge`, or creating/deleting branches) without explicit, upfront user authorization. Never run these commands automatically.
+
 ---
 
 ## 🎯 Project Mission: Inventory CRM
@@ -13,7 +16,6 @@
 An inventory and customer relationship management (CRM) system for managing products, clients, sellers, and orders.
 
 The core value proposition is the **intelligent fusion** of:
-
 1. **Client & Order Management:** Solid tracking of orders (pedidos) linked to customers (clientes) and sellers (vendedores).
 2. **Real-time Inventory control:** Product catalogs with dynamic stock deductions and updates.
 3. **Analytics Dashboard:** Graphical summaries of sales, top sellers, and customer activity.
@@ -77,145 +79,44 @@ inventory-manager-crm/
 
 ---
 
-## 📐 Non-Negotiable Architecture & Refactor Rules
+## 📐 Non-Negotiable Architecture & Core Rules (High-Level Summary)
 
-Act as a **World-Class Software Architect**. Protect the code's health at all costs during the refactor.
+Act as a **World-Class Software Architect**. Protect the code's health at all costs during the refactor. Detailed explanations of these rules live in the sub-documents; **do not duplicate them here**.
 
-### 🏛️ 1. Screaming Clean Architecture
-
-- **Layer Purity:** Every module is split into `domain/` (optional if already in `shared-domain/`), `application/` (Use Cases), and `infrastructure/` (Framework adapters like React, Apollo, Mongoose, Express).
-- **Inward Dependencies:** Core domain logic must never import any framework or external library.
-
-### 🔄 2. Strict DRY (Don't Repeat Yourself) Policy
-
-- **Verify Before Writing:** Before writing any piece of code (utility, type, interface, class, or helper function), you **MUST** search the codebase (using `grep`, `glob`, or `search`) to see if an equivalent or reusable artifact already exists.
-- **Reusability:** Extract common logic to shared modules or to `shared-domain/` instead of duplicating.
-
-### 🏷️ 3. Strict English & Translation
-
-- All code, variable names, database schemas, GraphQL fields, directories, and comments **MUST** be written in English.
-- Spanish terms must be migrated during refactoring (e.g., `pedidos` ➡️ `orders`, `clientes` ➡️ `clients`).
-
-### ⚙️ 4. Strict TypeScript & Best Practices
-
-- **No `any`:** Strict typing is mandatory. If a type is truly dynamic, use generics or `unknown`.
-- **No Magic Numbers & No Magic Strings:**
-  - Never use raw numbers or raw strings inline for business logic.
-  - Store configuration, states, or constants in dedicated `constants.ts` or as readonly static properties / frozen objects within domain value objects.
-  - **Standard Enum-like Constant Pattern:** Use frozen readonly objects to define runtime constants and derive compile-time union types to avoid magic strings. For example:
-    ```typescript
-    // 1. Define the frozen runtime constant (Single Source of Truth)
-    export const OrderStatus = {
-      PENDING: 'PENDING',
-      COMPLETED: 'COMPLETED',
-      CANCELLED: 'CANCELLED',
-    } as const;
-
-    // 2. Derive the static TypeScript type for compile-time safety
-    export type OrderStatus = typeof OrderStatus[keyof typeof OrderStatus];
-    ```
-- **Pattern Matching with `ts-pattern`:**
-  - **Never** use traditional `switch` statements or deep nested `if-else` blocks for business-critical state evaluation.
-  - Always use the **`ts-pattern`** library (`match` API) to ensure pattern matching is complete and exhaustive.
-
-### 🔀 4.5 Branchless Code Style (Early Return / Fail First)
-
-- Always prefer a "branchless" programming style. Instead of wrapping logic in nested `if-else` blocks or deep conditional trees, search first for negative/failing cases, handle them immediately, and perform an early return. This drastically minimizes indentation, reduces cognitive load, and keeps the code linear.
-- Use ternary operators for simple binary assignments instead of `if-else` blocks.
-- Use guard clauses: validate and reject invalid inputs at the top, then proceed with the happy path uninterrupted.
-- See [conventions.md](docs/agents/conventions.md) for detailed examples and anti-patterns.
-
-### ⚛️ 5. Functional React Components
-
-- Convert all legacy class components to React functional components utilizing hooks.
-- Follow performance rules (avoiding unnecessary re-renders or stale closures) using the `vercel-react-best-practices` skill.
-
-### 🚫 6. Avoid Classes at All Costs (Functional-First Paradigm)
-
-- **Prefer Functions Over Classes:** Always, always, always avoid using ES6 classes (`class`) wherever possible. Run away from classes!
-- **Data as Plain Objects:** Represent domain models, entities, and value objects using pure TypeScript **Types or Interfaces** rather than classes.
-- **Logic as Pure Functions & Closures:** Enforce the Functional-First approach. Implement all domain logic, services, and use cases as plain pure functions or functional factory closures (following the Make Pattern).
-- **No Class Instances:** Compose behavior using function composition, currying, and plain objects. Only allow classes if strictly forced by external third-party libraries (such as Mongoose models), but even then, encapsulate them and prevent them from leaking into our core domain or application layer.
-
-### 🛡️ 7. Schema Validation with Zod
-
-- **Always Use Zod:** Prefer and enforce the use of **Zod** schemas (`zod` library) for any type of request, input, form, API, or environment variable validation.
-- **Type Inference:** Always infer static TypeScript types directly from Zod schemas using `z.infer<typeof schema>` to maintain a single source of truth and avoid duplicating interfaces.
-- **No Manual Validation:** Avoid writing custom regexes, complex manual conditional checks, or manual validator functions when a Zod schema can handle the validation.
-
-### 🛡️ 8. Strict Validation Layering Rule (Prioritized Levels)
-
-All validation rules must be concentrated strictly by prioritizing the architectural levels:
-- **Value Objects (First Priority):** Place all basic primitive-level formatting and format validations (e.g., email syntax, non-empty strings, positive/non-negative numbers, UUID formats) directly inside the **Value Object** creation.
-- **Domain Entities (Second Priority):** Place entity-level multi-field consistency checks and domain validations (e.g., checking password complexity relative to role, validating total calculations, or verifying dependency fields) directly inside the **Domain Entity/Factory** level.
-- **Use Cases (Final Priority):** Place external, contextual, or database-dependent validations (e.g., checking if email is already taken, verifying user session permissions, or checking current database stock levels) strictly inside the **Use Case** level.
-
-### 🛡️ 9. Strict Value Object Signatures for Services and Repositories
-
-All repositories and core services must enforce Value Objects at their type boundaries:
-- **Value Objects Over Primitives:** Repositories, query parameters, query builders, and filters (`WhereField`) **MUST** use strongly-typed Value Objects (`Id`, `PositiveNumber`, `NonEmptyString`) rather than raw types (`string`, `number`, `any[]`) in their input signatures.
-- **Use Case Responsibility:** It is the sole responsibility of the **Use Case** to act as a validation gate, taking raw primitives from the delivery layer and instantiating/validating them into domain Value Objects before passing them down to the repositories or services.
-- **No `as any` Castings:** Bypassing Value Object signatures using `as any` on repository inputs is strictly prohibited. If a repository expects a `PositiveNumber` or `Id`, the Use Case must construct it natively (using `PositiveNumberVO.create` or `IdVO.create`).
-- **NIL UUID for System Actor:** When database auditing requires an actor `Id` for background or system-driven operations (such as `createdBy`, `updatedBy`, `deletedBy`), use the NIL UUID via `IdVO.generateNil()` instead of the raw string `'system' as any`.
-
-### 🔒 10. No Git Operations Without Explicit Authorization
-
-- No Git operations (commits, pushes, branch creation, or PR operations) are allowed unless explicitly authorized or requested by the user.
-
-### 🔀 11. Branchless Code Style (Early Return / Fail First)
-
-- Always prefer a "branchless" programming style. Instead of wrapping logic in nested `if-else` blocks or deep conditional trees, search first for negative/failing cases, handle them immediately, and perform an early return. This drastically minimizes indentation, reduces cognitive load, and keeps the code linear.
-- Example:
-  ```typescript
-  if (data.failed) {
-    return void 0;
-  }
-  
-  // other code...
-  ```
-
-### 🔍 12. Explore Before Coding (Mandatory Pre-Development Step)
-
-Before writing a single line of new code, always explore the codebase to identify existing elements that are reusable and/or easily modifiable to meet the current need. **Never build what can be adapted.**
-
-- Search with `grep`, `glob`, or `search` for existing utilities, components, entities, VOs, or patterns that already solve the problem.
-- If something reusable or extensible exists, **use or adapt it** — never duplicate.
-- This applies to domain logic, infrastructure code, React components, hooks, and utilities equally.
+1. **Screaming Clean Architecture:** Organized strictly by feature folder; dependencies always point inward. No framework imports in Domain layers.
+2. **Strict DRY Policy:** Verify before writing. Search the codebase for existing utilities, entities, or patterns using search/grep/glob before creating new ones.
+3. **Strict English & Translation:** All identifiers, schemas, files, folders, and comments **MUST** be written in English.
+4. **Strict TypeScript:** No `any`. Use generics or `unknown` for dynamic values.
+5. **Branchless Code Style:** Fail first, validate negative cases, and early return. No nested `if-else` blocks.
+6. **Functional-First Paradigm:** Avoid ES6 classes (`class`) at all costs. Represent data as plain objects (Types/Interfaces) and logic as pure functions/factory closures.
+7. **Schema Validation with Zod:** Always validate request inputs, forms, and environment variables using Zod. Infer types.
+8. **Layered Validation & Strict VO Signatures:** Place validations at the lowest level possible (Value Objects ➡️ Entities ➡️ Use Cases). Enforce Value Objects at service and repository boundaries. No `as any` castings.
+9. **Pattern Matching:** Use `ts-pattern` library's `match()` API for business-critical states. No traditional switch statements.
+10. **Error Handling as Data:** Return `Result<T, E>` monads from Use Cases and Services. Avoid nested "if-ladders" by chaining with `ResultComposer`.
+11. **Strict Git Rule:** Absolutely no Git operations (commits, pushes, merges, branch creation, or branch deletion) are allowed without explicit and upfront user authorization.
 
 ---
 
-## ⚙️ Quality & Development Standards
+## 🛠️ Task Routing & Cognitive Context Management (Traffic Controller)
 
-### 🧩 Functional-First & DI (The "Make" Pattern)
+To prevent "Context Hell" and preserve token efficiency, **YOU MUST LAZY-LOAD SUB-DOCUMENTATION ON-DEMAND**. Identify your current task category in the table below and load the corresponding guide using the `read` tool **ONLY when needed**.
 
-We prioritize keeping our code as simple as possible, moving most of the logic to functions.
-We use the "Make" Pattern for dependency injection via **Currying**. A factory function receives dependencies as the first argument group and returns another function with the business logic.
+| Task Category | Relevant Documentation File | When to Load / Trigger | Active AI Skills & Tools |
+| :--- | :--- | :--- | :--- |
+| **Architecture & Project Setup** | `docs/agents/architecture.md` | Initial project exploration, creating new modules/features, structuring shared-domain. | `glob`, `read`, `stitch-design` |
+| **Coding Style & Conventions** | `docs/agents/conventions.md` | Writing any React components, TypeScript files, defining types, or writing functions. | `refactor`, `vercel-react-best-practices`, `typescript-advanced-types` |
+| **Logic Orchestration & Data Flow** | `docs/agents/philosophy.md` | Writing use cases, database queries, designing service interactions, validation layers. | `refactor`, `context7-mcp` |
+| **Dependency Injection** | `docs/agents/make-pattern.md` | Implementing or refactoring services, use cases, or wiring repositories via closures. | `make-pattern`, `refactor` |
+| **Sequential Error Chaining** | `docs/agents/result-composer.md` | When chaining 2+ sequential actions that return `Result` monads to avoid nested if-ladders. | `result-composer` |
+| **Testing & Verification** | `docs/agents/testing.md` | Writing unit/integration tests, running test commands, configuring test suites. | `go-testing`, `sdd-verify` |
+| **Code Verification & Fixing** | `docs/agents/verification.md` | Before submitting a pull request, committing code, or fixing existing bugs. | `sdd-verify`, `work-unit-commits` |
+| **Agent / Guideline Maintenance** | `docs/agents/agents-guidelines.md` | **MANDATORY:** Before updating `AGENTS.md` or any file within `docs/agents/*`. | `skill-improver`, `skill-creator` |
 
-- See [make-pattern.md](docs/agents/make-pattern.md) for routing guidance, structure, and examples.
-
-### 💎 Result Over Throw & Result Composition
-
-- Errors are data, not exceptions. Use the `Result<T, E>` monad. Use Cases and Services must return `Result` to the caller.
-- Avoid "if-ladders" (nested `if(result.isFailure)`) by chaining operations.
-
-* See [result-composer.md](docs/agents/result-composer.md) for routing guidance, structure, and examples.
-
----
-
-## 🛠️ Task Routing & Context Management
-
-Before starting any task, **identify your route** in the table below and load the specific guide using `view_file` only when needed.
-
-| Task Category                | Relevant Documentation                                   | When to Load                                                                      |
-| :--------------------------- | :------------------------------------------------------- | :-------------------------------------------------------------------------------- |
-| **Architecture & Structure** | [architecture.md](docs/agents/architecture.md)           | Clean/Screaming Architecture rules, feature directories, shared-domain setup.     |
-| **Code Verification & Refactoring** | [verification.md](docs/agents/verification.md) | Verifying, fixing, or refactoring existing code. Mandatory pre-commit checklist. |
-| **Conventions**              | [conventions.md](docs/agents/conventions.md)             | English naming, TS standards, ts-pattern rules, avoiding magic values.            |
-| **Philosophy & Data Flow**   | [philosophy.md](docs/agents/philosophy.md)               | Understanding Use Case orchestration, Single Responsibility, Service contracts of trust, validation layering, and database-first reading with Mongoose. |
-| **Make Pattern**             | [make-pattern.md](docs/agents/make-pattern.md)           | Creating or refactoring services or dependency injection.                         |
-| **Result Composition**       | [result-composer.md](docs/agents/result-composer.md)     | Chaining multiple operations returning `Result` types.                            |
-| **Testing**                  | [testing.md](docs/agents/testing.md)                     | Writing, updating, or running tests.                                              |
-| **Agent Guidelines**         | [agents-guidelines.md](docs/agents/agents-guidelines.md) | **MANDATORY:** Load before updating `AGENTS.md` or any file within docs/agents/\* |
+### 🧭 Lazy-Loading Instructions
+1. **Never load all documents at once.**
+2. When a user issues a task, match it to one or more rows in the Routing Table.
+3. Call the `read` tool to load the specific `.md` files before writing code.
+4. **Search Before Building:** Always search with `grep`, `glob`, or `search` before writing a new helper, component, or utility. Never build what can be adapted!
 
 ---
 
