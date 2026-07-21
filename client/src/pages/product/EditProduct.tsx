@@ -55,7 +55,8 @@ export const EditProduct: React.FC = () => {
 
   const handleSubmit = async (formData: {
     name: string;
-    price: number;
+    purchasePrice: number;
+    sellingPrice: number;
     stock: number;
   }) => {
     if (!product || !id) return;
@@ -69,7 +70,8 @@ export const EditProduct: React.FC = () => {
       const updatedProductEntity = makeProduct({
         id,
         name: formData.name,
-        price: formData.price,
+        purchasePrice: formData.purchasePrice,
+        sellingPrice: formData.sellingPrice,
         stock: formData.stock,
       });
 
@@ -118,7 +120,7 @@ export const EditProduct: React.FC = () => {
           Edit Product
         </h1>
         <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">
-          Update the product information, including its price and stock level.
+          Update purchase price, selling price, and stock level.
         </p>
       </div>
 

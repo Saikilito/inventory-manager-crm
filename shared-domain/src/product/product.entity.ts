@@ -11,9 +11,6 @@ export const QUANTITY_DECIMAL_PRECISION = 4;
 
 export const PRODUCT_DEFAULT_PRICE_FALLBACK = 1.00;
 
-/** @deprecated Use PRODUCT_DEFAULT_PRICE_FALLBACK for products or ORDER_DEFAULT_PRICE_FALLBACK for orders. */
-export const DEFAULT_PRICE_FALLBACK = PRODUCT_DEFAULT_PRICE_FALLBACK;
-
 export interface IProductPresentation {
   packagingType: PackagingType;
   contentSize: PositiveNumber;
@@ -23,7 +20,6 @@ export interface IProductPresentation {
 export interface IProduct {
   id?: Id;
   name: NonEmptyString;
-  price: PositiveNumber; // Kept for legacy backward compatibility
   purchasePrice: PositiveNumber;
   sellingPrice: PositiveNumber;
   stock: NonNegativeNumber; // Supports fractional quantities, rounded to 4 decimals
@@ -36,9 +32,8 @@ export interface IProduct {
 export const makeProduct = (props: {
   id?: string;
   name: string;
-  price?: number; // Legacy
-  purchasePrice?: number;
-  sellingPrice?: number;
+  purchasePrice: number;
+  sellingPrice: number;
   stock: number; // Supports fractional quantities
   unitOfMeasure?: string;
   contextId?: string;
@@ -52,18 +47,17 @@ export const makeProduct = (props: {
   const isTest = typeof process !== 'undefined' && (process.env?.NODE_ENV === 'test' || !!process.env?.VITEST);
   const isServer = (typeof globalThis === 'undefined' || !('window' in globalThis)) && !isTest;
 
-  // Legacy / backup pricing mapping
   if (isServer) {
-    if (props.sellingPrice === undefined && props.price === undefined) {
+    if (props.sellingPrice === undefined) {
       throw new ValidationError('Selling price is required');
     }
-    if (props.purchasePrice === undefined && props.price === undefined) {
+    if (props.purchasePrice === undefined) {
       throw new ValidationError('Purchase price is required');
     }
   }
 
-  const rawSellingPrice = props.sellingPrice !== undefined ? props.sellingPrice : (props.price !== undefined ? props.price : DEFAULT_PRICE_FALLBACK);
-  const rawPurchasePrice = props.purchasePrice !== undefined ? props.purchasePrice : (props.price !== undefined ? props.price : DEFAULT_PRICE_FALLBACK);
+  const rawSellingPrice = props.sellingPrice !== undefined ? props.sellingPrice : PRODUCT_DEFAULT_PRICE_FALLBACK;
+  const rawPurchasePrice = props.purchasePrice !== undefined ? props.purchasePrice : PRODUCT_DEFAULT_PRICE_FALLBACK;
 
   // Float precision control (Prices rounded to 2 decimals, Stock to 4 decimals)
   const roundedSellingPrice = Number(Number(rawSellingPrice).toFixed(PRICE_DECIMAL_PRECISION));
@@ -73,7 +67,6 @@ export const makeProduct = (props: {
   return {
     id: props.id ? IdVO.create(props.id) : undefined,
     name: NonEmptyStringVO.create(props.name),
-    price: PositiveNumberVO.create(roundedSellingPrice),
     purchasePrice: PositiveNumberVO.create(roundedPurchasePrice),
     sellingPrice: PositiveNumberVO.create(roundedSellingPrice),
     stock: NonNegativeNumberVO.create(roundedStock),

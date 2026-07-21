@@ -4,7 +4,8 @@
   "scripts": {
     "dev": "concurrently -n server,client -c blue,green \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
     "start": "concurrently -n server,client \"npm start --prefix server\" \"npm start --prefix client\"",
-    "setup": "cd server && npm install && cd ../client && npm install --legacy-peer-deps"
+    "setup": "cd server && npm install && cd ../client && npm install --legacy-peer-deps",
+    "skills:sync": "mkdir -p .agents/skills && cp -R skills/* .agents/skills/ && echo '✅ Skills sincronizados con éxito a .agents/skills'"
   },
   "devDependencies": {
     "@types/uuid": "^10.0.0",

@@ -1,25 +1,42 @@
 type Product {
   _id: ID
   name: String!
-  price: Float!
-  stock: Int!
+  purchasePrice: Float!
+  sellingPrice: Float!
+  profit: Float!
+  profitMargin: Float!
+  stock: Float!
+  stockValue: Float!
+  potentialProfit: Float!
+  contextId: String
+}
+
+type ProductStats {
+  totalProducts: Int!
+  totalStock: Float!
+  totalStockValue: Float!
+  totalPotentialProfit: Float!
+  averageMargin: Float!
 }
 
 type Query {
-  getAllProducts(limit: Int, offset: Int): [Product]!
+  getAllProducts(limit: Int, offset: Int, contextId: ID): [Product]!
   getProduct(_id: ID!): Product!
   totalProducts: Int
+  productStats(contextId: ID): ProductStats!
 }
 
 input ProductInput {
   _id: ID
   name: String!
-  price: Float!
-  stock: Int!
+  purchasePrice: Float!
+  sellingPrice: Float!
+  stock: Float!
+  contextId: ID
 }
 
 type Mutation {
-  setProduct(input: ProductInput!): Boolean!
-  updateProduct(input: ProductInput!): Boolean!
+  setProduct(input: ProductInput!): Product!
+  updateProduct(input: ProductInput!): Product!
   deleteProduct(_id: ID!): Boolean!
 }

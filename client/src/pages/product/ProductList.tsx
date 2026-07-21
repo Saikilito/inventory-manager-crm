@@ -13,6 +13,9 @@ import {
   CheckCircle2,
   AlertTriangle,
   Layers,
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
 } from "lucide-react";
 
 import Alert from "../../components/Alert";
@@ -52,6 +55,33 @@ export const ProductList: React.FC = () => {
     </div>
   ) : null;
 
+  // Calculate totals from loaded products
+  const totals = match(state)
+    .with(
+      { kind: ProductsStateKind.LOADED },
+      { kind: ProductsStateKind.RELOADING },
+      (st) =>
+        st.products.reduce(
+          (acc, product) => {
+            const purchasePrice = Number(product.purchasePrice) || 0;
+            const fallbackPrice = 'price' in product ? Number((product as Record<string, unknown>).price) : 0;
+            const sellingPrice = Number(product.sellingPrice ?? fallbackPrice) || 0;
+            const stock = Number(product.stock) || 0;
+
+            const profit = sellingPrice - purchasePrice;
+            const stockValue = purchasePrice * stock;
+            const potentialProfit = profit * stock;
+
+            return {
+              totalStockValue: acc.totalStockValue + stockValue,
+              totalPotentialProfit: acc.totalPotentialProfit + potentialProfit,
+            };
+          },
+          { totalStockValue: 0, totalPotentialProfit: 0 }
+        )
+    )
+    .otherwise(() => ({ totalStockValue: 0, totalPotentialProfit: 0 }));
+
   return (
     <div className="w-full">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
@@ -60,7 +90,7 @@ export const ProductList: React.FC = () => {
             Products Catalog
           </h1>
           <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">
-            Manage products, control stock, and adjust prices.
+            Manage products, control stock, and track profit margins.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -105,6 +135,41 @@ export const ProductList: React.FC = () => {
 
             return (
               <Fragment>
+                {/* Summary Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                  <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800/40 rounded-xl p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/40">
+                        <DollarSign className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wide">
+                          Total Invested in Stock
+                        </p>
+                        <p className="text-2xl font-bold text-blue-700 dark:text-blue-400">
+                          ${totals.totalStockValue.toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40 rounded-xl p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/40">
+                        <TrendingUp className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wide">
+                          Potential Profit (All Stock)
+                        </p>
+                        <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">
+                          ${totals.totalPotentialProfit.toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="relative min-h-[100px]">
                   {isReloading && (
                     <div className="absolute inset-0 bg-white/40 dark:bg-stone-950/40 backdrop-blur-sm flex justify-center items-center z-10 rounded-xl">
@@ -124,19 +189,49 @@ export const ProductList: React.FC = () => {
                           </th>
                           <th
                             scope="col"
-                            className="text-stone-500 dark:text-stone-400 font-semibold px-6 py-4 text-left text-sm border-b border-stone-200 dark:border-stone-800"
+                            className="text-stone-500 dark:text-stone-400 font-semibold px-6 py-4 text-right text-sm border-b border-stone-200 dark:border-stone-800"
                           >
-                            Price
+                            Purchase
                           </th>
                           <th
                             scope="col"
-                            className="text-stone-500 dark:text-stone-400 font-semibold px-6 py-4 text-left text-sm border-b border-stone-200 dark:border-stone-800"
+                            className="text-stone-500 dark:text-stone-400 font-semibold px-6 py-4 text-right text-sm border-b border-stone-200 dark:border-stone-800"
+                          >
+                            Selling
+                          </th>
+                          <th
+                            scope="col"
+                            className="text-stone-500 dark:text-stone-400 font-semibold px-6 py-4 text-right text-sm border-b border-stone-200 dark:border-stone-800"
+                          >
+                            Profit/Unit
+                          </th>
+                          <th
+                            scope="col"
+                            className="text-stone-500 dark:text-stone-400 font-semibold px-6 py-4 text-right text-sm border-b border-stone-200 dark:border-stone-800"
+                          >
+                            Margin
+                          </th>
+                          <th
+                            scope="col"
+                            className="text-stone-500 dark:text-stone-400 font-semibold px-6 py-4 text-right text-sm border-b border-stone-200 dark:border-stone-800"
                           >
                             Stock
                           </th>
                           <th
                             scope="col"
-                            className="text-stone-500 dark:text-stone-400 font-semibold px-6 py-4 text-left text-sm border-b border-stone-200 dark:border-stone-800"
+                            className="text-stone-500 dark:text-stone-400 font-semibold px-6 py-4 text-right text-sm border-b border-stone-200 dark:border-stone-800"
+                          >
+                            Stock Value
+                          </th>
+                          <th
+                            scope="col"
+                            className="text-stone-500 dark:text-stone-400 font-semibold px-6 py-4 text-right text-sm border-b border-stone-200 dark:border-stone-800"
+                          >
+                            Potential
+                          </th>
+                          <th
+                            scope="col"
+                            className="text-stone-500 dark:text-stone-400 font-semibold px-6 py-4 text-center text-sm border-b border-stone-200 dark:border-stone-800"
                           >
                             Actions
                           </th>
@@ -145,8 +240,16 @@ export const ProductList: React.FC = () => {
 
                       <tbody className="divide-y divide-stone-100 dark:divide-stone-800/60">
                         {st.products.map((product) => {
-                          const id = product.id!; // Non-null assertion, database products always have an ID
-                          const stock = Number(product.stock);
+                          const id = product.id!;
+                          const stock = Number(product.stock) || 0;
+                          const purchasePrice = Number(product.purchasePrice) || 0;
+                          const fallbackPrice = 'price' in product ? Number((product as Record<string, unknown>).price) : 0;
+                          const sellingPrice = Number(product.sellingPrice ?? fallbackPrice) || 0;
+                          
+                          const profit = sellingPrice - purchasePrice;
+                          const margin = sellingPrice > 0 ? (profit / sellingPrice) * 100 : 0;
+                          const stockValue = purchasePrice * stock;
+                          const potentialProfit = profit * stock;
 
                           let stockBadge = null;
                           if (stock < 30) {
@@ -172,6 +275,21 @@ export const ProductList: React.FC = () => {
                             );
                           }
 
+                          const profitBadge = (
+                            <span className={`inline-flex items-center gap-1 font-mono ${
+                              profit >= 0
+                                ? 'text-emerald-700 dark:text-emerald-400'
+                                : 'text-red-700 dark:text-red-400'
+                            }`}>
+                              {profit >= 0 ? (
+                                <TrendingUp className="w-3.5 h-3.5" />
+                              ) : (
+                                <TrendingDown className="w-3.5 h-3.5" />
+                              )}
+                              ${profit.toFixed(2)}
+                            </span>
+                          );
+
                           return (
                             <tr
                               key={id}
@@ -180,14 +298,39 @@ export const ProductList: React.FC = () => {
                               <td className="px-6 py-4 text-sm font-medium text-stone-900 dark:text-stone-100">
                                 {product.name}
                               </td>
-                              <td className="px-6 py-4 text-sm text-stone-600 dark:text-stone-300 font-mono">
-                                ${product.price}
+                              <td className="px-6 py-4 text-sm text-stone-600 dark:text-stone-300 font-mono text-right">
+                                ${purchasePrice.toFixed(2)}
                               </td>
-                              <td className="px-6 py-4 text-sm">
+                              <td className="px-6 py-4 text-sm text-stone-600 dark:text-stone-300 font-mono text-right">
+                                ${sellingPrice.toFixed(2)}
+                              </td>
+                              <td className="px-6 py-4 text-sm text-right">
+                                {profitBadge}
+                              </td>
+                              <td className="px-6 py-4 text-sm text-right">
+                                <span className={`font-mono ${
+                                  margin >= 30
+                                    ? 'text-emerald-700 dark:text-emerald-400 font-semibold'
+                                    : margin >= 15
+                                    ? 'text-amber-700 dark:text-amber-400'
+                                    : 'text-red-700 dark:text-red-400'
+                                }`}>
+                                  {margin.toFixed(1)}%
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 text-sm text-right">
                                 {stockBadge}
                               </td>
+                              <td className="px-6 py-4 text-sm text-blue-700 dark:text-blue-400 font-mono text-right">
+                                ${stockValue.toFixed(2)}
+                              </td>
+                              <td className="px-6 py-4 text-sm font-mono text-right">
+                                <span className={potentialProfit >= 0 ? 'text-emerald-700 dark:text-emerald-400 font-semibold' : 'text-red-700 dark:text-red-400'}>
+                                  ${potentialProfit.toFixed(2)}
+                                </span>
+                              </td>
                               <td className="px-6 py-4 text-sm">
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center justify-center gap-2">
                                   <Link
                                     to={`/products/edit/${id}`}
                                     className="inline-flex items-center justify-center h-9 px-3 rounded-lg text-sm font-medium text-stone-700 dark:text-stone-200 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 active:bg-stone-300 dark:active:bg-stone-600 transition-colors"

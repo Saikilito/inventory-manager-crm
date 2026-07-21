@@ -8,10 +8,22 @@ export interface IProductDocument extends Omit<IProduct, "id">, Document {
 
 const productSchema = new Schema<IProductDocument>({
   name: { type: String, required: true },
-  price: { type: Number, required: true },
-  stock: { type: Number, required: true },
+  purchasePrice: { type: Number, default: 0, required: true },
+  sellingPrice: { type: Number, default: 0, required: true },
+  stock: { type: Number, required: true, default: 0 },
+  unitOfMeasure: { type: String, default: 'UNIT' },
+  contextId: { type: String, default: null },
+  customAttributes: { type: Schema.Types.Mixed, default: {} },
+  presentation: {
+    packagingType: { type: String },
+    contentSize: { type: Number },
+    contentUom: { type: String },
+  },
   isTesting: { type: Boolean, default: false, index: true },
 });
+
+// Index for context-based queries
+productSchema.index({ contextId: 1 });
 
 export const ProductModel = (mongoose.models.Product as mongoose.Model<IProductDocument>) || mongoose.model<IProductDocument>(
   "Product",

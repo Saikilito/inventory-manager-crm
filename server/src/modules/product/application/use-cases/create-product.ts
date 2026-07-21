@@ -3,23 +3,23 @@ import { DomainError } from '../../../../../../shared-domain/src/shared/errors.j
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { ResultComposer } from '../../../../../../shared-domain/src/shared/result-composer.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
-import { makeProduct } from '../../../../../../shared-domain/src/product/product.entity.js';
+import { IProduct, makeProduct } from '../../../../../../shared-domain/src/product/product.entity.js';
 import { IProductRepository } from '../repositories/product.repository.js';
 import { LibrarianService } from '../../../knowledge/application/services/librarian.service.js';
 
 export interface CreateProductInput {
   name: string;
-  price: number;
+  purchasePrice: number;
+  sellingPrice: number;
   stock: number;
+  contextId?: string;
   category?: string;
   description?: string;
   sku?: string;
-  purchasePrice?: number;
-  sellingPrice?: number;
   unitOfMeasure?: string;
 }
 
-export type CreateProduct = UseCase<CreateProductInput, void, DomainError>;
+export type CreateProduct = UseCase<CreateProductInput, IProduct, DomainError>;
 
 export const makeCreateProduct = (deps: {
   productRepository: IProductRepository;
@@ -33,10 +33,10 @@ export const makeCreateProduct = (deps: {
         Result.ok(
           makeProduct({
             name: input.name,
-            price: input.sellingPrice ?? input.price,
             purchasePrice: input.purchasePrice,
             sellingPrice: input.sellingPrice,
             stock: input.stock,
+            contextId: input.contextId,
             unitOfMeasure: input.unitOfMeasure,
           }),
         ),
@@ -48,22 +48,23 @@ export const makeCreateProduct = (deps: {
       return Result.fail(composerResult.getError());
     }
 
+    const saved = composerResult.getValue().save;
+    const productEntity = Array.isArray(saved) ? saved[0] : saved;
+
     if (librarian && librarian.enabled()) {
-      const saved = composerResult.getValue().save;
-      const productEntity = Array.isArray(saved) ? saved[0] : saved;
       const productId = productEntity?.id?.toString();
       if (productId) {
         void librarian.extractFromProduct({
           productId: IdVO.create(productId),
           name: input.name,
           ...(input.category ? { category: input.category } : {}),
-          ...(input.sellingPrice ?? input.price !== undefined ? { price: input.sellingPrice ?? input.price } : {}),
+          ...(input.sellingPrice !== undefined ? { price: input.sellingPrice } : {}),
           ...(input.description ? { description: input.description } : {}),
           ...(input.sku ? { sku: input.sku } : {}),
         });
       }
     }
 
-    return Result.ok<void, DomainError>();
+    return Result.ok<IProduct, DomainError>(productEntity);
   };
 };

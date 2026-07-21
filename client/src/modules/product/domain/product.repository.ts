@@ -11,7 +11,11 @@ export interface GetAllProductsResult {
 }
 
 export interface ProductRepository {
-  getAll(limit?: PositiveNumber, offset?: NonNegativeNumber): Promise<Result<GetAllProductsResult, DomainError>>;
+  getAll(
+    limit?: PositiveNumber,
+    offset?: NonNegativeNumber,
+    contextId?: Id
+  ): Promise<Result<GetAllProductsResult, DomainError>>;
   getById(id: Id): Promise<Result<IProduct | null, DomainError>>;
   create(product: IProduct): Promise<Result<string, DomainError>>;
   update(product: IProduct): Promise<Result<string, DomainError>>;

@@ -10,7 +10,14 @@ interface GQLProduct {
   _id: string;
   name: string;
   price: number;
+  purchasePrice: number;
+  sellingPrice: number;
+  profit: number;
+  profitMargin: number;
   stock: number;
+  stockValue: number;
+  potentialProfit: number;
+  contextId?: string;
 }
 
 interface GetAllProductsData {
@@ -22,11 +29,19 @@ interface GetProductData {
   getProduct: GQLProduct;
 }
 
+interface SetProductData {
+  setProduct: GQLProduct;
+}
+
+interface UpdateProductData {
+  updateProduct: GQLProduct;
+}
+
 export function makeApolloProductRepository(
   apolloClient: ApolloClient<NormalizedCacheObject>
 ): ProductRepository {
   return {
-    getAll: async (limit, offset) => {
+    getAll: async (limit, offset, contextId) => {
       return doTryResult(
         async (): Promise<GetAllProductsResult> => {
           const { data } = await apolloClient.query<GetAllProductsData>({
@@ -34,6 +49,7 @@ export function makeApolloProductRepository(
             variables: {
               limit: limit,
               offset: offset,
+              contextId: contextId,
             },
             fetchPolicy: 'no-cache',
           });
@@ -44,7 +60,10 @@ export function makeApolloProductRepository(
                 id: gqlProd._id,
                 name: gqlProd.name,
                 price: gqlProd.price,
+                purchasePrice: gqlProd.purchasePrice,
+                sellingPrice: gqlProd.sellingPrice,
                 stock: gqlProd.stock,
+                contextId: gqlProd.contextId,
               })
             ),
             totalProducts: data.totalProducts,
@@ -72,7 +91,10 @@ export function makeApolloProductRepository(
             id: gqlProd._id,
             name: gqlProd.name,
             price: gqlProd.price,
+            purchasePrice: gqlProd.purchasePrice,
+            sellingPrice: gqlProd.sellingPrice,
             stock: gqlProd.stock,
+            contextId: gqlProd.contextId,
           });
         },
         (err) => new DatabaseError(err.message)
@@ -82,18 +104,21 @@ export function makeApolloProductRepository(
     create: async (product) => {
       return doTryResult(
         async (): Promise<string> => {
-          const { data } = await apolloClient.mutate<{ setProduct: string }>({
+          const { data } = await apolloClient.mutate<SetProductData>({
             mutation: CREATE_PRODUCT,
             variables: {
               input: {
                 name: product.name,
                 price: Number(product.price),
+                purchasePrice: Number(product.purchasePrice),
+                sellingPrice: Number(product.sellingPrice),
                 stock: Number(product.stock),
+                contextId: product.contextId,
               },
             },
           });
 
-          return data?.setProduct || 'Product created successfully';
+          return data?.setProduct?._id || 'Product created successfully';
         },
         (err) => new DatabaseError(err.message)
       );
@@ -102,19 +127,22 @@ export function makeApolloProductRepository(
     update: async (product) => {
       return doTryResult(
         async (): Promise<string> => {
-          const { data } = await apolloClient.mutate<{ updateProduct: string }>({
+          const { data } = await apolloClient.mutate<UpdateProductData>({
             mutation: UPDATE_PRODUCT,
             variables: {
               input: {
                 _id: product.id,
                 name: product.name,
                 price: Number(product.price),
+                purchasePrice: Number(product.purchasePrice),
+                sellingPrice: Number(product.sellingPrice),
                 stock: Number(product.stock),
+                contextId: product.contextId,
               },
             },
           });
 
-          return data?.updateProduct || 'Product updated successfully';
+          return data?.updateProduct?._id || 'Product updated successfully';
         },
         (err) => new DatabaseError(err.message)
       );
@@ -123,12 +151,12 @@ export function makeApolloProductRepository(
     delete: async (id) => {
       return doTryResult(
         async (): Promise<string> => {
-          const { data } = await apolloClient.mutate<{ deleteProduct: string }>({
+          const { data } = await apolloClient.mutate<{ deleteProduct: boolean }>({
             mutation: DELETE_PRODUCT,
             variables: { _id: id },
           });
 
-          return data?.deleteProduct || 'Product deleted successfully';
+          return data?.deleteProduct ? 'Product deleted successfully' : 'Delete failed';
         },
         (err) => new DatabaseError(err.message)
       );

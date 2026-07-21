@@ -9,11 +9,13 @@ import { IProductRepository } from '../repositories/product.repository.js';
 export interface UpdateProductInput {
   id: string;
   name?: string;
-  price?: number;
+  purchasePrice?: number;
+  sellingPrice?: number;
   stock?: number;
+  contextId?: string;
 }
 
-export type UpdateProduct = UseCase<UpdateProductInput, void, DomainError>;
+export type UpdateProduct = UseCase<UpdateProductInput, IProduct, DomainError>;
 
 export const makeUpdateProduct = (productRepository: IProductRepository): UpdateProduct => {
   return async (input: UpdateProductInput) => {
@@ -31,8 +33,10 @@ export const makeUpdateProduct = (productRepository: IProductRepository): Update
         return Result.ok(makeProduct({
           id: input.id,
           name: input.name !== undefined ? input.name : (existingProd.name as string),
-          price: input.price !== undefined ? input.price : (existingProd.price as number),
+          purchasePrice: input.purchasePrice !== undefined ? input.purchasePrice : (existingProd.purchasePrice as number),
+          sellingPrice: input.sellingPrice !== undefined ? input.sellingPrice : (existingProd.sellingPrice as number),
           stock: input.stock !== undefined ? input.stock : (existingProd.stock as number),
+          contextId: input.contextId !== undefined ? input.contextId : existingProd.contextId?.toString(),
         }));
       })
       .run();
@@ -48,6 +52,6 @@ export const makeUpdateProduct = (productRepository: IProductRepository): Update
       return Result.fail(saveResult.getError());
     }
 
-    return Result.ok<void, DomainError>();
+    return Result.ok<IProduct, DomainError>(updated);
   };
 };

@@ -5,14 +5,16 @@ import ProductModel, { IProductDocument } from '../product.model.js';
 import { makeMongooseBaseRepository } from '../../../shared/infrastructure/repositories/mongoose-base.repository.js';
 import { escapeRegExp } from '../../../../../../shared-domain/src/shared/utils/string-utils.js';
 import { IShared } from '../../../../../../shared-domain/src/shared/repository.js';
-import { PositiveNumberVO } from '../../../../../../shared-domain/src/shared/value-objects/positive-number.vo.js';
 
 const mapToDomain = (doc: IProductDocument): IProduct => {
   return makeProduct({
     id: doc._id.toString(),
     name: doc.name,
     price: doc.price,
+    purchasePrice: doc.purchasePrice,
+    sellingPrice: doc.sellingPrice,
     stock: doc.stock,
+    contextId: doc.contextId?.toString(),
   });
 };
 
@@ -21,11 +23,16 @@ export const makeProductMongooseRepository = (): IProductRepository => {
     model: ProductModel,
     mapToDomain,
     mapToDocumentData: (product) => {
-      const data: Partial<IProductDocument> = {};
+      const data: Record<string, unknown> = {};
       if (product.name !== undefined) data.name = product.name;
       if (product.price !== undefined) data.price = product.price;
+      if (product.purchasePrice !== undefined) data.purchasePrice = product.purchasePrice;
+      if (product.sellingPrice !== undefined) data.sellingPrice = product.sellingPrice;
       if (product.stock !== undefined) data.stock = product.stock;
-      return data;
+      if (product.contextId !== undefined) {
+        data.contextId = product.contextId ? product.contextId.toString() : null;
+      }
+      return data as Partial<IProductDocument>;
     },
   });
 
@@ -50,7 +57,7 @@ export const makeProductMongooseRepository = (): IProductRepository => {
 
       if (tokens.contextId) {
         andConditions.push({
-          contextId: new mongoose.Types.ObjectId(tokens.contextId),
+          contextId: tokens.contextId,
         });
       }
 

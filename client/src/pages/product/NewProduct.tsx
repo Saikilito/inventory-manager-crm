@@ -21,7 +21,8 @@ export const NewProduct: React.FC = () => {
 
   const handleSubmit = async (formData: {
     name: string;
-    price: number;
+    purchasePrice: number;
+    sellingPrice: number;
     stock: number;
   }) => {
     setSubmitting(true);
@@ -32,7 +33,8 @@ export const NewProduct: React.FC = () => {
         await import("@shared-domain/product/product.entity");
       const productEntity = makeProduct({
         name: formData.name,
-        price: formData.price,
+        purchasePrice: formData.purchasePrice,
+        sellingPrice: formData.sellingPrice,
         stock: formData.stock,
       });
 
@@ -73,7 +75,7 @@ export const NewProduct: React.FC = () => {
           New Product
         </h1>
         <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">
-          Add a new product to the catalog by specifying its name, price, and initial stock.
+          Add a new product with purchase price, selling price, and profit tracking.
         </p>
       </div>
 
