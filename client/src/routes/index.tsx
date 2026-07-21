@@ -84,13 +84,13 @@ const AppView: React.FC = () => {
               <Route
                 path="/login"
                 element={
-                  isAuthenticated ? <Navigate to="/clients" replace /> : <LoginPage />
+                  isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />
                 }
               />
 
               {isAuthenticated ? (
                 <Fragment>
-                  <Route path="/" element={<Navigate to="/clients" replace />} />
+                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/clients" element={<ClientsRouteWrapper />} />
                   <Route path="/clients/new" element={<NewClientRouteWrapper />} />
                   <Route path="/clients/edit/:id" element={<EditClient />} />
@@ -111,11 +111,11 @@ const AppView: React.FC = () => {
                   <Route path="/users" element={<UsersPage />} />
                   <Route
                     path="/admin/knowledge"
-                    element={isAdmin ? <KnowledgePage /> : <Navigate to="/clients" replace />}
+                    element={isAdmin ? <KnowledgePage /> : <Navigate to="/dashboard" replace />}
                   />
                   <Route
                     path="/settings"
-                    element={isAdmin ? <SettingsPage /> : <Navigate to="/clients" replace />}
+                    element={isAdmin ? <SettingsPage /> : <Navigate to="/dashboard" replace />}
                   />
                 </Fragment>
               ) : (

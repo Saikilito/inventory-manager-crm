@@ -21,9 +21,8 @@ export const RegisterPage: React.FC = () => {
 
   const [localError, setLocalError] = useState<string | null>(null);
 
-  // Guard: only 'ADMIN' can access this page
   if (state.kind === 'auth:authenticated' && state.user.role !== UserRole.ADMIN) {
-    return <Navigate to="/clients" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   const validateForm = () => {
@@ -67,12 +66,8 @@ export const RegisterPage: React.FC = () => {
           <div className="flex items-center justify-center w-12 h-12 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 mb-4 transition-colors duration-300">
             <UserPlus className="w-6 h-6" />
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight text-stone-900 dark:text-stone-100">
-            New User
-          </h1>
-          <p className="text-sm text-stone-500 dark:text-stone-400 mt-1.5">
-            Register a new user on the platform
-          </p>
+          <h1 className="text-2xl font-semibold tracking-tight text-stone-900 dark:text-stone-100">New User</h1>
+          <p className="text-sm text-stone-500 dark:text-stone-400 mt-1.5">Register a new user on the platform</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -80,9 +75,7 @@ export const RegisterPage: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-stone-700 dark:text-stone-300">
-                Username
-              </label>
+              <label className="text-sm font-medium text-stone-700 dark:text-stone-300">Username</label>
               <input
                 type="text"
                 name="user"
@@ -91,15 +84,11 @@ export const RegisterPage: React.FC = () => {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
               />
-              <p className="text-xs text-stone-400 dark:text-stone-500">
-                No spaces or special characters
-              </p>
+              <p className="text-xs text-stone-400 dark:text-stone-500">No spaces or special characters</p>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-stone-700 dark:text-stone-300">
-                Email
-              </label>
+              <label className="text-sm font-medium text-stone-700 dark:text-stone-300">Email</label>
               <input
                 type="email"
                 name="email"
@@ -108,16 +97,12 @@ export const RegisterPage: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
-              <p className="text-xs text-stone-400 dark:text-stone-500">
-                Unique user email
-              </p>
+              <p className="text-xs text-stone-400 dark:text-stone-500">Unique user email</p>
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-stone-700 dark:text-stone-300">
-              Full Name
-            </label>
+            <label className="text-sm font-medium text-stone-700 dark:text-stone-300">Full Name</label>
             <input
               type="text"
               name="name"
@@ -126,16 +111,12 @@ export const RegisterPage: React.FC = () => {
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
-            <p className="text-xs text-stone-400 dark:text-stone-500">
-              Full user name
-            </p>
+            <p className="text-xs text-stone-400 dark:text-stone-500">Full user name</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-stone-700 dark:text-stone-300">
-                Password
-              </label>
+              <label className="text-sm font-medium text-stone-700 dark:text-stone-300">Password</label>
               <input
                 type="password"
                 name="password"
@@ -147,9 +128,7 @@ export const RegisterPage: React.FC = () => {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-stone-700 dark:text-stone-300">
-                Repeat Password
-              </label>
+              <label className="text-sm font-medium text-stone-700 dark:text-stone-300">Repeat Password</label>
               <input
                 type="password"
                 name="repeatPassword"
@@ -162,9 +141,7 @@ export const RegisterPage: React.FC = () => {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-stone-700 dark:text-stone-300">
-              Role
-            </label>
+            <label className="text-sm font-medium text-stone-700 dark:text-stone-300">Role</label>
             <div className="relative">
               <select
                 name="role"
@@ -190,7 +167,11 @@ export const RegisterPage: React.FC = () => {
               <>
                 <svg className="animate-spin h-5 w-5 text-current" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.14 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.14 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
                 </svg>
                 <span>Saving...</span>
               </>

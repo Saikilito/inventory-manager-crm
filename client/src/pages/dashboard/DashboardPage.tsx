@@ -31,17 +31,22 @@ export const DashboardPage: React.FC = () => {
   useEffect(() => {
     if (state.kind === DashboardStateKind.LOADED) {
       if (state.topClients.length === 0 && state.topSellers.length === 0) {
-        setIsWelcomeModalOpen(true);
+        const hasSeenOnboarding = localStorage.getItem('has_seen_onboarding') === 'true';
+        if (!hasSeenOnboarding) {
+          setIsWelcomeModalOpen(true);
+        }
       }
     }
   }, [state]);
 
   const handleSeedSuccess = () => {
+    localStorage.setItem('has_seen_onboarding', 'true');
     setIsWelcomeModalOpen(false);
     ploc.loadStats();
   };
 
   const handleClose = () => {
+    localStorage.setItem('has_seen_onboarding', 'true');
     setIsWelcomeModalOpen(false);
   };
 
