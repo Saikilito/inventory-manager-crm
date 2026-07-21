@@ -89,7 +89,7 @@ export const NewOrderClientModal: React.FC<NewOrderClientModalProps> = ({
 
           <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
             <button
-              onClick={() => navigate("/clients")}
+              onClick={() => navigate("/clients/new")}
               className="w-full sm:flex-1 h-11 rounded-xl text-sm font-semibold text-stone-600 dark:text-stone-300 bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 flex items-center justify-center gap-2 transition-colors cursor-pointer"
             >
               <UserPlus className="w-4 h-4" />
