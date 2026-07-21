@@ -1,7 +1,7 @@
-import mongoose, { Schema, Document } from "mongoose";
-import { IClient } from "../../../../../shared-domain/src/client/client.entity.js";
+import mongoose, { Schema, Document } from 'mongoose';
+import { IClient } from '../../../../../shared-domain/src/client/client.entity.js';
 
-export interface IClientDocument extends Omit<IClient, "id">, Document {
+export interface IClientDocument extends Omit<IClient, 'id'>, Document {
   _id: mongoose.Types.ObjectId;
   isTesting: boolean;
 }
@@ -14,12 +14,11 @@ const clientSchema = new Schema<IClientDocument>({
   nationalId: { type: String, required: true },
   type: { type: String, required: true },
   orders: { type: [String], default: [] },
-  sellerId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+  sellerId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   isTesting: { type: Boolean, default: false, index: true },
 });
 
-export const ClientModel = (mongoose.models.Client as mongoose.Model<IClientDocument>) || mongoose.model<IClientDocument>(
-  "Client",
-  clientSchema,
-);
+export const ClientModel =
+  (mongoose.models.Client as mongoose.Model<IClientDocument>) ||
+  mongoose.model<IClientDocument>('Client', clientSchema);
 export default ClientModel;
