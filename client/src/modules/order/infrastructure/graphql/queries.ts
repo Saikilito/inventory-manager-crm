@@ -23,6 +23,7 @@ export const GET_ALL_ORDERS = gql`
     getAllOrders(limit: $limit, date: $date) {
       _id
       clientId
+      sellerId
       createdAt
       status
       paymentStatus

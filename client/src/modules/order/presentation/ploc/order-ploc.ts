@@ -8,7 +8,7 @@ import { makeOrder, OrderStatus, IOrder } from '@shared-domain/order/order.entit
 
 export interface OrdersPloc extends Ploc<OrdersState> {
   loadClientOrders(clientId: string): Promise<void>;
-  createOrder(clientId: string, items: Array<{ productId: string; quantity: number }>, total: number, sellerId: string): Promise<void>;
+  createOrder(clientId: string, items: Array<{ productId: string; quantity: number }>, total: number, sellerId: string, contextId?: string): Promise<void>;
   updateOrderStatus(order: IOrder, newStatus: OrderStatus): Promise<void>;
 }
 
@@ -42,7 +42,8 @@ export function makeOrdersPloc(
     clientId: string,
     items: Array<{ productId: string; quantity: number }>,
     total: number,
-    sellerId: string
+    sellerId: string,
+    contextId?: string
   ) => {
     ploc.changeState({ kind: OrdersStateKind.LOADING });
 
@@ -53,6 +54,7 @@ export function makeOrdersPloc(
         total,
         sellerId,
         status: OrderStatus.ACTIVE,
+        contextId,
       });
 
       const result = await createOrderUseCase.execute(orderEntity);
@@ -66,10 +68,10 @@ export function makeOrdersPloc(
         // Reload order list
         loadClientOrders(clientId);
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       ploc.changeState({
         kind: OrdersStateKind.ERROR,
-        errorMessage: e.message || 'Domain validation error',
+        errorMessage: e instanceof Error ? e.message : 'Domain validation error',
       });
     }
   };
@@ -86,6 +88,7 @@ export function makeOrdersPloc(
         createdAt: String(order.createdAt),
         status: newStatus,
         sellerId: String(order.sellerId),
+        contextId: order.contextId ? String(order.contextId) : undefined,
       });
 
       const result = await updateOrderUseCase.execute(updatedOrder);
@@ -98,10 +101,10 @@ export function makeOrdersPloc(
       } else {
         loadClientOrders(String(order.clientId));
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       ploc.changeState({
         kind: OrdersStateKind.ERROR,
-        errorMessage: e.message || 'Domain error',
+        errorMessage: e instanceof Error ? e.message : 'Domain error',
       });
     }
   };

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useApolloClient } from "@apollo/client";
+import { useApolloClient, useQuery } from "@apollo/client";
 import Select from "react-select";
 import makeAnimated from "react-select/animated";
 
@@ -11,6 +11,7 @@ import { makeApolloClientRepository } from "@modules/client/infrastructure/repos
 import { makeGetClientUseCase } from "@modules/client/application/use-cases/get-client";
 import { makeApolloProductRepository } from "@modules/product/infrastructure/repositories/apollo-product.repository";
 import { makeGetProductsUseCase } from "@modules/product/application/use-cases/get-products";
+import { GET_ALL_CONTEXTS } from "@modules/product/infrastructure/graphql/queries";
 
 import { IClient } from "@shared-domain/client/client.entity";
 import { IProduct } from "@shared-domain/product/product.entity";
@@ -20,7 +21,7 @@ import { NonNegativeNumberVO } from "@shared-domain/shared/value-objects/non-neg
 
 import Spinkit from "../../components/Spinkit";
 import Alert from "../../components/Alert";
-import { ArrowLeft, ShoppingBag } from "lucide-react";
+import { ArrowLeft, ShoppingBag, Store } from "lucide-react";
 
 import ClientSummary from "./components/ClientSummary";
 import SelectedProductsTable from "./components/SelectedProductsTable";
@@ -49,11 +50,17 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({
   const [client, setClient] = useState<IClient | null>(null);
   const [products, setProducts] = useState<IProduct[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [selectedContextId, setSelectedContextId] = useState<string>("");
 
   // Selected products local state
   const [selectedProducts, setSelectedProducts] = useState<
     Array<IProduct & { quantity: number }>
   >([]);
+
+  // Fetch Contexts for dropdown
+  const { data: contextsData } = useQuery(GET_ALL_CONTEXTS, {
+    fetchPolicy: "cache-first",
+  });
 
   // Derive total during render (Vercel Best Practice 5.1!)
   const total = selectedProducts.reduce(
@@ -164,7 +171,7 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({
       quantity: p.quantity,
     }));
 
-    await ploc.createOrder(clientId, items, total, session._id);
+    await ploc.createOrder(clientId, items, total, session._id, selectedContextId || undefined);
 
     // If order created successfully without errors in state
     if (state.kind !== "orders:error") {
@@ -221,6 +228,30 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({
         <div className="lg:col-span-8 space-y-6">
           <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl p-5 shadow-sm space-y-5">
             <h2 className="text-sm font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider border-b border-stone-100 dark:border-stone-800 pb-2">
+              Order Details
+            </h2>
+
+            {/* Context Selector */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-xs font-semibold text-stone-600 dark:text-stone-400">
+                <Store className="w-3.5 h-3.5" />
+                Context / Store (Optional)
+              </label>
+              <select
+                value={selectedContextId}
+                onChange={(e) => setSelectedContextId(e.target.value)}
+                className="block w-full px-3 py-2 h-10 text-sm bg-white dark:bg-stone-950 text-stone-900 dark:text-stone-100 border border-stone-200 dark:border-stone-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent shadow-sm transition-all duration-150"
+              >
+                <option value="">General (No Context)</option>
+                {(contextsData?.getAllContexts || []).map((ctx: { _id: string; name: string }) => (
+                  <option key={ctx._id} value={ctx._id}>
+                    {ctx.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <h2 className="text-sm font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider border-t border-stone-100 dark:border-stone-800 pt-4">
               Select Items
             </h2>
 
