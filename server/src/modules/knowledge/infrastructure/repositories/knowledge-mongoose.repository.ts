@@ -1,0 +1,226 @@
+import { IKnowledge } from '../../../../../../shared-domain/src/knowledge/knowledge.entity.js';
+import { IKnowledgeRepository } from '../../application/repositories/knowledge.repository.js';
+import { makeMongooseBaseRepository } from '../../../shared/infrastructure/repositories/mongoose-base.repository.js';
+import { IShared } from '../../../../../../shared-domain/src/shared/repository.js';
+import { NonEmptyStringVO } from '../../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js';
+import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
+import { DateTimeVO } from '../../../../../../shared-domain/src/shared/value-objects/date-time.vo.js';
+import KnowledgeModel, { IKnowledgeDocument } from '../knowledge.model.js';
+import { Result } from '../../../../../../shared-domain/src/shared/result.js';
+import { DatabaseError } from '../../../../../../shared-domain/src/shared/errors.js';
+import { doTryResult } from '../../../../../../shared-domain/src/shared/do-try-result.js';
+import {
+  KnowledgeCategory,
+  KnowledgeCategoryVO,
+} from '../../../../../../shared-domain/src/knowledge/value-objects/knowledge-category.vo.js';
+import type { KnowledgeCategoryType } from '../../../../../../shared-domain/src/knowledge/value-objects/knowledge-category.vo.js';
+import {
+  HierarchyLevel,
+  HierarchyLevelVO,
+} from '../../../../../../shared-domain/src/knowledge/value-objects/hierarchy-level.vo.js';
+import type { HierarchyLevelType } from '../../../../../../shared-domain/src/knowledge/value-objects/hierarchy-level.vo.js';
+import {
+  KnowledgeStatus,
+  KnowledgeStatusVO,
+} from '../../../../../../shared-domain/src/knowledge/value-objects/knowledge-status.vo.js';
+import type { KnowledgeStatusType } from '../../../../../../shared-domain/src/knowledge/value-objects/knowledge-status.vo.js';
+import {
+  WikiLinkVO,
+  IWikiLink,
+} from '../../../../../../shared-domain/src/knowledge/value-objects/wiki-link.vo.js';
+
+const mapSubLink = (link: IWikiLink): { title: string; url?: string } => {
+  const title = link.title.toString();
+  return link.url ? { title, url: link.url } : { title };
+};
+
+const mapToDomain = (doc: IKnowledgeDocument): IKnowledge => {
+  const wikiLinks: IWikiLink[] = (doc.wikiLinks || []).map((link) => {
+    const result = WikiLinkVO.createResult({
+      title: link.title,
+      ...(link.url ? { url: link.url } : {}),
+    });
+    if (result.isFailure) {
+      return { title: NonEmptyStringVO.create(link.title) };
+    }
+    return result.getValue();
+  });
+
+  const statusResult = KnowledgeStatusVO.createResult(doc.status);
+  const status: KnowledgeStatusType = statusResult.isFailure
+    ? KnowledgeStatusVO.create(KnowledgeStatus.ACTIVE)
+    : statusResult.getValue();
+
+  return {
+    id: doc._id.toString() as IKnowledge['id'],
+    category: KnowledgeCategoryVO.create(doc.category) as IKnowledge['category'],
+    title: NonEmptyStringVO.create(doc.title),
+    content: NonEmptyStringVO.create(doc.content),
+    wikiLinks,
+    metadata: {
+      hierarchyLevel: HierarchyLevelVO.create(doc.metadata.hierarchyLevel) as IKnowledge['metadata']['hierarchyLevel'],
+      tags: doc.metadata.tags || [],
+      createdBy: doc.metadata.createdBy.toString() as IKnowledge['metadata']['createdBy'],
+      ...(doc.metadata.updatedBy
+        ? { updatedBy: doc.metadata.updatedBy.toString() as IKnowledge['metadata']['updatedBy'] }
+        : {}),
+      ...(doc.metadata.lastVerified
+        ? { lastVerified: DateTimeVO.create(doc.metadata.lastVerified.toISOString()) }
+        : {}),
+      ...(doc.metadata.productId
+        ? { productId: doc.metadata.productId.toString() as IKnowledge['metadata']['productId'] }
+        : {}),
+    },
+    status,
+    isActive: doc.isActive !== false,
+    createdAt: doc.createdAt
+      ? (DateTimeVO.create(doc.createdAt.toISOString()) as IKnowledge['createdAt'])
+      : undefined,
+    updatedAt: doc.updatedAt
+      ? (DateTimeVO.create(doc.updatedAt.toISOString()) as IKnowledge['updatedAt'])
+      : undefined,
+  };
+};
+
+const mapToDocumentData = (
+  knowledge: Partial<IKnowledge> & Record<string, unknown>,
+): Partial<IKnowledgeDocument> => {
+  const data: Partial<IKnowledgeDocument> = {};
+
+  if (knowledge.category !== undefined) data.category = knowledge.category;
+  if (knowledge.title !== undefined) data.title = knowledge.title.toString();
+  if (knowledge.content !== undefined) data.content = knowledge.content.toString();
+  if (knowledge.status !== undefined) data.status = knowledge.status.toString();
+  if (knowledge.wikiLinks !== undefined) {
+    data.wikiLinks = knowledge.wikiLinks.map(mapSubLink);
+  }
+  if (knowledge.isActive !== undefined) data.isActive = knowledge.isActive;
+
+  if (knowledge.metadata) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mongo ObjectId assignment in legacy field shape
+    data.metadata = {
+      hierarchyLevel: knowledge.metadata.hierarchyLevel.toString(),
+      tags: knowledge.metadata.tags || [],
+      createdBy: knowledge.metadata.createdBy.toString() as any,
+      ...(knowledge.metadata.updatedBy
+        ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          { updatedBy: knowledge.metadata.updatedBy.toString() as any }
+        : {}),
+      ...(knowledge.metadata.lastVerified
+        ? { lastVerified: new Date(knowledge.metadata.lastVerified.toString()) }
+        : {}),
+      ...(knowledge.metadata.productId
+        ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          { productId: knowledge.metadata.productId.toString() as any }
+        : {}),
+    } as IKnowledgeDocument['metadata'];
+  }
+
+  return data;
+};
+
+const baseRepository = makeMongooseBaseRepository<IKnowledge, IKnowledgeDocument>({
+  model: KnowledgeModel,
+  mapToDomain,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mongoose's generic typing for `makeMongooseBaseRepository` requires mapping to domain input which is more permissive than the IKnowledge interface.
+  mapToDocumentData: mapToDocumentData as any,
+});
+
+const textSearch = async (
+  query: string,
+  category?: KnowledgeCategoryType,
+): Promise<IKnowledge[]> => {
+  const result = await doTryResult(
+    async () => {
+      const filter: Record<string, unknown> = {
+        isActive: true,
+        status: KnowledgeStatus.ACTIVE,
+        $text: { $search: query },
+      };
+
+      if (category) {
+        filter.category = category;
+      }
+
+      const docs = await KnowledgeModel.find(filter).exec();
+      return docs.map(mapToDomain);
+    },
+    (err) => new DatabaseError(err.message),
+  );
+
+  if (result.isFailure) return [];
+  return result.getValue();
+};
+
+const softDeleteByIds = async (
+  ids: IShared.VO.Id[],
+  deletedBy: IShared.VO.Id,
+): Promise<Result<void, DatabaseError>> => {
+  return doTryResult(
+    async () => {
+      await KnowledgeModel.updateMany(
+        { _id: { $in: ids.map((id) => id.toString()) } },
+        {
+          $set: {
+            isActive: false,
+            updatedBy: deletedBy.toString(),
+          },
+        },
+      ).exec();
+    },
+    (err) => new DatabaseError(err.message),
+  );
+};
+
+const findByStatus = async (status: KnowledgeStatusType): Promise<IKnowledge[]> => {
+  const result = await doTryResult(
+    async () => {
+      const docs = await KnowledgeModel.find({ status: status.toString() })
+        .sort({ updatedAt: -1 })
+        .exec();
+      return docs.map(mapToDomain);
+    },
+    (err) => new DatabaseError(err.message),
+  );
+
+  if (result.isFailure) return [];
+  return result.getValue();
+};
+
+const updateStatus = async (
+  id: IShared.VO.Id,
+  status: KnowledgeStatusType,
+  updatedBy: IShared.VO.Id,
+): Promise<Result<void, DatabaseError>> => {
+  return doTryResult(
+    async () => {
+      const doc = await KnowledgeModel.findByIdAndUpdate(
+        id,
+        { $set: { status: status.toString(), updatedBy: updatedBy.toString() } },
+        { new: true },
+      ).exec();
+      if (!doc) {
+        throw new Error('Knowledge not found for status update');
+      }
+    },
+    (err) => new DatabaseError(err.message),
+  );
+};
+
+export const makeKnowledgeMongooseRepository = (): IKnowledgeRepository => {
+  return {
+    ...baseRepository,
+    textSearch,
+    softDeleteByIds,
+    findByStatus,
+    updateStatus,
+  } as unknown as IKnowledgeRepository;
+};
+
+// Re-exports kept for downstream consumers that need direct VO construction.
+export { KnowledgeCategory, KnowledgeCategoryVO };
+export type { KnowledgeCategoryType };
+export { HierarchyLevel, HierarchyLevelVO };
+export type { HierarchyLevelType };
+export { KnowledgeStatus, KnowledgeStatusVO };
+export type { KnowledgeStatusType };

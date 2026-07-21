@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { Contact } from "../types";
 
+const EMOJI_PRESET = ["👍", "❤️", "😂", "🎉", "🔥", "🚀", "👀", "🤔", "👏", "🙏", "💡", "📈"];
+
 export interface ChatInputProps {
   activeContact: Contact;
   onSendMessage: (
@@ -20,12 +22,14 @@ export interface ChatInputProps {
     image: string | null
   ) => void;
   onSendSticker: (sticker: "brain" | "rocket" | "success") => void;
+  isBotActive?: boolean;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
   activeContact,
   onSendMessage,
   onSendSticker,
+  isBotActive = false,
 }) => {
   const [inputText, setInputText] = useState<string>("");
 
@@ -116,6 +120,20 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   const isSendDisabled = !inputText.trim() && !attachedAudioName && !attachedImage;
 
+  if (isBotActive) {
+    return (
+      <div className="p-4 border-t border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-950/25 text-center flex flex-col items-center justify-center gap-1.5 shrink-0 animate-fadeIn">
+        <div className="flex items-center gap-2 text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider select-none">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
+          <span>AI Bot Is Managing This Chat</span>
+        </div>
+        <p className="text-[11px] text-stone-500 dark:text-stone-400 font-semibold leading-relaxed max-w-md select-none">
+          The AI Sales Agent is actively conversing with the client. Switch the header control to <span className="font-black text-stone-700 dark:text-stone-300">"Operator"</span> to take over, or use the <span className="font-black text-stone-700 dark:text-stone-300">"AI Whisper"</span> tab above to consult privately.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <form
       onSubmit={handleSubmit}
@@ -124,20 +142,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       {/* Emoji Picker Popover */}
       {showEmojiPicker && (
         <div className="absolute bottom-16 left-4 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl p-3 shadow-lg z-50 grid grid-cols-6 gap-2 w-48 animate-fadeIn">
-          {[
-            "👍",
-            "❤️",
-            "😂",
-            "🎉",
-            "🔥",
-            "🚀",
-            "👀",
-            "🤔",
-            "👏",
-            "🙏",
-            "💡",
-            "📈",
-          ].map((emoji) => (
+          {EMOJI_PRESET.map((emoji) => (
             <button
               key={emoji}
               type="button"

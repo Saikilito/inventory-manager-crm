@@ -15,6 +15,7 @@ export interface Contact {
   time: string;
   unreadCount: number;
   tier: "Gold" | "Basic";
+  age: number;
   phone: string;
   email: string;
   avgOrderValue: string;
@@ -35,13 +36,33 @@ export interface Message {
   };
   image?: string;
   sticker?: string;
+  isPrivate?: boolean;
 }
 
 export interface Agent {
   id: string;
   name: string;
-  systemPrompt: string;
-  status: string;
   role: "SALES" | "SUPPORT" | "CRM_OPERATOR";
+  status: string;
+  systemPrompt: string;
   enabledTools: string[];
+}
+
+export interface ExtractedClient {
+  firstName?: string;
+  lastName?: string;
+  nationalId?: string;
+  address?: string;
+}
+
+export interface ExtractedCartItem {
+  productId?: string;
+  productName?: string;
+  quantity: number;
+  price?: number;
+}
+
+export interface ExtractedData {
+  client?: ExtractedClient;
+  cart?: ExtractedCartItem[];
 }

@@ -38,21 +38,6 @@ export const ASK_AGENT = gql`
   }
 `;
 
-export const UPDATE_CHAT_SETTINGS = gql`
-  mutation UpdateChatSettings($input: UpdateChatSettingsInput!) {
-    updateChatSettings(input: $input) {
-      pagoMovilBank
-      pagoMovilPhone
-      pagoMovilId
-      whatsappOriginLatitude
-      whatsappOriginLongitude
-      whatsappAlertGroupJid
-      systemPrompt
-      binancePayUser
-    }
-  }
-`;
-
 export const ASSIGN_AGENT_TO_SESSION_MODAL = gql`
   mutation AssignAgentToSessionModal($whatsappId: String!, $agentId: ID) {
     assignAgentToSession(whatsappId: $whatsappId, agentId: $agentId) {

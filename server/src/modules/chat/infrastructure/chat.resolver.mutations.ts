@@ -1,6 +1,5 @@
 import { IContext } from "../../../config/apollo.js";
 import { ChatSessionModel, IChatSessionDocument } from "./chat-session.model.js";
-import { ChatSettingsModel } from "./chat-settings.model.js";
 import { ChatMessageModel } from "./chat-message.model.js";
 import { AgentModel } from "./agent.model.js";
 import { pubSubInstance } from "./pubsub.js";
@@ -19,17 +18,6 @@ import { UpdateAgentInput } from "../application/use-cases/update-agent.use-case
 interface UserPayload {
   id?: string;
   email?: string;
-}
-
-interface UpdateChatSettingsInput {
-  pagoMovilBank?: string | null;
-  pagoMovilPhone?: string | null;
-  pagoMovilId?: string | null;
-  whatsappOriginLatitude?: number | null;
-  whatsappOriginLongitude?: number | null;
-  whatsappAlertGroupJid?: string | null;
-  systemPrompt?: string | null;
-  binancePayUser?: string | null;
 }
 
 const sandboxHistories = new Map<string, Array<{ role: string; text: string }>>();
@@ -151,47 +139,6 @@ export const Mutation = {
     const updatedSession = await ChatSessionModel.findById(session.id!.toString()).exec();
     if (!updatedSession) throw new Error("Chat session not found or deleted");
     return publishSessionUpdated(updatedSession);
-  },
-  updateChatSettings: async (
-    _parent: unknown,
-    { input }: { input: UpdateChatSettingsInput },
-    { token }: IContext,
-  ) => {
-    const user = await token();
-    if (!user) throw new Error("Unauthenticated: Access Denied");
-    let settings = await ChatSettingsModel.findOne().exec();
-    if (!settings) {
-      settings = new ChatSettingsModel({
-        pagoMovilBank: input.pagoMovilBank,
-        pagoMovilPhone: input.pagoMovilPhone,
-        pagoMovilId: input.pagoMovilId,
-        whatsappOriginLatitude: input.whatsappOriginLatitude,
-        whatsappOriginLongitude: input.whatsappOriginLongitude,
-        whatsappAlertGroupJid: input.whatsappAlertGroupJid,
-        systemPrompt: input.systemPrompt,
-        binancePayUser: input.binancePayUser,
-      });
-    } else {
-      if (input.pagoMovilBank !== undefined) settings.pagoMovilBank = input.pagoMovilBank;
-      if (input.pagoMovilPhone !== undefined) settings.pagoMovilPhone = input.pagoMovilPhone;
-      if (input.pagoMovilId !== undefined) settings.pagoMovilId = input.pagoMovilId;
-      if (input.whatsappOriginLatitude !== undefined) settings.whatsappOriginLatitude = input.whatsappOriginLatitude;
-      if (input.whatsappOriginLongitude !== undefined) settings.whatsappOriginLongitude = input.whatsappOriginLongitude;
-      if (input.whatsappAlertGroupJid !== undefined) settings.whatsappAlertGroupJid = input.whatsappAlertGroupJid;
-      if (input.systemPrompt !== undefined) settings.systemPrompt = input.systemPrompt;
-      if (input.binancePayUser !== undefined) settings.binancePayUser = input.binancePayUser;
-    }
-    await settings.save();
-    return {
-      pagoMovilBank: settings.pagoMovilBank,
-      pagoMovilPhone: settings.pagoMovilPhone,
-      pagoMovilId: settings.pagoMovilId,
-      whatsappOriginLatitude: settings.whatsappOriginLatitude,
-      whatsappOriginLongitude: settings.whatsappOriginLongitude,
-      whatsappAlertGroupJid: settings.whatsappAlertGroupJid,
-      systemPrompt: settings.systemPrompt,
-      binancePayUser: settings.binancePayUser,
-    };
   },
   askCrmAssistant: async (
     _parent: unknown,

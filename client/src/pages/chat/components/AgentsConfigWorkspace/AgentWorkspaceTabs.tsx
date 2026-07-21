@@ -1,20 +1,17 @@
 import React from "react";
-import { MessageSquareCode, DollarSign, MapPin } from "lucide-react";
-import { AgentRole } from "@shared-domain/chat/agent.entity";
+import { MessageSquareCode, Brain } from "lucide-react";
 
-export type SubTabType = "prompt" | "payment" | "logistics" | "chat";
+export type SubTabType = "prompt" | "knowledge" | "chat";
 
 export interface AgentWorkspaceTabsProps {
   activeSubTab: SubTabType;
   setActiveSubTab: (tab: SubTabType) => void;
-  role: AgentRole;
   showChatTab?: boolean;
 }
 
 export const AgentWorkspaceTabs: React.FC<AgentWorkspaceTabsProps> = ({
   activeSubTab,
   setActiveSubTab,
-  role,
   showChatTab = true
 }) => {
   return (
@@ -29,37 +26,21 @@ export const AgentWorkspaceTabs: React.FC<AgentWorkspaceTabsProps> = ({
         }`}
       >
         <MessageSquareCode className="w-4 h-4" />
-        1. Prompt & Tools
+        1. Persona & Tools
       </button>
 
-      {role === AgentRole.SALES && (
-        <>
-          <button
-            type="button"
-            onClick={() => setActiveSubTab("payment")}
-            className={`py-3.5 px-4 text-xs font-black uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 ${
-              activeSubTab === "payment"
-                ? "border-emerald-600 text-emerald-600 dark:border-emerald-400 dark:text-emerald-400"
-                : "border-transparent text-stone-400 hover:text-stone-600 dark:hover:text-stone-300"
-            }`}
-          >
-            <DollarSign className="w-4 h-4" />
-            2. Payment Details
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveSubTab("logistics")}
-            className={`py-3.5 px-4 text-xs font-black uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 ${
-              activeSubTab === "logistics"
-                ? "border-emerald-600 text-emerald-600 dark:border-emerald-400 dark:text-emerald-400"
-                : "border-transparent text-stone-400 hover:text-stone-600 dark:hover:text-stone-300"
-            }`}
-          >
-            <MapPin className="w-4 h-4" />
-            3. Store Location & Alerts
-          </button>
-        </>
-      )}
+      <button
+        type="button"
+        onClick={() => setActiveSubTab("knowledge")}
+        className={`py-3.5 px-4 text-xs font-black uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 ${
+          activeSubTab === "knowledge"
+            ? "border-emerald-600 text-emerald-600 dark:border-emerald-400 dark:text-emerald-400"
+            : "border-transparent text-stone-400 hover:text-stone-600 dark:hover:text-stone-300"
+        }`}
+      >
+        <Brain className="w-4 h-4" />
+        2. Knowledge Brain
+      </button>
 
       {showChatTab && (
         <button

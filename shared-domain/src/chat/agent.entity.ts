@@ -2,6 +2,7 @@ export const AgentRole = {
   SALES: 'SALES',
   SUPPORT: 'SUPPORT',
   CRM_OPERATOR: 'CRM_OPERATOR',
+  LIBRARIAN: 'LIBRARIAN',
 } as const;
 export type AgentRole = typeof AgentRole[keyof typeof AgentRole];
 

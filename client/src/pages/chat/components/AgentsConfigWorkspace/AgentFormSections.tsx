@@ -1,6 +1,6 @@
 import React from "react";
 import { AgentRole, AgentStatus } from "@shared-domain/chat/agent.entity";
-import { AVAILABLE_TOOLS, SettingsFormData } from "./constants";
+import { AVAILABLE_TOOLS } from "./constants";
 
 export interface PromptAndToolsFieldsProps {
   name: string;
@@ -50,6 +50,7 @@ export const PromptAndToolsFields: React.FC<PromptAndToolsFieldsProps> = ({
             <option value={AgentRole.SALES}>Sales Agent (SALES)</option>
             <option value={AgentRole.SUPPORT}>Customer Support (SUPPORT)</option>
             <option value="CRM_OPERATOR">CRM Operator (COACH)</option>
+            <option value="LIBRARIAN">Librarian (RESEARCH/KNOWLEDGE)</option>
           </select>
         </div>
         <div>
@@ -69,16 +70,19 @@ export const PromptAndToolsFields: React.FC<PromptAndToolsFieldsProps> = ({
 
       <div>
         <label className="block text-xs font-bold text-stone-600 dark:text-stone-400 uppercase mb-1.5">
-          System Instructions & Prompt Context
+          Persona Prompt (Agent Character Only)
         </label>
         <textarea
           required
           value={systemPrompt}
           onChange={(e) => setSystemPrompt(e.target.value)}
-          rows={8}
+          rows={4}
           className="w-full rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950 p-4 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
-          placeholder="You are an expert sales assistant..."
+          placeholder="You are a friendly, expert sales assistant specialized in motorcycle spare parts..."
         />
+        <p className="text-[10px] text-stone-500 mt-1.5 leading-relaxed">
+          Business rules, payment methods, store location, and processes live in the Knowledge Brain tab. Keep this field for persona only.
+        </p>
       </div>
 
       <div className="space-y-2">
@@ -103,148 +107,6 @@ export const PromptAndToolsFields: React.FC<PromptAndToolsFieldsProps> = ({
               </label>
             );
           })}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export interface PaymentDetailsFieldsProps {
-  settings: SettingsFormData;
-  updateSetting: <K extends keyof SettingsFormData>(key: K, value: SettingsFormData[K]) => void;
-}
-
-export const PaymentDetailsFields: React.FC<PaymentDetailsFieldsProps> = ({ settings, updateSetting }) => {
-  return (
-    <div className="space-y-6 animate-[fadeIn_0.2s_ease-out]">
-      <div className="space-y-4 border-b border-stone-100 dark:border-stone-800 pb-5">
-        <h4 className="text-sm font-bold text-stone-950 dark:text-stone-50 uppercase tracking-wider flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-500" />
-          Pago Móvil (Venezuela Interbank)
-        </h4>
-        <p className="text-xs text-stone-500 leading-relaxed">
-          These parameters are injected dynamically into Gemini's tool outcomes whenever a client requests purchase validation details over WhatsApp.
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-xs font-bold text-stone-600 dark:text-stone-400 mb-1.5">
-              Banco / Bank
-            </label>
-            <input
-              type="text"
-              value={settings.pagoMovilBank}
-              onChange={(e) => updateSetting("pagoMovilBank", e.target.value)}
-              className="w-full rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950 px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              placeholder="e.g. Banesco"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-stone-600 dark:text-stone-400 mb-1.5">
-              Teléfono / Phone
-            </label>
-            <input
-              type="text"
-              value={settings.pagoMovilPhone}
-              onChange={(e) => updateSetting("pagoMovilPhone", e.target.value)}
-              className="w-full rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950 px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              placeholder="e.g. 04121234567"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-stone-600 dark:text-stone-400 mb-1.5">
-              Cédula / ID
-            </label>
-            <input
-              type="text"
-              value={settings.pagoMovilId}
-              onChange={(e) => updateSetting("pagoMovilId", e.target.value)}
-              className="w-full rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950 px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              placeholder="e.g. V-12345678"
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <h4 className="text-sm font-bold text-stone-950 dark:text-stone-50 uppercase tracking-wider flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-amber-500" />
-          Binance Pay
-        </h4>
-        <div>
-          <label className="block text-xs font-bold text-stone-600 dark:text-stone-400 mb-1.5">
-            Binance Pay Email/User
-          </label>
-          <input
-            type="text"
-            value={settings.binancePayUser}
-            onChange={(e) => updateSetting("binancePayUser", e.target.value)}
-            className="w-full rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950 px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            placeholder="e.g. caracasrepuestos@gmail.com"
-          />
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export interface LogisticsSettingsFieldsProps {
-  settings: SettingsFormData;
-  updateSetting: <K extends keyof SettingsFormData>(key: K, value: SettingsFormData[K]) => void;
-}
-
-export const LogisticsSettingsFields: React.FC<LogisticsSettingsFieldsProps> = ({ settings, updateSetting }) => {
-  return (
-    <div className="space-y-6 animate-[fadeIn_0.2s_ease-out]">
-      <div className="space-y-4 border-b border-stone-100 dark:border-stone-800 pb-5">
-        <h4 className="text-sm font-bold text-stone-950 dark:text-stone-50 uppercase tracking-wider">
-          Store Origin Coordinates (GPS)
-        </h4>
-        <p className="text-xs text-stone-500 leading-relaxed">
-          Coordinates used as the starting route to automatically calculate shipping prices on motorizado deliveries inside Caracas.
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-bold text-stone-600 dark:text-stone-400 mb-1.5">
-              Latitude
-            </label>
-            <input
-              type="number"
-              step="any"
-              value={settings.whatsappOriginLatitude}
-              onChange={(e) => updateSetting("whatsappOriginLatitude", parseFloat(e.target.value) || 0)}
-              className="w-full rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950 px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-stone-600 dark:text-stone-400 mb-1.5">
-              Longitude
-            </label>
-            <input
-              type="number"
-              step="any"
-              value={settings.whatsappOriginLongitude}
-              onChange={(e) => updateSetting("whatsappOriginLongitude", parseFloat(e.target.value) || 0)}
-              className="w-full rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950 px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <h4 className="text-sm font-bold text-stone-950 dark:text-stone-50 uppercase tracking-wider">
-          Logistics Alert Group
-        </h4>
-        <div>
-          <label className="block text-xs font-bold text-stone-600 dark:text-stone-400 mb-1.5">
-            WhatsApp Group JID
-          </label>
-          <input
-            type="text"
-            value={settings.whatsappAlertGroupJid}
-            onChange={(e) => updateSetting("whatsappAlertGroupJid", e.target.value)}
-            className="w-full rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950 px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            placeholder="e.g. 120363123456789012@g.us"
-          />
         </div>
       </div>
     </div>

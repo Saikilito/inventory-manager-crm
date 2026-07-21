@@ -14,6 +14,7 @@ export const AgentRole = {
   SALES: "SALES",
   SUPPORT: "SUPPORT",
   CRM_OPERATOR: "CRM_OPERATOR",
+  LIBRARIAN: "LIBRARIAN",
 } as const;
 
 export type AgentRole = (typeof AgentRole)[keyof typeof AgentRole];
@@ -24,6 +25,9 @@ export const AgentTool = {
   CREATE_CLIENT: "createClient",
   CREATE_ORDER: "createOrder",
   QUERY_MONGO_DB: "queryMongoDB",
+  WEB_FETCH: "webFetch",
+  NAVIGATE_KNOWLEDGE_BRAIN: "navigateKnowledgeBrain",
+  CREATE_KNOWLEDGE_ENTRY: "createKnowledgeEntry",
 } as const;
 
 export type AgentTool = (typeof AgentTool)[keyof typeof AgentTool];

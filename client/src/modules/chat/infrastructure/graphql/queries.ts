@@ -44,18 +44,3 @@ export const GET_AGENTS = gql`
     }
   }
 `;
-
-export const GET_CHAT_SETTINGS = gql`
-  query GetChatSettings {
-    getChatSettings {
-      pagoMovilBank
-      pagoMovilPhone
-      pagoMovilId
-      whatsappOriginLatitude
-      whatsappOriginLongitude
-      whatsappAlertGroupJid
-      systemPrompt
-      binancePayUser
-    }
-  }
-`;

@@ -55,7 +55,7 @@ export const AgentDirectorySidebar: React.FC<AgentDirectorySidebarProps> = ({
                   }
                 `}
               >
-                {agent.role === AgentRole.SALES ? "SL" : agent.role === AgentRole.SUPPORT ? "SP" : "OP"}
+                {agent.role === AgentRole.SALES ? "SL" : agent.role === AgentRole.SUPPORT ? "SP" : agent.role === "LIBRARIAN" ? "LB" : "OP"}
               </div>
 
               <div className="flex-1 min-w-0">

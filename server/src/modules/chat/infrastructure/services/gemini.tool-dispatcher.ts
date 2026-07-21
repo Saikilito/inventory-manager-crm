@@ -1,12 +1,26 @@
 import mongoose from "mongoose";
 import { IdVO } from "../../../../../../shared-domain/src/shared/value-objects/id.vo.js";
-import { ProductModel, IProductDocument } from "../../../product/infrastructure/product.model.js";
+import { NonEmptyStringVO } from "../../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js";
+import { PositiveNumberVO } from "../../../../../../shared-domain/src/shared/value-objects/positive-number.vo.js";
+import { IProductRepository, ProductSearchTokens } from "../../../product/application/repositories/product.repository.js";
+import { IClientRepository } from "../../../client/application/repositories/client.repository.js";
 import { CalculateDeliveryFee } from "../../application/use-cases/calculate-delivery-fee.use-case.js";
 import { CreateClient } from "../../../client/application/use-cases/create-client.js";
 import { CreateOrder } from "../../../order/application/use-cases/create-order.js";
 import { LogUnsatisfiedDemand } from "../../application/use-cases/log-unsatisfied-demand.use-case.js";
 import { getSpanishSingular } from "./gemini.utils.js";
-import { MongoCollectionNames } from "./gemini.constants.js";
+import {
+  MongoCollectionNames,
+  MongoQueryConstants,
+} from "./gemini.constants.js";
+import {
+  validateAggregateAgainstAllowlist,
+  validateQueryAgainstAllowlist,
+  resolveAllowedFieldsForCollection,
+} from "./mongo-query-allowlist.js";
+import { KnowledgeModel } from "../../../knowledge/infrastructure/knowledge.model.js";
+
+export const MAX_PRODUCT_SEARCH_LIMIT = 10;
 
 export interface ToolDispatcherDependencies {
   calculateDeliveryFee: CalculateDeliveryFee;
@@ -14,6 +28,8 @@ export interface ToolDispatcherDependencies {
   createOrder: CreateOrder;
   logUnsatisfiedDemand: LogUnsatisfiedDemand;
   getDefaultSellerId: (whatsappId: string) => Promise<string>;
+  productRepository: IProductRepository;
+  clientRepository: IClientRepository;
 }
 
 export function buildToolDeclarations(isFromCrm?: boolean): Array<Record<string, unknown>> {
@@ -21,25 +37,29 @@ export function buildToolDeclarations(isFromCrm?: boolean): Array<Record<string,
     {
       name: "searchStock",
       description:
-        "Search motorcycle spare parts, lubricants, or consumables in the catalog. Deconstructs the request into structured schema fields to verify stock and compatibility.",
+        "Busca productos en el catálogo general. Este buscador hace coincidencia difusa de palabras clave contra el nombre del producto, marca, modelo y otros atributos personalizados. Útil para buscar tanto repuestos de motos como cualquier otro tipo de producto (ropa, víveres, etc.) dependiendo del contexto del negocio.",
       parameters: {
         type: "OBJECT",
         properties: {
           query: {
             type: "STRING",
-            description: "Core product noun/category keyword (e.g. 'aceite', 'bujia', 'bateria', 'pastilla', 'caucho'). Avoid including motorcycle brand/model here.",
+            description: "Palabra clave principal del producto (ej. 'aceite', 'bujia', 'franela', 'pantalon'). Puede incluir características descriptivas.",
+          },
+          contextId: {
+            type: "STRING",
+            description: "Opcional: ID del contexto de negocio para filtrar la búsqueda (ej. el _id del contexto 'Moto Parts' o 'Clothing'). Puedes consultar los contextos existentes usando queryMongoDB a la colección 'Contexts'.",
           },
           motoBrand: {
             type: "STRING",
-            description: "Optional: The manufacturer/brand of the motorcycle (e.g., 'Empire', 'Keeway', 'Yamaha').",
+            description: "Opcional (Solo para repuestos): La marca del fabricante de la moto (ej. 'Empire', 'Keeway').",
           },
           motoModel: {
             type: "STRING",
-            description: "Optional: The model or displacement of the motorcycle (e.g., 'RK 150', 'Horse 150', 'TX 200').",
+            description: "Opcional (Solo para repuestos): El modelo de la moto (ej. 'Horse 150', 'TX 200').",
           },
           partBrand: {
             type: "STRING",
-            description: "Optional: The manufacturer/brand of the spare part/lubricant (e.g., 'Motul', 'TRD', 'Castrol').",
+            description: "Opcional (Solo para repuestos): La marca del repuesto (ej. 'Motul', 'TRD').",
           },
         },
         required: ["query"],
@@ -113,6 +133,64 @@ export function buildToolDeclarations(isFromCrm?: boolean): Array<Record<string,
         required: ["items"],
       },
     },
+    {
+      name: "webFetch",
+      description: "Navega e investiga en internet. Descarga el contenido de una URL y devuelve su texto.",
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          url: {
+            type: "STRING",
+            description: "La URL completa (comenzando con http:// o https://) que se desea investigar.",
+          },
+        },
+        required: ["url"],
+      },
+    },
+    {
+      name: "navigateKnowledgeBrain",
+      description: "Navega jerárquicamente por el Grafo del Cerebro de Conocimiento. Si lo usas sin parámetros, obtendrás el Directorio Raíz. Si pasas un nombre de índice, entrarás en él para leer su contenido y ver qué otros sub-índices o ficheros de información contiene.",
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          nodeTitle: {
+            type: "STRING",
+            description: "Opcional. El título exacto del índice al que deseas entrar. Déjalo completamente vacío u omítelo para leer el Directorio Raíz.",
+          },
+        },
+      },
+    },
+    {
+      name: "createKnowledgeEntry",
+      description: "Crea una nueva entrada en el Cerebro de Conocimiento (Knowledge Brain). Útil para almacenar reglas, políticas, resúmenes de productos o guías descubiertas durante la investigación.",
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          category: {
+            type: "STRING",
+            description: "Categoría del conocimiento. Valores permitidos: SALES, PRODUCTS, COMPANY, CUSTOMER_SERVICE.",
+          },
+          title: {
+            type: "STRING",
+            description: "Título corto y descriptivo de la entrada.",
+          },
+          content: {
+            type: "STRING",
+            description: "El contenido completo de la entrada. Puedes incluir formato Markdown.",
+          },
+          hierarchyLevel: {
+            type: "STRING",
+            description: "Nivel jerárquico. Valores permitidos: ROOT, DOMAIN, TOPIC, DATA. Si dudas, usa DATA o TOPIC.",
+          },
+          tags: {
+            type: "ARRAY",
+            items: { type: "STRING" },
+            description: "Opcional: Arreglo de palabras clave para facilitar la búsqueda.",
+          },
+        },
+        required: ["category", "title", "content", "hierarchyLevel"],
+      },
+    },
   ];
 
   if (isFromCrm) {
@@ -158,6 +236,7 @@ export async function dispatchToolCall(
 
   if (name === "searchStock") {
     const query = (args.query as string) || "";
+    const contextId = (args.contextId as string) || undefined;
     const motoBrand = (args.motoBrand as string) || "";
     const motoModel = (args.motoModel as string) || "";
     const partBrand = (args.partBrand as string) || "";
@@ -174,62 +253,31 @@ export async function dispatchToolCall(
       cleanedTokens = tokens.filter((t: string) => !/^\d+$/.test(t));
     }
 
-    const andConditions: Array<Record<string, unknown>> = [];
+    // When the user provides no meaningful tokens (only digits, empty, etc.)
+    // we fall back to a single-token search using the raw query. The
+    // repository is responsible for sanitising every token before constructing
+    // the MongoDB $regex pattern, neutralising NoSQL / ReDoS injection.
+    const searchTokens: ProductSearchTokens = {
+      nameTokens: cleanedTokens.length > 0 ? cleanedTokens : query ? [query] : [],
+      contextId: contextId,
+      motoBrand: motoBrand || undefined,
+      motoModel: motoModel || undefined,
+      partBrand: partBrand || undefined,
+      limit: MAX_PRODUCT_SEARCH_LIMIT,
+    };
 
-    if (cleanedTokens.length > 0) {
-      const nameConditions = cleanedTokens.map((token: string) => ({
-        name: { $regex: token, $options: "i" }
-      }));
-      andConditions.push({ $and: nameConditions });
-    } else if (query) {
-      andConditions.push({ name: { $regex: query, $options: "i" } });
-    }
+    const searchResult = await dependencies.productRepository.searchByTokens(searchTokens);
+    let matchingProducts = searchResult.items;
 
-    if (motoBrand || motoModel) {
-      const compatibilityOrConditions: Array<Record<string, unknown>> = [
-        { "customAttributes.motoBrand": { $regex: "Universal", $options: "i" } },
-        { "customAttributes.motoBrand": { $exists: false } },
-        { contextId: null }
-      ];
-
-      if (motoBrand) {
-        compatibilityOrConditions.push({
-          "customAttributes.motoBrand": { $regex: motoBrand, $options: "i" }
-        });
-      }
-      if (motoModel) {
-        compatibilityOrConditions.push({
-          "customAttributes.motoBrand": { $regex: motoModel, $options: "i" }
-        });
-      }
-
-      andConditions.push({ $or: compatibilityOrConditions });
-    }
-
-    if (partBrand) {
-      andConditions.push({
-        "customAttributes.partBrand": { $regex: partBrand, $options: "i" }
+    // Repository search returned nothing on a multi-token query → try the
+    // primary token alone (relaxed matching). Still goes through the
+    // repository, so sanitisation is preserved.
+    if (matchingProducts.length === 0 && cleanedTokens.length > 1) {
+      const relaxed = await dependencies.productRepository.searchByTokens({
+        nameTokens: [cleanedTokens[0]!],
+        limit: MAX_PRODUCT_SEARCH_LIMIT,
       });
-    }
-
-    let matchingProducts: IProductDocument[] = [];
-    if (andConditions.length > 0) {
-      matchingProducts = await ProductModel.find({ $and: andConditions })
-        .limit(10)
-        .exec();
-
-      if (matchingProducts.length === 0 && cleanedTokens.length > 0) {
-        const primaryToken = cleanedTokens[0];
-        matchingProducts = await ProductModel.find({
-          name: { $regex: primaryToken, $options: "i" }
-        })
-          .limit(10)
-          .exec();
-      }
-    } else {
-      matchingProducts = await ProductModel.find()
-        .limit(10)
-        .exec();
+      matchingProducts = relaxed.items;
     }
 
     if (matchingProducts.length === 0) {
@@ -242,11 +290,16 @@ export async function dispatchToolCall(
       });
     } else {
       for (const p of matchingProducts) {
-        if (p.stock === 0) {
+        // Domain entity exposes stock as a NonNegativeNumber VO → unwrap
+        const stockValue =
+          typeof p.stock === "object" && p.stock !== null && "value" in p.stock
+            ? Number((p.stock as { value: unknown }).value)
+            : Number(p.stock);
+        if (stockValue === 0) {
           await dependencies.logUnsatisfiedDemand({
-            productId: p._id.toString(),
+            productId: p.id ? p.id.toString() : IdVO.generateNil().toString(),
             clientPhone: from,
-            productName: p.name,
+            productName: p.name.toString(),
             quantity: 1,
           });
         }
@@ -255,10 +308,14 @@ export async function dispatchToolCall(
 
     toolResult = {
       products: matchingProducts.map((p) => ({
-        id: p._id.toString(),
-        name: p.name,
-        price: p.price,
-        stock: p.stock,
+        id: p.id ? p.id.toString() : "",
+        name: p.name.toString(),
+        price: typeof p.price === "object" && p.price !== null && "value" in p.price
+          ? Number((p.price as { value: unknown }).value)
+          : Number(p.price),
+        stock: typeof p.stock === "object" && p.stock !== null && "value" in p.stock
+          ? Number((p.stock as { value: unknown }).value)
+          : Number(p.stock),
       })),
     };
   } else if (name === "calculateDeliveryFee") {
@@ -292,11 +349,23 @@ export async function dispatchToolCall(
   } else if (name === "createOrder") {
     let resolvedClientId = args.clientId as string | undefined;
     if (!resolvedClientId) {
-      const Client = mongoose.model("Client");
-      const clientDoc = await Client.findOne({ whatsapp: from }).exec();
-      if (clientDoc) {
-        resolvedClientId = clientDoc._id.toString();
-      } else {
+      // Look up the client by WhatsApp number through the repository rather
+      // than touching Mongoose directly. This keeps the dispatcher in
+      // infrastructure-only mode and routes the lookup through the same
+      // abstraction the rest of the application uses.
+      const clientResult = await dependencies.clientRepository.getAll({
+        where: {
+          fields: [
+            { field: NonEmptyStringVO.create("whatsapp"), value: from, operator: "=" },
+          ],
+        },
+        limit: PositiveNumberVO.create(1),
+      });
+      const found = clientResult.getValue().items[0];
+      if (found) {
+        resolvedClientId = found.id ? found.id.toString() : undefined;
+      }
+      if (!resolvedClientId) {
         toolResult = { error: "Client not found in CRM. You must create the client using createClient tool first!" };
       }
     }
@@ -306,7 +375,7 @@ export async function dispatchToolCall(
         items: args.items as Array<{ productId: string; quantity: number }>,
         clientId: resolvedClientId,
         sellerId,
-        deliveryCost: args.deliveryCost !== undefined ? (typeof args.deliveryCost === "number" ? args.deliveryCost : parseFloat(args.deliveryCost as string)) : undefined,
+        // deliveryCost: args.deliveryCost !== undefined ? (typeof args.deliveryCost === "number" ? args.deliveryCost : parseFloat(args.deliveryCost as string)) : undefined,
         customDeliveryAddress: args.customDeliveryAddress as string | undefined,
       });
       if (!orderRes.isFailure) {
@@ -334,6 +403,10 @@ export async function dispatchToolCall(
         return mongoose.model(MongoCollectionNames.ChatSessions);
       if (norm === "unsatisfieddemand" || norm === "unsatisfieddemands")
         return mongoose.model(MongoCollectionNames.UnsatisfiedDemands);
+      if (norm === "knowledge" || norm === "knowledges")
+        return mongoose.model("Knowledge");
+      if (norm === "context" || norm === "contexts")
+        return mongoose.model(MongoCollectionNames.Contexts);
       return null;
     };
 
@@ -346,15 +419,32 @@ export async function dispatchToolCall(
       try {
         if (args.aggregate) {
           const pipeline = JSON.parse(args.aggregate as string);
-          const results = await model.aggregate(pipeline).exec();
-          toolResult = { results: results.slice(0, 50) };
+          const aggregateError = validateAggregateAgainstAllowlist(pipeline);
+          if (aggregateError) {
+            toolResult = { error: `Query rejected: ${aggregateError}` };
+          } else {
+            const results = await model.aggregate(pipeline).exec();
+            toolResult = { results: results.slice(0, MongoQueryConstants.QUERY_TOOL_RESULT_LIMIT) };
+          }
         } else {
           const parsedQuery = args.query ? JSON.parse(args.query as string) : {};
-          const results = await model
-            .find(parsedQuery)
-            .limit(50)
-            .exec();
-          toolResult = { results };
+          const allowedFields = resolveAllowedFieldsForCollection(collectionName);
+          if (!allowedFields) {
+            toolResult = {
+              error: `No allowlist configured for collection ${collectionName}.`,
+            };
+          } else {
+            const queryError = validateQueryAgainstAllowlist(parsedQuery, allowedFields);
+            if (queryError) {
+              toolResult = { error: `Query rejected: ${queryError}` };
+            } else {
+              const results = await model
+                .find(parsedQuery)
+                .limit(MongoQueryConstants.QUERY_TOOL_RESULT_LIMIT)
+                .exec();
+              toolResult = { results };
+            }
+          }
         }
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
@@ -362,6 +452,93 @@ export async function dispatchToolCall(
           error: `Database execution error: ${message}`,
         };
       }
+    }
+  } else if (name === "webFetch") {
+    try {
+      const url = args.url as string;
+      if (!url) {
+        toolResult = { error: "URL is required for webFetch" };
+      } else {
+        const response = await fetch(url);
+        if (!response.ok) {
+          toolResult = { error: `Failed to fetch: HTTP ${response.status}` };
+        } else {
+          // Extraemos texto plano simple, si es HTML intentamos limpiar un poco
+          let text = await response.text();
+          if (text.includes("<html")) {
+            text = text.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+                       .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
+                       .replace(/<[^>]+>/g, " ")
+                       .replace(/\s+/g, " ")
+                       .trim();
+          }
+          toolResult = { content: text.slice(0, 15000) }; // Limitar tamaño
+        }
+      }
+    } catch (err: unknown) {
+      toolResult = { error: `Fetch failed: ${err instanceof Error ? err.message : String(err)}` };
+    }
+  } else if (name === "navigateKnowledgeBrain") {
+    try {
+      const nodeTitle = args.nodeTitle as string | undefined;
+
+      if (!nodeTitle || nodeTitle.trim() === "") {
+        // Encontrar nodos raíz (los que no tienen enlaces apuntando a padres, es decir, wikiLinks está vacío)
+        const roots = await KnowledgeModel.find({
+          $or: [
+            { wikiLinks: { $exists: false } },
+            { wikiLinks: { $size: 0 } }
+          ],
+          isActive: true
+        }, "title category metadata.hierarchyLevel").lean().exec();
+
+        toolResult = {
+          message: "Estás en el Directorio Raíz del Cerebro de Conocimiento. Estos son los ficheros e índices principales:",
+          availableIndices: roots.map(r => ({ title: r.title, type: r.metadata?.hierarchyLevel, category: r.category }))
+        };
+      } else {
+        const node = await KnowledgeModel.findOne({ title: nodeTitle, isActive: true }).lean().exec();
+        if (!node) {
+          toolResult = { error: `No se encontró ningún índice o fichero llamado '${nodeTitle}'. Usa 'queryMongoDB' si necesitas hacer una búsqueda borrosa.` };
+        } else {
+          // Find children (nodes whose wikiLinks point to this node)
+          const children = await KnowledgeModel.find({ "wikiLinks.title": nodeTitle, isActive: true }, "title category metadata.hierarchyLevel").lean().exec();
+          toolResult = {
+            currentLocation: {
+              title: node.title,
+              type: node.metadata?.hierarchyLevel,
+              category: node.category,
+              content: node.content
+            },
+            subDirectoriesAndFiles: children.map(c => ({ title: c.title, type: c.metadata?.hierarchyLevel, category: c.category }))
+          };
+        }
+      }
+    } catch (err: unknown) {
+      toolResult = { error: `Knowledge navigation failed: ${err instanceof Error ? err.message : String(err)}` };
+    }
+  } else if (name === "createKnowledgeEntry") {
+    try {
+      const sellerId = await dependencies.getDefaultSellerId(from);
+      
+      const newEntry = await KnowledgeModel.create({
+        category: args.category || "COMPANY",
+        title: args.title,
+        content: args.content,
+        wikiLinks: [],
+        metadata: {
+          hierarchyLevel: args.hierarchyLevel || "DATA",
+          tags: Array.isArray(args.tags) ? args.tags : [],
+          createdBy: sellerId,
+        },
+        status: "ACTIVE", // Autoprobado si viene del agente interno
+        isActive: true,
+        createdBy: sellerId,
+      });
+      
+      toolResult = { success: true, id: newEntry._id.toString(), message: "Knowledge entry created successfully." };
+    } catch (err: unknown) {
+      toolResult = { error: `Failed to create knowledge entry: ${err instanceof Error ? err.message : String(err)}` };
     }
   }
 

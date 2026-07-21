@@ -7,7 +7,8 @@ import { CreateClient } from "../../../client/application/use-cases/create-clien
 import { CreateOrder } from "../../../order/application/use-cases/create-order.js";
 import { LogUnsatisfiedDemand } from "../../application/use-cases/log-unsatisfied-demand.use-case.js";
 import { IAgentRepository } from "../../application/repositories/agent.repository.js";
-import { ChatSettingsModel } from "../chat-settings.model.js";
+import { IClientRepository } from "../../../client/application/repositories/client.repository.js";
+import { IProductRepository } from "../../../product/application/repositories/product.repository.js";
 import { cleanAndAlternateHistory } from "./gemini.utils.js";
 import {
   GEMINI_SYSTEM_PROMPT,
@@ -16,6 +17,8 @@ import {
 } from "./gemini.prompts.js";
 import { buildToolDeclarations, dispatchToolCall } from "./gemini.tool-dispatcher.js";
 import { GeminiConstants } from "./gemini.constants.js";
+import { KnowledgeInjector, KNOWLEDGE_INJECTOR_DEFAULTS, KNOWLEDGE_CONTEXT_EMPTY } from "./knowledge-injector.js";
+import { IConfig } from "../../../../config/index.js";
 
 export { cleanAndAlternateHistory } from "./gemini.utils.js";
 
@@ -25,6 +28,10 @@ export const makeGeminiLlmAdapter = (dependencies: {
   createOrder: CreateOrder;
   logUnsatisfiedDemand: LogUnsatisfiedDemand;
   agentRepository: IAgentRepository;
+  productRepository: IProductRepository;
+  clientRepository: IClientRepository;
+  knowledgeInjector?: KnowledgeInjector;
+  config: Pick<IConfig, "knowledgeInjectionEnabled" | "knowledgeInjectionTopN" | "knowledgeInjectionTokenBudget">;
 }): ILlmAdapter => {
   const apiKey = process.env.GEMINI_API_KEY || "";
   const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
@@ -64,11 +71,25 @@ export const makeGeminiLlmAdapter = (dependencies: {
       }
 
       try {
-        const settings = await ChatSettingsModel.findOne().exec();
-        const bank = settings?.pagoMovilBank || "Banesco";
-        const phone = settings?.pagoMovilPhone || "04121234567";
-        const idVal = settings?.pagoMovilId || "V-12345678";
-        const baseSystemPrompt = options?.systemPrompt || settings?.systemPrompt || GEMINI_SYSTEM_PROMPT;
+        const baseSystemPrompt = options?.systemPrompt || GEMINI_SYSTEM_PROMPT;
+
+        let knowledgeContextBlock = "";
+        if (dependencies.config.knowledgeInjectionEnabled && dependencies.knowledgeInjector) {
+          const topN = dependencies.config.knowledgeInjectionTopN ?? KNOWLEDGE_INJECTOR_DEFAULTS.TOP_N;
+          const tokenBudget = dependencies.config.knowledgeInjectionTokenBudget ?? KNOWLEDGE_INJECTOR_DEFAULTS.TOKEN_BUDGET;
+          try {
+            const block = await dependencies.knowledgeInjector({
+              query: text,
+              topN,
+              tokenBudget,
+            });
+            if (block && block !== KNOWLEDGE_CONTEXT_EMPTY) {
+              knowledgeContextBlock = `\n\n${block}\n\n`;
+            }
+          } catch (knowledgeError) {
+            console.warn("[gemini.adapter] knowledge injection failed; proceeding without context", knowledgeError);
+          }
+        }
 
         const summaryPrepend = options?.historicalSummary
           ? `==================================================
@@ -77,16 +98,11 @@ ${options.historicalSummary}
 ==================================================\n\n`
           : "";
 
-        const dynamicSystemPrompt = `${summaryPrepend}${baseSystemPrompt}
+        const dynamicSystemPrompt = `${summaryPrepend}${knowledgeContextBlock}${baseSystemPrompt}
 
 ${GEMINI_JSON_FORMAT_PROMPT}
 
 ${GEMINI_CONVERSATIONAL_RULES_PROMPT}
-
-IMPORTANT: Datos de Pago Móvil vigentes para confirmación de compra:
-- Banco: ${bank}
-- Teléfono: ${phone}
-- Cédula/RIF: ${idVal}
 
 ${
   options?.isFromCrm
@@ -167,13 +183,21 @@ ${
 
         let resultJson = await makeRequest(contents);
 
-        const candidates = resultJson.candidates as Array<{ content?: { parts?: Array<{ functionCall?: { name: string; args: Record<string, unknown> } }> } }> | undefined;
-        const candidate = candidates?.[0];
-        const parts = candidate?.content?.parts || [];
-        const functionCallPart = parts.find((p) => p.functionCall);
+        let candidates = resultJson.candidates as Array<{ content?: { parts?: Array<{ text?: string; functionCall?: { name: string; args: Record<string, unknown> } }> } }> | undefined;
+        let candidate = candidates?.[0];
+        let parts = candidate?.content?.parts || [];
+        let functionCallPart = parts.find((p) => p.functionCall);
+        let textPartInLoop = parts.find((p) => p.text);
 
-        if (functionCallPart && functionCallPart.functionCall) {
+        console.log("INITIAL PARTS:", JSON.stringify(parts, null, 2));
+
+        let loopCount = 0;
+        const MAX_TOOL_CALLS = 5;
+
+        while (functionCallPart && functionCallPart.functionCall && loopCount < MAX_TOOL_CALLS) {
+          loopCount++;
           const { name, args } = functionCallPart.functionCall;
+          console.log(`[LOOP ${loopCount}] Executing tool:`, name, args);
 
           const toolResult = await dispatchToolCall(
             name,
@@ -185,20 +209,28 @@ ${
               createOrder: dependencies.createOrder,
               logUnsatisfiedDemand: dependencies.logUnsatisfiedDemand,
               getDefaultSellerId,
+              productRepository: dependencies.productRepository,
+              clientRepository: dependencies.clientRepository,
             },
             { isFromCrm: options?.isFromCrm },
           );
 
+          console.log("TOOL RESULT:", JSON.stringify(toolResult, null, 2));
+
+          const modelParts: any[] = [];
+          if (textPartInLoop && textPartInLoop.text) {
+            modelParts.push({ text: textPartInLoop.text });
+          }
+          modelParts.push({
+            functionCall: {
+              name,
+              args,
+            },
+          });
+
           contents.push({
             role: "model",
-            parts: [
-              {
-                functionCall: {
-                  name,
-                  args,
-                },
-              },
-            ],
+            parts: modelParts,
           });
 
           contents.push({
@@ -214,11 +246,50 @@ ${
           });
 
           resultJson = await makeRequest(contents);
+          console.log("NEW RESULT JSON CANDIDATES:", JSON.stringify(resultJson.candidates, null, 2));
+
+          candidates = resultJson.candidates as Array<{ content?: { parts?: Array<{ text?: string; functionCall?: { name: string; args: Record<string, unknown> } }> } }> | undefined;
+          candidate = candidates?.[0];
+          parts = candidate?.content?.parts || [];
+          functionCallPart = parts.find((p) => p.functionCall);
+          textPartInLoop = parts.find((p) => p.text);
         }
 
-        const finalCandidates = resultJson.candidates as Array<{ content?: { parts?: Array<{ text?: string }> } }> | undefined;
-        const finalCandidate = finalCandidates?.[0];
-        const finalParts = finalCandidate?.content?.parts || [];
+        // If the agent got stuck in a loop and hit the max limit, force it to stop and answer
+        if (functionCallPart && functionCallPart.functionCall && loopCount >= MAX_TOOL_CALLS) {
+          console.log("[LOOP] MAX_TOOL_CALLS reached. Forcing final answer.");
+          const { name, args } = functionCallPart.functionCall;
+          
+          const modelParts: any[] = [];
+          if (textPartInLoop && textPartInLoop.text) {
+            modelParts.push({ text: textPartInLoop.text });
+          }
+          modelParts.push({ functionCall: { name, args } });
+
+          contents.push({
+            role: "model",
+            parts: modelParts,
+          });
+
+          contents.push({
+            role: "function",
+            parts: [
+              {
+                functionResponse: {
+                  name,
+                  response: { error: "SYSTEM: Se alcanzó el límite máximo de herramientas por turno. Por favor, responde al usuario INMEDIATAMENTE con formato JSON utilizando únicamente la información que lograste recopilar hasta ahora. Si no encontraste la respuesta, infórmale amablemente al usuario." },
+                },
+              },
+            ],
+          });
+
+          resultJson = await makeRequest(contents);
+          candidates = resultJson.candidates as Array<{ content?: { parts?: Array<{ text?: string; functionCall?: { name: string; args: Record<string, unknown> } }> } }> | undefined;
+          candidate = candidates?.[0];
+          parts = candidate?.content?.parts || [];
+        }
+
+        const finalParts = candidate?.content?.parts || [];
         const textPart = finalParts.find((p) => p.text);
 
         if (!textPart || !textPart.text) {

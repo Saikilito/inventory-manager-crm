@@ -76,6 +76,7 @@ export const AgentForm: React.FC<AgentFormProps> = ({
               Customer Support (SUPPORT)
             </option>
             <option value="CRM_OPERATOR">CRM Operator (COACH)</option>
+            <option value="LIBRARIAN">Librarian (RESEARCH/KNOWLEDGE)</option>
           </select>
         </div>
         <div>

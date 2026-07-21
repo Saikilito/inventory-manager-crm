@@ -139,9 +139,13 @@ export const MessageFeed: React.FC<MessageFeedProps> = ({ activeMessages }) => {
               /* Standard message bubble or Image bubble */
               <div
                 className={
-                  isClient
-                    ? "bg-stone-100 dark:bg-stone-800 text-stone-900 dark:text-stone-100 rounded-2xl rounded-tl-none p-3.5 max-w-[85%] text-sm shadow-sm whitespace-pre-line"
-                    : "bg-emerald-600 text-white rounded-2xl rounded-tr-none p-3.5 max-w-[85%] text-sm shadow-sm ml-auto whitespace-pre-line"
+                  message.isPrivate
+                    ? isClient
+                      ? "bg-indigo-100 dark:bg-indigo-950/40 text-indigo-950 dark:text-indigo-200 border border-indigo-200 dark:border-indigo-900/50 rounded-2xl rounded-tl-none p-3.5 max-w-[85%] text-sm shadow-sm whitespace-pre-line"
+                      : "bg-indigo-600 text-white rounded-2xl rounded-tr-none p-3.5 max-w-[85%] text-sm shadow-sm ml-auto whitespace-pre-line"
+                    : isClient
+                      ? "bg-stone-100 dark:bg-stone-800 text-stone-900 dark:text-stone-100 rounded-2xl rounded-tl-none p-3.5 max-w-[85%] text-sm shadow-sm whitespace-pre-line"
+                      : "bg-emerald-600 text-white rounded-2xl rounded-tr-none p-3.5 max-w-[85%] text-sm shadow-sm ml-auto whitespace-pre-line"
                 }
               >
                 {hasImage && (
@@ -158,7 +162,9 @@ export const MessageFeed: React.FC<MessageFeedProps> = ({ activeMessages }) => {
             )}
             <span className="text-[9px] text-stone-400 dark:text-stone-500 font-medium mt-1 px-1 flex items-center gap-1">
               {message.time}
-              {!isClient && <CheckCheck className="w-3.5 h-3.5 text-emerald-500" />}
+              {message.isPrivate && <span className="text-[9px] text-indigo-500 dark:text-indigo-400 font-bold ml-1">• Whisper</span>}
+              {!isClient && !message.isPrivate && <CheckCheck className="w-3.5 h-3.5 text-emerald-500" />}
+              {!isClient && message.isPrivate && <CheckCheck className="w-3.5 h-3.5 text-indigo-500 animate-pulse" />}
             </span>
           </div>
         );

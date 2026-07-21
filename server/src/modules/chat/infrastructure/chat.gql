@@ -54,28 +54,6 @@ type ChatSession {
   updatedAt: String!
 }
 
-type ChatSettings {
-  pagoMovilBank: String!
-  pagoMovilPhone: String!
-  pagoMovilId: String!
-  whatsappOriginLatitude: Float!
-  whatsappOriginLongitude: Float!
-  whatsappAlertGroupJid: String!
-  systemPrompt: String!
-  binancePayUser: String!
-}
-
-input UpdateChatSettingsInput {
-  pagoMovilBank: String
-  pagoMovilPhone: String
-  pagoMovilId: String
-  whatsappOriginLatitude: Float
-  whatsappOriginLongitude: Float
-  whatsappAlertGroupJid: String
-  systemPrompt: String
-  binancePayUser: String
-}
-
 enum AgentStatus {
   ACTIVE
   INACTIVE
@@ -85,6 +63,7 @@ enum AgentRole {
   SALES
   SUPPORT
   CRM_OPERATOR
+  LIBRARIAN
 }
 
 enum AgentTool {
@@ -93,6 +72,9 @@ enum AgentTool {
   createClient
   createOrder
   queryMongoDB
+  webFetch
+  navigateKnowledgeBrain
+  createKnowledgeEntry
 }
 
 type Agent {
@@ -127,7 +109,6 @@ input UpdateAgentInput {
 type Query {
   getChatSessions: [ChatSession!]!
   getChatMessages(whatsappId: String!): [ChatMessage!]!
-  getChatSettings: ChatSettings!
   getWhatsAppConnectionState: WhatsAppConnectionState!
   getAgents: [Agent!]!
   getAgent(id: ID!): Agent!
@@ -138,7 +119,6 @@ type Mutation {
   claimChatSession(whatsappId: String!): ChatSession!
   sendMessageToChat(whatsappId: String!, text: String!): Boolean!
   updateChatSessionStatus(whatsappId: String!, status: String!): ChatSession!
-  updateChatSettings(input: UpdateChatSettingsInput!): ChatSettings!
   askCrmAssistant(text: String!): String!
   askAgent(agentId: ID!, text: String!): String!
   deleteChatSession(whatsappId: String!): Boolean!

@@ -1,6 +1,24 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { makeCheckWorkingHours } from "../check-working-hours.use-case.js";
 import { makeCalculateDeliveryFee } from "../calculate-delivery-fee.use-case.js";
+import type { IKnowledgeRepository } from "../../../knowledge/application/repositories/knowledge.repository.js";
+import { Result } from "../../../../../../../shared-domain/src/shared/result.js";
+
+const buildMockKnowledgeRepo = (
+  entries: Array<{ id: string; content: string }> = [],
+): IKnowledgeRepository => {
+  return {
+    getAll: vi.fn(async () =>
+      Result.ok({
+        items: entries,
+        total: entries.length,
+        page: 1,
+        limit: entries.length,
+        pages: 1,
+      }),
+    ),
+  } as unknown as IKnowledgeRepository;
+};
 
 describe("WhatsApp Agent Use Cases", () => {
   describe("WA-4: Working Hours Gateway (Caracas VET)", () => {
@@ -27,7 +45,7 @@ describe("WhatsApp Agent Use Cases", () => {
 
   describe("WA-3: Geolocation Cost Validation (Haversine Formula)", () => {
     it("should compute base delivery fee of $2.00 for distance up to 3.0 km", async () => {
-      const calculateDeliveryFee = makeCalculateDeliveryFee();
+      const calculateDeliveryFee = makeCalculateDeliveryFee(buildMockKnowledgeRepo());
 
       // Coordinates ~1.0 km away
       // Origin: (10.4806, -66.9036)
@@ -37,7 +55,7 @@ describe("WhatsApp Agent Use Cases", () => {
     });
 
     it("should compute surcharge of $4.00 for distance exactly 6.0 km away", async () => {
-      const calculateDeliveryFee = makeCalculateDeliveryFee();
+      const calculateDeliveryFee = makeCalculateDeliveryFee(buildMockKnowledgeRepo());
 
       // Origin: (10.4806, -66.9036)
       // Let's use exact lat difference for 6.0km: 6.0 / 6371 * 180 / Math.PI = ~0.053959

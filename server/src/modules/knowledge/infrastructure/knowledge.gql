@@ -1,0 +1,124 @@
+enum KnowledgeCategory {
+  SALES
+  PRODUCTS
+  COMPANY
+  CUSTOMER_SERVICE
+}
+
+enum KnowledgeHierarchyLevel {
+  ROOT
+  DOMAIN
+  TOPIC
+  DATA
+}
+
+enum KnowledgeStatus {
+  DRAFT
+  ACTIVE
+  REJECTED
+}
+
+type KnowledgeWikiLink {
+  title: String!
+  url: String
+}
+
+type KnowledgeMetadata {
+  hierarchyLevel: KnowledgeHierarchyLevel!
+  tags: [String!]!
+  createdBy: ID!
+  updatedBy: ID
+  lastVerified: String
+  productId: ID
+}
+
+type Knowledge {
+  _id: ID!
+  category: KnowledgeCategory!
+  title: String!
+  content: String!
+  wikiLinks: [KnowledgeWikiLink!]!
+  metadata: KnowledgeMetadata!
+  status: KnowledgeStatus!
+  isActive: Boolean!
+  createdAt: String
+  updatedAt: String
+}
+
+type KnowledgeSearchResult {
+  knowledge: Knowledge!
+  score: Float!
+}
+
+type KnowledgeListResult {
+  items: [Knowledge!]!
+  total: Int!
+  page: Int!
+  limit: Int!
+  pages: Int!
+}
+
+type KnowledgeNode {
+  id: ID!
+  title: String!
+  category: KnowledgeCategory!
+  status: KnowledgeStatus!
+}
+
+type KnowledgeEdge {
+  sourceId: ID!
+  targetTitle: String!
+  targetId: ID
+  resolved: Boolean!
+}
+
+type KnowledgeGraph {
+  nodes: [KnowledgeNode!]!
+  edges: [KnowledgeEdge!]!
+}
+
+input KnowledgeWikiLinkInput {
+  title: String!
+  url: String
+}
+
+input KnowledgeMetadataInput {
+  hierarchyLevel: KnowledgeHierarchyLevel!
+  tags: [String!]
+  lastVerified: String
+  productId: ID
+}
+
+input CreateKnowledgeInput {
+  category: KnowledgeCategory!
+  title: String!
+  content: String!
+  metadata: KnowledgeMetadataInput!
+  status: KnowledgeStatus
+}
+
+input UpdateKnowledgeInput {
+  _id: ID!
+  category: KnowledgeCategory
+  title: String
+  content: String
+  metadata: KnowledgeMetadataInput
+  status: KnowledgeStatus
+}
+
+type Query {
+  knowledgeList(page: Int, limit: Int, category: KnowledgeCategory, isActive: Boolean, status: KnowledgeStatus): KnowledgeListResult!
+  knowledge(_id: ID!): Knowledge!
+  searchKnowledge(query: String!, topN: Int, category: KnowledgeCategory): [KnowledgeSearchResult!]!
+  knowledgePending(status: KnowledgeStatus): [Knowledge!]!
+  knowledgeGraph(status: KnowledgeStatus): KnowledgeGraph!
+}
+
+type Mutation {
+  createKnowledge(input: CreateKnowledgeInput!): Knowledge!
+  updateKnowledge(input: UpdateKnowledgeInput!): Boolean!
+  deleteKnowledge(_id: ID!): Boolean!
+  knowledgeApprove(_id: ID!): Knowledge!
+  knowledgeReject(_id: ID!): Knowledge!
+  knowledgeEnrich(_id: ID!): Knowledge!
+}
