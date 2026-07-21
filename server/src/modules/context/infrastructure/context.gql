@@ -59,6 +59,7 @@ type AccountDistribution {
 type ContextMetrics {
   totalStock: Float!
   investedCapital: Float!
+  potentialRevenue: Float!
   projectedGrossMargin: Float!
   topSellers: [TopSellerMetric!]!
   totalExpenses: Float!

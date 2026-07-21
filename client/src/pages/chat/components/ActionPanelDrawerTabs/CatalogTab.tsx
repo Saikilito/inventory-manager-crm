@@ -1,22 +1,12 @@
 import React, { useState } from "react";
 import { Search, Loader2 } from "lucide-react";
 import { formatCurrency } from "@utils/formatters";
-
-interface Product {
-  _id: string;
-  id?: string;
-  name: string;
-  price: number;
-  sellingPrice?: number;
-  stock: number;
-  category: string;
-  isActive: boolean;
-}
+import type { GQLProduct } from "@modules/product/infrastructure/graphql/types";
 
 interface CatalogTabProps {
-  products: Product[];
+  products: GQLProduct[];
   productsLoading: boolean;
-  onAddProduct: (product: Product) => void;
+  onAddProduct: (product: GQLProduct) => void;
 }
 
 export const CatalogTab: React.FC<CatalogTabProps> = ({
@@ -54,7 +44,7 @@ export const CatalogTab: React.FC<CatalogTabProps> = ({
         <div className="space-y-3">
           {filteredProducts.map((p) => (
             <div
-              key={p._id || p.id}
+              key={p._id}
               className="p-3 bg-stone-50 dark:bg-stone-950/40 border border-stone-100 dark:border-stone-850 rounded-xl flex items-center justify-between hover:border-stone-200 dark:hover:border-stone-800 transition-colors"
             >
               <div>

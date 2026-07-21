@@ -5,7 +5,6 @@ export const CREATE_PRODUCT = gql`
     setProduct(input: $input) {
       _id
       name
-      price
       purchasePrice
       sellingPrice
       profit
@@ -23,7 +22,6 @@ export const UPDATE_PRODUCT = gql`
     updateProduct(input: $input) {
       _id
       name
-      price
       purchasePrice
       sellingPrice
       profit

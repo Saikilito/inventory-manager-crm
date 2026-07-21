@@ -5,6 +5,8 @@ import { useDashboardPloc } from '@contexts/dashboard-context';
 import { DashboardStateKind } from '@modules/dashboard/presentation/ploc/dashboard-state';
 import { useShell } from '@contexts/ShellContext';
 import { WelcomeOnboardingModal } from '../../components/dashboard/WelcomeOnboardingModal';
+import { useQuery } from '@apollo/client';
+import { GET_CONTEXT_METRICS } from '@modules/product/infrastructure/graphql/queries';
 
 // Import our decoupled presentational components
 import { DashboardSkeleton } from '../../modules/dashboard/infrastructure/components/DashboardSkeleton';
@@ -15,6 +17,8 @@ import { AiSystemStatus } from '../../modules/dashboard/infrastructure/component
 import { TopClientsChart } from '../../modules/dashboard/infrastructure/components/TopClientsChart';
 import { TopSellersChart } from '../../modules/dashboard/infrastructure/components/TopSellersChart';
 import { DetailedSummary } from '../../modules/dashboard/infrastructure/components/DetailedSummary';
+import { ContextGrid } from './components/ContextGrid';
+import { InventoryPotentialCard } from './components/InventoryPotentialCard';
 
 export const DashboardPage: React.FC = () => {
   const ploc = useDashboardPloc();
@@ -23,6 +27,12 @@ export const DashboardPage: React.FC = () => {
   const isDark = theme === 'dark';
 
   const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
+
+  // Get real totals from context metrics query
+  const { data: metricsData } = useQuery(GET_CONTEXT_METRICS, {
+    variables: { contextId: null, period: 'MONTHLY' },
+    fetchPolicy: 'cache-first',
+  });
 
   useEffect(() => {
     ploc.loadStats();
@@ -61,21 +71,33 @@ export const DashboardPage: React.FC = () => {
           />
         ))
         .with({ kind: DashboardStateKind.LOADED }, (st) => {
-          // Calculate Dynamic KPI Metrics synchronously during render (Vercel Best Practice 5.1)
-          const totalRevenue = st.topClients.reduce((sum, item) => sum + item.total, 0);
-          const activeClientsCount = new Set(st.topClients.map((c) => c.clientName)).size;
-          const registeredSellersCount = new Set(st.topSellers.map((s) => s.sellerName)).size;
-          const maxSale = st.topClients.length > 0 ? Math.max(...st.topClients.map((c) => c.total)) : 0;
+          // Calculate KPI Metrics using the real data from metrics query if available
+          const metrics = metricsData?.getContextMetrics;
+          const totalRevenue = metrics?.totalRevenue || 0;
+          const totalExpenses = metrics?.totalExpenses || 0;
+          
+          // Calculate Ticket Average from Monthly Sales count if available
+          let ticketAverage = 0;
+          if (metrics && metrics.periods?.monthly && metrics.periods.monthly.length > 0) {
+            // Aggregate all sales count across periods to get a global ticket average
+            let totalSalesCount = 0;
+            metrics.periods.monthly.forEach((p: { salesCount?: number }) => {
+              totalSalesCount += p.salesCount || 0;
+            });
+            if (totalSalesCount > 0) {
+              ticketAverage = totalRevenue / totalSalesCount;
+            }
+          }
 
           return (
             <div className="space-y-8 animate-[fadeIn_0.4s_ease-out]">
               {/* Header Title Area */}
               <div>
                 <h1 className="text-3xl font-black text-stone-900 dark:text-stone-50 tracking-tight">
-                  Analytical Dashboard
+                  Dashboard General
                 </h1>
                 <p className="text-sm text-stone-500 dark:text-stone-400 mt-1.5 font-medium">
-                  Real-time monitoring of sales, sellers, and inventory.
+                  Resumen consolidado de todos tus negocios
                 </p>
               </div>
 
@@ -84,10 +106,12 @@ export const DashboardPage: React.FC = () => {
                 {/* Row 1: KPI Metrics Cards */}
                 <KpiMetrics
                   totalRevenue={totalRevenue}
-                  activeClientsCount={activeClientsCount}
-                  registeredSellersCount={registeredSellersCount}
-                  maxSale={maxSale}
+                  ticketAverage={ticketAverage}
+                  totalExpenses={totalExpenses}
                 />
+
+                {/* Row 1.5: Inventory Potential - Ganancia proyectada */}
+                <InventoryPotentialCard />
 
                 {/* Row 2: Data Visualizations (Charts) */}
                 <TopClientsChart data={st.topClients} isDark={isDark} />
@@ -99,6 +123,9 @@ export const DashboardPage: React.FC = () => {
 
                 {/* Row 3: Bento Details */}
                 <DetailedSummary topClients={st.topClients} topSellers={st.topSellers} />
+
+                {/* Row 4: Context Grid - Links to Analytics */}
+                <ContextGrid />
               </div>
             </div>
           );

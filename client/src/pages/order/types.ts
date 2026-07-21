@@ -1,50 +1,28 @@
-import { OrderStatus, PaymentStatus, DeliveryStatus } from "@shared-domain/order/order.entity";
+import { OrderStatus, PaymentStatus, DeliveryStatus } from '@shared-domain/order/order.entity';
+import type { GQLOrder, GQLOrderItem } from '@modules/order/infrastructure/graphql/types';
+import type { GQLClient } from '@modules/client/infrastructure/graphql/types';
+import type { GQLProduct } from '@modules/product/infrastructure/graphql/types';
+
 export { OrderStatus, PaymentStatus, DeliveryStatus };
+export type { GQLOrder, GQLOrderItem, GQLClient, GQLProduct };
 
-export interface OrderItem {
-  productId: string;
-  quantity: number;
-  sellingPriceAtSale?: number | null;
-  purchasePriceAtSale?: number | null;
-}
-
-export interface Order {
-  _id: string;
-  clientId: string;
-  createdAt: string | number;
-  total: number;
-  status: OrderStatus;
-  paymentStatus: PaymentStatus;
-  deliveryStatus: DeliveryStatus;
-  items: OrderItem[];
-  sellerId: string;
-  deliveryCost?: number;
-  customDeliveryAddress?: string;
-}
-
-export interface Client {
-  _id: string;
-  firstName: string;
-  lastName: string;
-  address?: string;
-}
-
-export interface Product {
-  _id: string;
-  name: string;
-}
+// Backward compatibility aliases
+export type Order = GQLOrder;
+export type OrderItem = GQLOrderItem;
+export type Client = GQLClient;
+export type Product = GQLProduct;
 
 export interface OrdersTableProps {
-  orders: Order[];
-  clients: Client[];
-  onViewDetails: (order: Order) => void;
+  orders: GQLOrder[];
+  clients: GQLClient[];
+  onViewDetails: (order: GQLOrder) => void;
   onDelete: (id: string) => void;
 }
 
 export interface OrderDetailModalProps {
-  order: Order;
-  clients: Client[];
-  products: Product[];
+  order: GQLOrder;
+  clients: GQLClient[];
+  products: GQLProduct[];
   isOpen: boolean;
   isUpdating: boolean;
   updateError: string | null;
@@ -55,19 +33,6 @@ export interface OrderDetailModalProps {
     newDeliveryStatus?: DeliveryStatus,
     payments?: Array<{ accountId: string; amount: number; exchangeRate: number }>
   ) => Promise<void>;
-}
-
-export interface GetAllOrdersData {
-  getAllOrders: Order[];
-  totalOrders: number;
-}
-
-export interface GetAllClientsData {
-  getAllClients: Client[];
-}
-
-export interface GetAllProductsData {
-  getAllProducts: Product[];
 }
 
 export interface OrdersPageProps {

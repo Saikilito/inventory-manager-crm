@@ -1,29 +1,12 @@
 import React from "react";
 import { Package, Eye } from "lucide-react";
 import { OrderStatus, PaymentStatus, DeliveryStatus } from "@shared-domain/order/order.entity";
+import type { GQLOrder, GQLOrderItem } from "@modules/order/infrastructure/graphql/types";
 
-export interface OrderItem {
-  productId: string;
-  quantity: number;
-  sellingPriceAtSale?: number;
-  purchasePriceAtSale?: number;
-}
-
-export interface Order {
-  _id: string;
-  clientId: string;
-  createdAt: string;
-  status: OrderStatus;
-  paymentStatus: PaymentStatus;
-  deliveryStatus: DeliveryStatus;
-  contextId?: string;
-  items: OrderItem[];
-  sellerId: string;
-  total: number;
-}
+export type { GQLOrder as Order, GQLOrderItem as OrderItem };
 
 interface OrderCardProps {
-  order: Order;
+  order: GQLOrder;
   client?: { firstName: string; lastName: string };
   contextName?: string;
   formatDate: (d: string) => string;
@@ -101,7 +84,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
       {/* Footer */}
       <div className="flex items-center justify-between pt-3 border-t border-stone-100 dark:border-stone-800">
         <span className="text-[11px] text-stone-400 dark:text-stone-500">
-          {formatDate(order.createdAt)} · {formatTime(order.createdAt)}
+          {formatDate(String(order.createdAt))} · {formatTime(String(order.createdAt))}
         </span>
         <button
           onClick={onNavigate}

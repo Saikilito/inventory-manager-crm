@@ -1,27 +1,22 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import { useQuery, useMutation } from "@apollo/client";
-import { 
-  Search, 
-  Plus, 
-  Filter, 
-  Package, 
-  Store, 
-  ShoppingCart,
-} from "lucide-react";
+import React, { useState } from 'react';
+import { useQuery, useMutation } from '@apollo/client';
+import { Search, Plus, Filter, Package, Store, ShoppingCart } from 'lucide-react';
 
-import { GET_ALL_ORDERS } from "@modules/order/infrastructure/graphql/queries";
-import { UPDATE_ORDER } from "@modules/order/infrastructure/graphql/mutations";
-import { GET_ALL_CONTEXTS, PRODUCTS_QUERY } from "@modules/product/infrastructure/graphql/queries";
-import { CLIENTS_QUERY } from "@modules/client/infrastructure/graphql/queries";
-import { OrderStatus, PaymentStatus, DeliveryStatus } from "@shared-domain/order/order.entity";
-import { DateOnlyVO, DEFAULT_TIMEZONE } from "@shared-domain/shared/value-objects/date-only.vo";
+import { GET_ALL_ORDERS } from '@modules/order/infrastructure/graphql/queries';
+import { UPDATE_ORDER } from '@modules/order/infrastructure/graphql/mutations';
+import { GET_ALL_CONTEXTS, PRODUCTS_QUERY } from '@modules/product/infrastructure/graphql/queries';
+import { CLIENTS_QUERY } from '@modules/client/infrastructure/graphql/queries';
+import { OrderStatus, PaymentStatus, DeliveryStatus } from '@shared-domain/order/order.entity';
+import { DateOnlyVO, DEFAULT_TIMEZONE } from '@shared-domain/shared/value-objects/date-only.vo';
+import type { GQLOrder } from '@modules/order/infrastructure/graphql/types';
+import type { GQLClient } from '@modules/client/infrastructure/graphql/types';
+import type { GQLContext } from '@modules/context/infrastructure/graphql/types';
 
-import Spinkit from "../../components/Spinkit";
-import { OrderDetailModal } from "./components/OrderDetailModal";
-import { NewOrderClientModal } from "./components/NewOrderClientModal";
-import { DateNavigator, formatDisplayDateInTimezone } from "../../components/ui/DateNavigator";
-import { OrderCard, Order } from "./components/OrderCard";
+import Spinkit from '../../components/Spinkit';
+import { OrderDetailModal } from './components/OrderDetailModal';
+import { NewOrderClientModal } from './components/NewOrderClientModal';
+import { DateNavigator, formatDisplayDateInTimezone } from '../../components/ui/DateNavigator';
+import { OrderCard } from './components/OrderCard';
 
 interface OrdersPageProps {
   session: {
@@ -31,62 +26,46 @@ interface OrdersPageProps {
   };
 }
 
-interface Context {
-  _id: string;
-  name: string;
-}
-
-interface Client {
-  _id: string;
-  firstName: string;
-  lastName: string;
-  nationalId: string;
-  address?: string;
-}
-
-interface Product {
-  _id: string;
-  name: string;
-  price: number;
-  stock: number;
-}
-
 const getTodayDate = (): string => {
   return DateOnlyVO.create().toString();
 };
 
-export const OrdersPage: React.FC<OrdersPageProps> = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedContextId, setSelectedContextId] = useState<string>("");
+export const OrdersPage: React.FC<OrdersPageProps> = ({ session }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedContextId, setSelectedContextId] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<string>(getTodayDate());
-  
+
   // Modal State
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<GQLOrder | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isNewOrderModalOpen, setIsNewOrderModalOpen] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
 
   // Fetch Orders with date filter
-  const { data: ordersData, loading: ordersLoading, refetch: refetchOrders } = useQuery(GET_ALL_ORDERS, {
+  const {
+    data: ordersData,
+    loading: ordersLoading,
+    refetch: refetchOrders,
+  } = useQuery(GET_ALL_ORDERS, {
     variables: { limit: 100, date: selectedDate },
-    fetchPolicy: "cache-and-network",
+    fetchPolicy: 'cache-and-network',
   });
 
   // Fetch Contexts for filter
   const { data: contextsData } = useQuery(GET_ALL_CONTEXTS, {
-    fetchPolicy: "cache-first",
+    fetchPolicy: 'cache-first',
   });
 
   // Fetch Clients for name resolution
   const { data: clientsData } = useQuery(CLIENTS_QUERY, {
     variables: { limit: 1000 },
-    fetchPolicy: "cache-first",
+    fetchPolicy: 'cache-first',
   });
 
   // Fetch Products for name resolution in modal
   const { data: productsData } = useQuery(PRODUCTS_QUERY, {
     variables: { limit: 1000 },
-    fetchPolicy: "cache-first",
+    fetchPolicy: 'cache-first',
   });
 
   // Update Mutation
@@ -94,29 +73,25 @@ export const OrdersPage: React.FC<OrdersPageProps> = () => {
 
   // Build context map
   const contextMap = new Map<string, string>();
-  (contextsData?.getAllContexts || []).forEach((ctx: Context) => {
+  (contextsData?.getAllContexts || []).forEach((ctx: GQLContext) => {
     contextMap.set(ctx._id, ctx.name);
   });
 
-  // Build client map
   const clientMap = new Map<string, { firstName: string; lastName: string }>();
-  (clientsData?.getAllClients || []).forEach((c: Client) => {
+  (clientsData?.getAllClients || []).forEach((c: GQLClient) => {
     clientMap.set(c._id, { firstName: c.firstName, lastName: c.lastName });
   });
 
-  // Filter orders
   const filteredOrders = (ordersData?.getAllOrders || [])
-    .filter((order: Order) => {
-      // Filter by context
+    .filter((order: GQLOrder) => {
       if (selectedContextId && order.contextId !== selectedContextId) {
         return false;
       }
 
-      // Filter by search query (client name or order ID)
       if (searchQuery) {
         const term = searchQuery.toLowerCase();
         const client = clientMap.get(order.clientId);
-        const clientName = client ? `${client.firstName} ${client.lastName}`.toLowerCase() : "";
+        const clientName = client ? `${client.firstName} ${client.lastName}`.toLowerCase() : '';
         const orderId = order._id.toLowerCase();
 
         return clientName.includes(term) || orderId.includes(term);
@@ -124,12 +99,11 @@ export const OrdersPage: React.FC<OrdersPageProps> = () => {
 
       return true;
     })
-    .sort((a: Order, b: Order) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    .sort((a: GQLOrder, b: GQLOrder) => new Date(String(b.createdAt)).getTime() - new Date(String(a.createdAt)).getTime());
 
-  // Group orders by context
-  const ordersByContext = new Map<string, Order[]>();
-  filteredOrders.forEach((order: Order) => {
-    const ctxId = order.contextId || "general";
+  const ordersByContext = new Map<string, GQLOrder[]>();
+  filteredOrders.forEach((order: GQLOrder) => {
+    const ctxId = order.contextId || 'general';
     if (!ordersByContext.has(ctxId)) {
       ordersByContext.set(ctxId, []);
     }
@@ -137,21 +111,21 @@ export const OrdersPage: React.FC<OrdersPageProps> = () => {
   });
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
     });
   };
 
   const formatTime = (dateStr: string) => {
-    return new Date(dateStr).toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
+    return new Date(dateStr).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
     });
   };
 
-  const handleOpenModal = (order: Order) => {
+  const handleOpenModal = (order: GQLOrder) => {
     setSelectedOrder(order);
     setUpdateError(null);
     setIsModalOpen(true);
@@ -165,10 +139,10 @@ export const OrdersPage: React.FC<OrdersPageProps> = () => {
   const handleStatusChange = async (
     newStatus?: OrderStatus,
     newPaymentStatus?: PaymentStatus,
-    newDeliveryStatus?: DeliveryStatus
+    newDeliveryStatus?: DeliveryStatus,
   ) => {
     if (!selectedOrder) return;
-    
+
     setUpdateError(null);
     try {
       const input: {
@@ -186,10 +160,10 @@ export const OrdersPage: React.FC<OrdersPageProps> = () => {
         clientId: selectedOrder.clientId,
         sellerId: selectedOrder.sellerId || session._id,
         total: selectedOrder.total || 0,
-        items: selectedOrder.items.map(item => ({
+        items: selectedOrder.items.map((item) => ({
           productId: item.productId,
-          quantity: item.quantity
-        }))
+          quantity: item.quantity,
+        })),
       };
 
       if (newStatus) input.status = newStatus;
@@ -198,15 +172,17 @@ export const OrdersPage: React.FC<OrdersPageProps> = () => {
       if (selectedOrder.contextId) input.contextId = selectedOrder.contextId;
 
       await updateOrder({
-        variables: { input }
+        variables: { input },
       });
-      
+
       await refetchOrders();
       handleCloseModal();
-    } catch (err: any) {
-      const errorMsg = err?.graphQLErrors?.[0]?.message 
-        || err?.message 
-        || "Failed to update order. Please check the data and try again.";
+    } catch (err) {
+      const error = err as Error & { graphQLErrors?: Array<{ message: string }> };
+      const errorMsg =
+        error.graphQLErrors?.[0]?.message ||
+        error.message ||
+        'Failed to update order. Please check the data and try again.';
       setUpdateError(errorMsg);
       throw err; // Re-throw so child components know the await failed
     }
@@ -224,17 +200,12 @@ export const OrdersPage: React.FC<OrdersPageProps> = () => {
               <ShoppingCart className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
               Orders Management
             </h1>
-            <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">
-              View and manage orders by day.
-            </p>
+            <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">View and manage orders by day.</p>
           </div>
         </div>
 
         {/* Date Navigation */}
-        <DateNavigator
-          selectedDate={selectedDate}
-          onChangeDate={setSelectedDate}
-        />
+        <DateNavigator selectedDate={selectedDate} onChangeDate={setSelectedDate} />
       </div>
 
       {/* Filters Bar */}
@@ -264,7 +235,7 @@ export const OrdersPage: React.FC<OrdersPageProps> = () => {
             className="block w-full pl-10 pr-8 py-2 h-10 text-sm bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 border border-stone-200 dark:border-stone-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent shadow-sm transition-all duration-150 appearance-none cursor-pointer"
           >
             <option value="">All Contexts</option>
-            {(contextsData?.getAllContexts || []).map((ctx: Context) => (
+            {(contextsData?.getAllContexts || []).map((ctx: GQLContext) => (
               <option key={ctx._id} value={ctx._id}>
                 {ctx.name}
               </option>
@@ -295,7 +266,7 @@ export const OrdersPage: React.FC<OrdersPageProps> = () => {
           <Package className="w-12 h-12 mx-auto text-stone-300 dark:text-stone-600 mb-4" />
           <p className="text-stone-500 dark:text-stone-400">
             {searchQuery || selectedContextId
-              ? "No orders found matching the filters."
+              ? 'No orders found matching the filters.'
               : `No orders for ${displayDateStr.toLowerCase()}.`}
           </p>
           <button
@@ -317,7 +288,7 @@ export const OrdersPage: React.FC<OrdersPageProps> = () => {
           </div>
 
           {/* Show grouped by context or flat list */}
-          {selectedContextId === "" ? (
+          {selectedContextId === '' ? (
             // Grouped view
             Array.from(ordersByContext.entries()).map(([ctxId, orders]) => (
               <div key={ctxId} className="space-y-3">
@@ -325,21 +296,21 @@ export const OrdersPage: React.FC<OrdersPageProps> = () => {
                 <div className="flex items-center gap-2 px-1">
                   <Store className="w-4 h-4 text-stone-500 dark:text-stone-400" />
                   <h2 className="text-sm font-bold text-stone-700 dark:text-stone-300 uppercase tracking-wider">
-                    {ctxId === "general" ? "General (No Context)" : contextMap.get(ctxId) || "Unknown Context"}
+                    {ctxId === 'general' ? 'General (No Context)' : contextMap.get(ctxId) || 'Unknown Context'}
                   </h2>
                   <span className="text-xs text-stone-400 dark:text-stone-500 font-medium">
-                    ({orders.length} {orders.length === 1 ? "order" : "orders"})
+                    ({orders.length} {orders.length === 1 ? 'order' : 'orders'})
                   </span>
                 </div>
 
                 {/* Orders in this context */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {orders.map((order: Order) => (
+                  {orders.map((order: GQLOrder) => (
                     <OrderCard
                       key={order._id}
                       order={order}
                       client={clientMap.get(order.clientId)}
-                      contextName={ctxId === "general" ? undefined : contextMap.get(ctxId)}
+                      contextName={ctxId === 'general' ? undefined : contextMap.get(ctxId)}
                       formatDate={formatDate}
                       formatTime={formatTime}
                       onNavigate={() => handleOpenModal(order)}
@@ -351,7 +322,7 @@ export const OrdersPage: React.FC<OrdersPageProps> = () => {
           ) : (
             // Flat list for filtered context
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredOrders.map((order: Order) => (
+              {filteredOrders.map((order: GQLOrder) => (
                 <OrderCard
                   key={order._id}
                   order={order}

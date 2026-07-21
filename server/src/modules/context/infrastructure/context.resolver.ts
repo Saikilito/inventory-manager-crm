@@ -68,6 +68,7 @@ export default {
       return {
         totalStock: metrics.totalStock,
         investedCapital: metrics.investedCapital,
+        potentialRevenue: metrics.potentialRevenue,
         projectedGrossMargin: metrics.potentialMargin,
         topSellers: metrics.topSellers,
         totalExpenses: metrics.totalExpenses,

@@ -1,6 +1,6 @@
 import { ApolloClient, NormalizedCacheObject } from '@apollo/client';
 import { ProductRepository, GetAllProductsResult } from '@modules/product/domain/product.repository';
-import { makeProduct } from '@shared-domain/product/product.entity';
+import { makeProduct, IProduct } from '@shared-domain/product/product.entity';
 import { doTryResult } from '@shared-domain/shared/do-try-result';
 import { DatabaseError } from '@shared-domain/shared/errors';
 import { PRODUCTS_QUERY, SINGLE_PRODUCT_QUERY } from '../graphql/queries';
@@ -59,7 +59,6 @@ export function makeApolloProductRepository(
               makeProduct({
                 id: gqlProd._id,
                 name: gqlProd.name,
-                price: gqlProd.price,
                 purchasePrice: gqlProd.purchasePrice,
                 sellingPrice: gqlProd.sellingPrice,
                 stock: gqlProd.stock,
@@ -75,7 +74,7 @@ export function makeApolloProductRepository(
 
     getById: async (id) => {
       return doTryResult(
-        async (): Promise<any> => {
+        async (): Promise<IProduct | null> => {
           const { data } = await apolloClient.query<GetProductData>({
             query: SINGLE_PRODUCT_QUERY,
             variables: { id: id },
@@ -90,7 +89,6 @@ export function makeApolloProductRepository(
           return makeProduct({
             id: gqlProd._id,
             name: gqlProd.name,
-            price: gqlProd.price,
             purchasePrice: gqlProd.purchasePrice,
             sellingPrice: gqlProd.sellingPrice,
             stock: gqlProd.stock,
@@ -109,7 +107,6 @@ export function makeApolloProductRepository(
             variables: {
               input: {
                 name: product.name,
-                price: Number(product.price),
                 purchasePrice: Number(product.purchasePrice),
                 sellingPrice: Number(product.sellingPrice),
                 stock: Number(product.stock),
@@ -133,7 +130,6 @@ export function makeApolloProductRepository(
               input: {
                 _id: product.id,
                 name: product.name,
-                price: Number(product.price),
                 purchasePrice: Number(product.purchasePrice),
                 sellingPrice: Number(product.sellingPrice),
                 stock: Number(product.stock),

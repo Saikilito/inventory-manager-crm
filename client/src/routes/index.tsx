@@ -32,6 +32,7 @@ import EditProduct from "@pages/product/EditProduct";
 import EditClient from "@pages/client/EditClient";
 import AgentChatPage from "@pages/chat/AgentChatPage";
 import { ProfitDetailPage } from "@pages/dashboard/ProfitDetailPage";
+import { AnalyticsPage } from "@pages/dashboard/AnalyticsPage";
 import { RentalsPage } from "@pages/rental/RentalsPage";
 import { DeliveriesPage } from "@pages/delivery/DeliveriesPage";
 import { ContextsPage } from "@pages/context/ContextsPage";
@@ -103,6 +104,7 @@ const AppView: React.FC = () => {
                   <Route path="/orders/new/:id" element={<CreateOrderRouteWrapper />} />
                   <Route path="/dashboard" element={<DashboardRouteWrapper />} />
                   <Route path="/dashboard/profit" element={<ProfitDetailPage />} />
+                  <Route path="/dashboard/analytics/:contextId" element={<AnalyticsPage />} />
                   <Route path="/rentals" element={<RentalsPage />} />
                   <Route path="/deliveries" element={<DeliveriesPage />} />
                   <Route path="/finance" element={<FinancialRouteWrapper />} />

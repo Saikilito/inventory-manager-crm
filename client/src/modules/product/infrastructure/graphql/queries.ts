@@ -5,7 +5,6 @@ export const PRODUCTS_QUERY = gql`
     getAllProducts(limit: $limit, offset: $offset, contextId: $contextId) {
       _id
       name
-      price
       purchasePrice
       sellingPrice
       profit
@@ -36,7 +35,6 @@ export const SINGLE_PRODUCT_QUERY = gql`
     getProduct(_id: $id) {
       _id
       name
-      price
       purchasePrice
       sellingPrice
       profit
@@ -59,7 +57,7 @@ export const GET_ALL_CONTEXTS = gql`
 `;
 
 export const GET_CONTEXT_METRICS = gql`
-  query getContextMetrics($contextId: ID, $period: String, $startDate: String, $endDate: String) {
+  query getContextMetrics($contextId: ID, $period: ReportPeriod, $startDate: String, $endDate: String) {
     getContextMetrics(contextId: $contextId, period: $period, startDate: $startDate, endDate: $endDate) {
       totalStock
       investedCapital
