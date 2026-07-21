@@ -100,9 +100,13 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
           </button>
         </div>
 
-        <div className="px-6 py-6 space-y-6 max-h-[60vh] overflow-y-auto">
-          {updateError && <Alert message={updateError} type="error" />}
+        {updateError && (
+          <div className="px-6 pt-4 pb-0">
+            <Alert message={updateError} type="error" />
+          </div>
+        )}
 
+        <div className="px-6 py-6 space-y-6 max-h-[60vh] overflow-y-auto">
           <div className="bg-stone-50 dark:bg-stone-950/30 border border-stone-100 dark:border-stone-800 p-4 rounded-xl flex flex-col gap-3">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-stone-200 dark:bg-stone-800 flex items-center justify-center text-sm font-semibold text-stone-700 dark:text-stone-300">

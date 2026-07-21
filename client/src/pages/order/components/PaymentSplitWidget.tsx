@@ -11,7 +11,7 @@ interface PaymentRow {
 
 interface PaymentSplitWidgetProps {
   totalUSD: number;
-  onSave: (payments: Array<{ accountId: string; amount: number; exchangeRate: number }>) => void;
+  onSave: (payments: Array<{ accountId: string; amount: number; exchangeRate: number }>) => Promise<void> | void;
   onCancel?: () => void;
 }
 
@@ -22,6 +22,7 @@ export const PaymentSplitWidget: React.FC<PaymentSplitWidgetProps> = ({
 }) => {
   const [payments, setPayments] = useState<PaymentRow[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Query: Accounts
   const { data: accountsData, loading: loadingAccounts } = useQuery(GET_ACCOUNTS, {
@@ -131,7 +132,7 @@ export const PaymentSplitWidget: React.FC<PaymentSplitWidgetProps> = ({
     return isAmountFullyAllocated && allRowsValid;
   })();
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setError(null);
 
     // Double check constraints
@@ -148,14 +149,21 @@ export const PaymentSplitWidget: React.FC<PaymentSplitWidgetProps> = ({
       return;
     }
 
-    // Submit mapped clean parameters
-    onSave(
-      payments.map((p) => ({
-        accountId: p.accountId,
-        amount: Number(p.amount),
-        exchangeRate: Number(p.exchangeRate),
-      }))
-    );
+    setIsSubmitting(true);
+    try {
+      // Submit mapped clean parameters
+      await onSave(
+        payments.map((p) => ({
+          accountId: p.accountId,
+          amount: Number(p.amount),
+          exchangeRate: Number(p.exchangeRate),
+        }))
+      );
+    } catch (err: any) {
+      setError(err.message || "Failed to process payments");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (loadingAccounts || loadingFinancialDay) {
@@ -296,10 +304,14 @@ export const PaymentSplitWidget: React.FC<PaymentSplitWidgetProps> = ({
           <button
             type="button"
             onClick={handleSave}
-            disabled={!isValid}
-            className="h-10 px-5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:hover:bg-emerald-600 active:bg-emerald-800 shadow-sm focus:outline-none transition-colors cursor-pointer"
+            disabled={!isValid || isSubmitting}
+            className="h-10 px-5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:hover:bg-emerald-600 active:bg-emerald-800 shadow-sm focus:outline-none transition-colors cursor-pointer flex items-center justify-center min-w-[140px]"
           >
-            Confirm payments
+            {isSubmitting ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : (
+              "Confirm payments"
+            )}
           </button>
         </div>
       </div>

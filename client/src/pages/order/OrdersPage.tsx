@@ -1,17 +1,12 @@
-import React, { useEffect, useState, Fragment } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { match } from "ts-pattern";
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { useQuery, useMutation } from "@apollo/client";
 import { 
   Search, 
   Plus, 
-  Eye, 
   Filter, 
   Package, 
   Store, 
-  Calendar,
-  ChevronLeft,
-  ChevronRight,
   ShoppingCart,
 } from "lucide-react";
 
@@ -20,10 +15,12 @@ import { UPDATE_ORDER } from "@modules/order/infrastructure/graphql/mutations";
 import { GET_ALL_CONTEXTS, PRODUCTS_QUERY } from "@modules/product/infrastructure/graphql/queries";
 import { CLIENTS_QUERY } from "@modules/client/infrastructure/graphql/queries";
 import { OrderStatus, PaymentStatus, DeliveryStatus } from "@shared-domain/order/order.entity";
-import { DateOnlyVO } from "@shared-domain/shared/value-objects/date-only.vo";
+import { DateOnlyVO, DEFAULT_TIMEZONE } from "@shared-domain/shared/value-objects/date-only.vo";
 
 import Spinkit from "../../components/Spinkit";
 import { OrderDetailModal } from "./components/OrderDetailModal";
+import { DateNavigator, formatDisplayDateInTimezone } from "../../components/ui/DateNavigator";
+import { OrderCard, Order } from "./components/OrderCard";
 
 interface OrdersPageProps {
   session: {
@@ -31,26 +28,6 @@ interface OrdersPageProps {
     role: string;
     name: string;
   };
-}
-
-interface OrderItem {
-  productId: string;
-  quantity: number;
-  sellingPriceAtSale?: number;
-  purchasePriceAtSale?: number;
-}
-
-interface Order {
-  _id: string;
-  clientId: string;
-  createdAt: string;
-  status: OrderStatus;
-  paymentStatus: PaymentStatus;
-  deliveryStatus: DeliveryStatus;
-  contextId?: string;
-  items: OrderItem[];
-  sellerId: string;
-  total: number;
 }
 
 interface Context {
@@ -73,63 +50,11 @@ interface Product {
   stock: number;
 }
 
-const statusColors: Record<OrderStatus, string> = {
-  PENDING: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800/40",
-  COMPLETED: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/40",
-  ACTIVE: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-800/40",
-  CANCELLED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border-red-200 dark:border-red-800/40",
-};
-
-const paymentColors: Record<PaymentStatus, string> = {
-  PENDING: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
-  PAID: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
-  REFUNDED: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
-};
-
-const deliveryColors: Record<DeliveryStatus, string> = {
-  PENDING: "bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-300",
-  SENT: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300",
-  COMPLETE: "bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300",
-};
-
-// Get today's date in YYYY-MM-DD format (Local timezone)
 const getTodayDate = (): string => {
   return DateOnlyVO.create().toString();
 };
 
-// Format date for display
-const formatDisplayDate = (dateStr: string): string => {
-  // Use UTC boundaries to avoid timezone shifts when displaying
-  const parts = dateStr.split('-');
-  const date = new Date(Date.UTC(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10)));
-  
-  const todayStr = getTodayDate();
-  const todayParts = todayStr.split('-');
-  const today = new Date(Date.UTC(parseInt(todayParts[0], 10), parseInt(todayParts[1], 10) - 1, parseInt(todayParts[2], 10)));
-  
-  const yesterday = new Date(today);
-  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
-  const tomorrow = new Date(today);
-  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-
-  if (date.getTime() === today.getTime()) {
-    return 'Today';
-  } else if (date.getTime() === yesterday.getTime()) {
-    return 'Yesterday';
-  } else if (date.getTime() === tomorrow.getTime()) {
-    return 'Tomorrow';
-  }
-
-  return date.toLocaleDateString('en-US', {
-    timeZone: 'UTC',
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  });
-};
-
-export const OrdersPage: React.FC<OrdersPageProps> = ({ session }) => {
-  const navigate = useNavigate();
+export const OrdersPage: React.FC<OrdersPageProps> = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedContextId, setSelectedContextId] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<string>(getTodayDate());
@@ -176,21 +101,6 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ session }) => {
   (clientsData?.getAllClients || []).forEach((c: Client) => {
     clientMap.set(c._id, { firstName: c.firstName, lastName: c.lastName });
   });
-
-  // Date navigation helpers
-  const adjustDate = (days: number) => {
-    const parts = selectedDate.split('-');
-    const date = new Date(Date.UTC(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10)));
-    date.setUTCDate(date.getUTCDate() + days);
-    
-    const y = date.getUTCFullYear();
-    const m = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const d = String(date.getUTCDate()).padStart(2, '0');
-    setSelectedDate(`${y}-${m}-${d}`);
-  };
-
-  const handlePrevDay = () => adjustDate(-1);
-  const handleNextDay = () => adjustDate(1);
 
   // Filter orders
   const filteredOrders = (ordersData?.getAllOrders || [])
@@ -253,18 +163,27 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ session }) => {
   const handleStatusChange = async (
     newStatus?: OrderStatus,
     newPaymentStatus?: PaymentStatus,
-    newDeliveryStatus?: DeliveryStatus,
-    payments?: Array<{ accountId: string; amount: number; exchangeRate: number }>
+    newDeliveryStatus?: DeliveryStatus
   ) => {
     if (!selectedOrder) return;
     
     setUpdateError(null);
     try {
-      const input: any = {
+      const input: {
+        _id: string;
+        clientId: string;
+        sellerId: string;
+        total: number;
+        items: Array<{ productId: string; quantity: number }>;
+        status?: OrderStatus;
+        paymentStatus?: PaymentStatus;
+        deliveryStatus?: DeliveryStatus;
+        contextId?: string;
+      } = {
         _id: selectedOrder._id,
         clientId: selectedOrder.clientId,
-        sellerId: selectedOrder.sellerId,
-        total: selectedOrder.total,
+        sellerId: selectedOrder.sellerId || session._id,
+        total: selectedOrder.total || 0,
         items: selectedOrder.items.map(item => ({
           productId: item.productId,
           quantity: item.quantity
@@ -282,10 +201,14 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ session }) => {
       
       await refetchOrders();
       handleCloseModal();
-    } catch (err: any) {
-      setUpdateError(err.message || "Failed to update order");
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : "Failed to update order";
+      setUpdateError(errorMsg);
+      throw err; // Re-throw so child components know the await failed
     }
   };
+
+  const displayDateStr = formatDisplayDateInTimezone(selectedDate, DEFAULT_TIMEZONE);
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-6 animate-in fade-in duration-300">
@@ -304,36 +227,10 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ session }) => {
         </div>
 
         {/* Date Navigation */}
-        <div className="flex items-center gap-3 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 p-1.5 rounded-2xl shadow-sm">
-          <button
-            onClick={handlePrevDay}
-            className="p-2 hover:bg-stone-50 dark:hover:bg-stone-800 rounded-xl transition-all text-stone-600 dark:text-stone-400"
-            title="Previous Day"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-
-          <div className="flex items-center gap-2 px-3 font-semibold text-stone-900 dark:text-stone-100">
-            <Calendar className="w-4 h-4 text-emerald-600" />
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="bg-transparent border-none outline-none focus:ring-0 text-sm p-0 cursor-pointer text-stone-800 dark:text-stone-200"
-            />
-            <span className="text-xs text-stone-500 dark:text-stone-400 font-normal">
-              ({formatDisplayDate(selectedDate)})
-            </span>
-          </div>
-
-          <button
-            onClick={handleNextDay}
-            className="p-2 hover:bg-stone-50 dark:hover:bg-stone-800 rounded-xl transition-all text-stone-600 dark:text-stone-400"
-            title="Next Day"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
+        <DateNavigator
+          selectedDate={selectedDate}
+          onChangeDate={setSelectedDate}
+        />
       </div>
 
       {/* Filters Bar */}
@@ -395,7 +292,7 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ session }) => {
           <p className="text-stone-500 dark:text-stone-400">
             {searchQuery || selectedContextId
               ? "No orders found matching the filters."
-              : `No orders for ${formatDisplayDate(selectedDate).toLowerCase()}.`}
+              : `No orders for ${displayDateStr.toLowerCase()}.`}
           </p>
           <Link
             to="/clients"
@@ -412,7 +309,7 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ session }) => {
             <span className="font-medium">{filteredOrders.length}</span>
             <span>order{filteredOrders.length !== 1 ? 's' : ''}</span>
             <span className="text-stone-400 dark:text-stone-500">•</span>
-            <span>{formatDisplayDate(selectedDate)}</span>
+            <span>{displayDateStr}</span>
           </div>
 
           {/* Show grouped by context or flat list */}
@@ -440,10 +337,10 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ session }) => {
                       client={clientMap.get(order.clientId)}
                       contextName={ctxId === "general" ? undefined : contextMap.get(ctxId)}
                       formatDate={formatDate}
-                  formatTime={formatTime}
-                  onNavigate={() => handleOpenModal(order)}
-                />
-              ))}
+                      formatTime={formatTime}
+                      onNavigate={() => handleOpenModal(order)}
+                    />
+                  ))}
                 </div>
               </div>
             ))
@@ -478,81 +375,6 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ session }) => {
           onStatusChange={handleStatusChange}
         />
       )}
-    </div>
-  );
-};
-
-// Order Card Component
-interface OrderCardProps {
-  order: Order;
-  client?: { firstName: string; lastName: string };
-  contextName?: string;
-  formatDate: (d: string) => string;
-  formatTime: (d: string) => string;
-  onNavigate: () => void;
-}
-
-const OrderCard: React.FC<OrderCardProps> = ({
-  order,
-  client,
-  contextName,
-  formatDate,
-  formatTime,
-  onNavigate,
-}) => {
-  return (
-    <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl p-4 hover:border-stone-300 dark:hover:border-stone-700 hover:shadow-md transition-all duration-200">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="min-w-0">
-          <p className="text-xs font-mono text-stone-400 dark:text-stone-500 truncate">
-            #{order._id.slice(-8).toUpperCase()}
-          </p>
-          <p className="font-semibold text-stone-900 dark:text-stone-100 truncate">
-            {client ? `${client.firstName} ${client.lastName}` : "Unknown Client"}
-          </p>
-        </div>
-        <div className="flex flex-col items-end gap-1">
-          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${statusColors[order.status] || "bg-stone-100 text-stone-600"}`}>
-            {order.status}
-          </span>
-        </div>
-      </div>
-
-      {/* Status Pills */}
-      <div className="flex flex-wrap gap-1.5 mb-3">
-        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold ${paymentColors[order.paymentStatus] || "bg-stone-100 text-stone-600"}`}>
-          {order.paymentStatus}
-        </span>
-        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold ${deliveryColors[order.deliveryStatus] || "bg-stone-100 text-stone-600"}`}>
-          {order.deliveryStatus}
-        </span>
-        {contextName && (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300">
-            {contextName}
-          </span>
-        )}
-      </div>
-
-      {/* Items Count */}
-      <div className="flex items-center gap-2 text-xs text-stone-500 dark:text-stone-400 mb-3">
-        <Package className="w-3.5 h-3.5" />
-        <span>{order.items?.length || 0} items</span>
-      </div>
-
-      {/* Footer */}
-      <div className="flex items-center justify-between pt-3 border-t border-stone-100 dark:border-stone-800">
-        <span className="text-[11px] text-stone-400 dark:text-stone-500">
-          {formatDate(order.createdAt)} · {formatTime(order.createdAt)}
-        </span>
-        <button
-          onClick={onNavigate}
-          className="inline-flex items-center justify-center h-8 px-3 rounded-lg text-xs font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/30 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-900/30 transition-colors gap-1"
-        >
-          <Eye className="w-3.5 h-3.5" />
-          View
-        </button>
-      </div>
     </div>
   );
 };
