@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { IOrderRepository } from '../../application/repositories/order.repository.js';
-import { IOrder, makeOrder, OrderStatus, DEFAULT_PRICE_FALLBACK } from '../../../../../../shared-domain/src/order/order.entity.js';
+import { IOrder, makeOrder, OrderStatus, PaymentStatus, DeliveryStatus, DEFAULT_PRICE_FALLBACK } from '../../../../../../shared-domain/src/order/order.entity.js';
 import OrderModel, { IOrderDocument } from '../order.model.js';
 import { makeMongooseBaseRepository } from '../../../shared/infrastructure/repositories/mongoose-base.repository.js';
 
@@ -19,9 +19,6 @@ const mapToDomain = (doc: IOrderDocument): IOrder => {
       ? createdAtRaw
       : new Date().toISOString();
 
-  // Handle potential undefined statuses by defaulting to PENDING
-  const rawDoc = doc as any;
-
   return makeOrder({
     id: doc._id.toString(),
     items: (doc.items as unknown as IRawMongooseOrderItem[]).map((item) => ({
@@ -34,8 +31,8 @@ const mapToDomain = (doc: IOrderDocument): IOrder => {
     createdAt: createdAtStr,
     clientId: doc.clientId.toString(),
     status: doc.status as OrderStatus,
-    paymentStatus: (rawDoc.paymentStatus as any) || 'PENDING',
-    deliveryStatus: (rawDoc.deliveryStatus as any) || 'PENDING',
+    paymentStatus: doc.paymentStatus || PaymentStatus.PENDING,
+    deliveryStatus: doc.deliveryStatus || DeliveryStatus.PENDING,
     sellerId: doc.sellerId.toString(),
     contextId: doc.contextId?.toString(),
   });
@@ -57,8 +54,8 @@ export const makeOrderMongooseRepository = (): IOrderRepository => {
       }
       if (order.total !== undefined) data.total = order.total;
       if (order.status !== undefined) data.status = order.status;
-      if (order.paymentStatus !== undefined) (data as any).paymentStatus = order.paymentStatus;
-      if (order.deliveryStatus !== undefined) (data as any).deliveryStatus = order.deliveryStatus;
+      if (order.paymentStatus !== undefined) data.paymentStatus = order.paymentStatus;
+      if (order.deliveryStatus !== undefined) data.deliveryStatus = order.deliveryStatus;
       if (order.clientId !== undefined) data.clientId = new mongoose.Types.ObjectId(order.clientId);
       if (order.sellerId !== undefined) data.sellerId = new mongoose.Types.ObjectId(order.sellerId);
       if (order.contextId !== undefined) data.contextId = order.contextId ? new mongoose.Types.ObjectId(order.contextId) : null;

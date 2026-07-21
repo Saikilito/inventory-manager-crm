@@ -3,7 +3,7 @@ import { DomainError, NotFoundError } from '../../../../../../shared-domain/src/
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { ResultComposer } from '../../../../../../shared-domain/src/shared/result-composer.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
-import { IOrder, makeOrder } from '../../../../../../shared-domain/src/order/order.entity.js';
+import { IOrder, makeOrder, OrderStatus } from '../../../../../../shared-domain/src/order/order.entity.js';
 import { IOrderRepository } from '../repositories/order.repository.js';
 import { RecalculateClientRating } from '../../../client/application/use-cases/recalculate-client-rating.js';
 import { IProductRepository } from '../../../product/application/repositories/product.repository.js';
@@ -50,7 +50,7 @@ export const makeCreateOrder = (
           items: enrichedItems,
           total: input.total,
           clientId: input.clientId,
-          status: 'PENDING',
+          status: OrderStatus.PENDING,
           sellerId: input.sellerId,
           contextId: input.contextId,
         }));

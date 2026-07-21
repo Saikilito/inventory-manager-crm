@@ -29,7 +29,7 @@ export const PaymentStatus = Object.freeze({
   REFUNDED: 'REFUNDED',
 } as const);
 
-export type PaymentStatus = typeof PaymentStatus[keyof typeof PaymentStatus];
+export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus];
 
 export const DeliveryStatus = Object.freeze({
   PENDING: 'PENDING',
@@ -37,7 +37,7 @@ export const DeliveryStatus = Object.freeze({
   COMPLETE: 'COMPLETE',
 } as const);
 
-export type DeliveryStatus = typeof DeliveryStatus[keyof typeof DeliveryStatus];
+export type DeliveryStatus = (typeof DeliveryStatus)[keyof typeof DeliveryStatus];
 
 export const OrderStatus = Object.freeze({
   PENDING: 'PENDING',
@@ -46,7 +46,7 @@ export const OrderStatus = Object.freeze({
   CANCELLED: 'CANCELLED',
 } as const);
 
-export type OrderStatus = typeof OrderStatus[keyof typeof OrderStatus];
+export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus];
 
 export interface IOrder {
   id?: Id;
@@ -58,6 +58,7 @@ export interface IOrder {
   paymentStatus: PaymentStatus;
   deliveryStatus: DeliveryStatus;
   sellerId: Id;
+  contextId?: Id;
   deliveryCost?: NonNegativeNumber;
   customDeliveryAddress?: NonEmptyString;
   payments?: IOrderPayment[];
@@ -78,6 +79,7 @@ export const makeOrder = (props: {
   paymentStatus?: PaymentStatus;
   deliveryStatus?: DeliveryStatus;
   sellerId: string;
+  contextId?: string;
   deliveryCost?: number;
   customDeliveryAddress?: string;
   payments?: Array<{
@@ -87,13 +89,14 @@ export const makeOrder = (props: {
   }>;
 }): IOrder => {
   const roundedTotal = Number(Number(props.total).toFixed(PRICE_DECIMAL_PRECISION));
-  const roundedDeliveryCost = props.deliveryCost !== undefined && props.deliveryCost !== null
-    ? Number(Number(props.deliveryCost).toFixed(PRICE_DECIMAL_PRECISION))
-    : undefined;
+  const roundedDeliveryCost =
+    props.deliveryCost !== undefined && props.deliveryCost !== null
+      ? Number(Number(props.deliveryCost).toFixed(PRICE_DECIMAL_PRECISION))
+      : undefined;
 
   if (props.status === 'CANCELLED') {
-    const pStatus = props.paymentStatus || 'PENDING';
-    const dStatus = props.deliveryStatus || 'PENDING';
+    const pStatus = props.paymentStatus || PaymentStatus.PENDING;
+    const dStatus = props.deliveryStatus || DeliveryStatus.PENDING;
     if (pStatus === 'PAID' && (dStatus === 'SENT' || dStatus === 'COMPLETE')) {
       throw new ValidationError('Cannot cancel an order that is PAID and SENT/COMPLETE');
     }
@@ -101,24 +104,34 @@ export const makeOrder = (props: {
 
   return {
     id: props.id ? IdVO.create(props.id) : undefined,
-    items: (props.items || []).map(item => {
+    items: (props.items || []).map((item) => {
       const roundedQty = Number(Number(item.quantity).toFixed(QUANTITY_DECIMAL_PRECISION));
       const isTest = typeof process !== 'undefined' && (process.env?.NODE_ENV === 'test' || !!process.env?.VITEST);
       const isServer = (typeof globalThis === 'undefined' || !('window' in globalThis)) && !isTest;
       if (isServer) {
-        if (item.purchasePriceAtSale === undefined || item.purchasePriceAtSale === null || isNaN(item.purchasePriceAtSale)) {
+        if (
+          item.purchasePriceAtSale === undefined ||
+          item.purchasePriceAtSale === null ||
+          isNaN(item.purchasePriceAtSale)
+        ) {
           throw new ValidationError('Purchase price at sale is required');
         }
-        if (item.sellingPriceAtSale === undefined || item.sellingPriceAtSale === null || isNaN(item.sellingPriceAtSale)) {
+        if (
+          item.sellingPriceAtSale === undefined ||
+          item.sellingPriceAtSale === null ||
+          isNaN(item.sellingPriceAtSale)
+        ) {
           throw new ValidationError('Selling price at sale is required');
         }
       }
-      const rawPPrice = item.purchasePriceAtSale !== undefined && item.purchasePriceAtSale !== null && !isNaN(item.purchasePriceAtSale)
-        ? item.purchasePriceAtSale
-        : DEFAULT_PRICE_FALLBACK;
-      const rawSPrice = item.sellingPriceAtSale !== undefined && item.sellingPriceAtSale !== null && !isNaN(item.sellingPriceAtSale)
-        ? item.sellingPriceAtSale
-        : DEFAULT_PRICE_FALLBACK;
+      const rawPPrice =
+        item.purchasePriceAtSale !== undefined && item.purchasePriceAtSale !== null && !isNaN(item.purchasePriceAtSale)
+          ? item.purchasePriceAtSale
+          : DEFAULT_PRICE_FALLBACK;
+      const rawSPrice =
+        item.sellingPriceAtSale !== undefined && item.sellingPriceAtSale !== null && !isNaN(item.sellingPriceAtSale)
+          ? item.sellingPriceAtSale
+          : DEFAULT_PRICE_FALLBACK;
 
       const pPrice = Number(Number(rawPPrice).toFixed(PRICE_DECIMAL_PRECISION));
       const sPrice = Number(Number(rawSPrice).toFixed(PRICE_DECIMAL_PRECISION));
@@ -127,28 +140,28 @@ export const makeOrder = (props: {
         productId: IdVO.create(item.productId),
         quantity: NonNegativeNumberVO.create(roundedQty),
         purchasePriceAtSale: PositiveNumberVO.create(pPrice),
-        sellingPriceAtSale: PositiveNumberVO.create(sPrice)
+        sellingPriceAtSale: PositiveNumberVO.create(sPrice),
       };
     }),
     total: NonNegativeNumberVO.create(roundedTotal),
     createdAt: DateTimeVO.create(props.createdAt),
     clientId: IdVO.create(props.clientId),
     status: props.status || OrderStatus.ACTIVE,
-    paymentStatus: props.paymentStatus || 'PENDING',
-    deliveryStatus: props.deliveryStatus || 'PENDING',
+    paymentStatus: props.paymentStatus || PaymentStatus.PENDING,
+    deliveryStatus: props.deliveryStatus || DeliveryStatus.PENDING,
     sellerId: IdVO.create(props.sellerId),
-    deliveryCost: roundedDeliveryCost !== undefined
-      ? NonNegativeNumberVO.create(roundedDeliveryCost || 0)
-      : undefined,
+    contextId: props.contextId ? IdVO.create(props.contextId) : undefined,
+    deliveryCost: roundedDeliveryCost !== undefined ? NonNegativeNumberVO.create(roundedDeliveryCost || 0) : undefined,
     customDeliveryAddress: props.customDeliveryAddress
       ? NonEmptyStringVO.create(props.customDeliveryAddress)
       : undefined,
-    payments: props.payments !== undefined && props.payments !== null
-      ? props.payments.map(p => ({
-          accountId: IdVO.create(p.accountId),
-          amount: PositiveNumberVO.create(Number(Number(p.amount).toFixed(PRICE_DECIMAL_PRECISION))),
-          exchangeRate: PositiveNumberVO.create(Number(p.exchangeRate))
-        }))
-      : undefined,
+    payments:
+      props.payments !== undefined && props.payments !== null
+        ? props.payments.map((p) => ({
+            accountId: IdVO.create(p.accountId),
+            amount: PositiveNumberVO.create(Number(Number(p.amount).toFixed(PRICE_DECIMAL_PRECISION))),
+            exchangeRate: PositiveNumberVO.create(Number(p.exchangeRate)),
+          }))
+        : undefined,
   };
 };
