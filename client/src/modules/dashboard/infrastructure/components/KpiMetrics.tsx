@@ -5,13 +5,13 @@ import { formatCurrency } from '../utils/format-currency';
 export interface KpiMetricsProps {
   totalRevenue: number;
   ticketAverage: number;
-  totalExpenses: number;
+  averageExpenses: number;
 }
 
 export const KpiMetrics: React.FC<KpiMetricsProps> = ({
   totalRevenue,
   ticketAverage,
-  totalExpenses,
+  averageExpenses,
 }) => {
   return (
     <>
@@ -55,13 +55,13 @@ export const KpiMetrics: React.FC<KpiMetricsProps> = ({
       <div className="col-span-12 md:col-span-4 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl p-5 hover:scale-[1.02] hover:shadow-md transition-all duration-200 flex items-center justify-between">
         <div>
           <p className="text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">
-            Total Expenses
+            Average Expenses
           </p>
           <p className="text-2xl font-bold text-rose-600 dark:text-rose-400 mt-1.5 tabular-nums">
-            {formatCurrency(totalExpenses)}
+            {formatCurrency(averageExpenses)}
           </p>
           <p className="text-[10px] text-stone-400 dark:text-stone-500 mt-0.5">
-            Registered Expenses
+            Monthly Average
           </p>
         </div>
         <div className="p-3 bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 rounded-xl">

@@ -7,6 +7,8 @@ import { useShell } from '@contexts/ShellContext';
 import { WelcomeOnboardingModal } from '../../components/dashboard/WelcomeOnboardingModal';
 import { useQuery } from '@apollo/client';
 import { GET_CONTEXT_METRICS } from '@modules/product/infrastructure/graphql/queries';
+import { GET_FIXED_EXPENSE_TEMPLATES } from '../../modules/expense/infrastructure/graphql/fixed-expense';
+import { GET_ALL_EXPENSES } from '../../modules/expense/infrastructure/graphql/queries';
 
 // Import our decoupled presentational components
 import { DashboardSkeleton } from '../../modules/dashboard/infrastructure/components/DashboardSkeleton';
@@ -31,6 +33,16 @@ export const DashboardPage: React.FC = () => {
   // Get real totals from context metrics query
   const { data: metricsData } = useQuery(GET_CONTEXT_METRICS, {
     variables: { contextId: null, period: 'MONTHLY' },
+    fetchPolicy: 'cache-first',
+  });
+
+  const { data: templatesData } = useQuery(GET_FIXED_EXPENSE_TEMPLATES, {
+    variables: { contextId: null },
+    fetchPolicy: 'cache-first',
+  });
+
+  const { data: expensesData } = useQuery(GET_ALL_EXPENSES, {
+    variables: { limit: 1000, contextId: null },
     fetchPolicy: 'cache-first',
   });
 
@@ -66,7 +78,7 @@ export const DashboardPage: React.FC = () => {
         .with({ kind: DashboardStateKind.LOADING }, () => <DashboardSkeleton />)
         .with({ kind: DashboardStateKind.ERROR }, (st) => (
           <DashboardError
-            errorMessage={st.errorMessage || "The dashboard statistics could not be loaded. Please try again."}
+            errorMessage={st.errorMessage || 'The dashboard statistics could not be loaded. Please try again.'}
             onRetry={() => ploc.loadStats()}
           />
         ))
@@ -74,8 +86,35 @@ export const DashboardPage: React.FC = () => {
           // Calculate KPI Metrics using the real data from metrics query if available
           const metrics = metricsData?.getContextMetrics;
           const totalRevenue = metrics?.totalRevenue || 0;
-          const totalExpenses = metrics?.totalExpenses || 0;
-          
+
+          // Calculate active fixed expenses templates (MOC - Monthly Operating Cost)
+          const templates = templatesData?.getFixedExpenseTemplates || [];
+          const activeTemplates = templates.filter((t: { isActive: boolean }) => t.isActive);
+          const totalFixedExpenses = activeTemplates.reduce((sum: number, t: { amount: number }) => sum + t.amount, 0);
+
+          // Calculate non-fixed standard expenses for the current month
+          const standardExpensesList = expensesData?.getAllExpenses?.items || [];
+          const today = new Date();
+          const currentYear = today.getFullYear();
+          const currentMonth = today.getMonth();
+
+          const currentMonthExpenses = standardExpensesList.filter((e: { createdAt?: string }) => {
+            if (!e.createdAt) return false;
+            const d = new Date(e.createdAt);
+            return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+          });
+
+          // Exclude paid fixed expenses from standard list to prevent double counting
+          const nonFixedExpenses = currentMonthExpenses.filter(
+            (e: { referenceType?: string }) => e.referenceType !== 'FIXED_EXPENSE',
+          );
+          const totalNonFixedExpenses = nonFixedExpenses.reduce(
+            (sum: number, e: { amount: number }) => sum + e.amount,
+            0,
+          );
+
+          const averageExpenses = totalFixedExpenses + totalNonFixedExpenses;
+
           // Calculate Ticket Average from Monthly Sales count if available
           let ticketAverage = 0;
           if (metrics && metrics.periods?.monthly && metrics.periods.monthly.length > 0) {
@@ -107,7 +146,7 @@ export const DashboardPage: React.FC = () => {
                 <KpiMetrics
                   totalRevenue={totalRevenue}
                   ticketAverage={ticketAverage}
-                  totalExpenses={totalExpenses}
+                  averageExpenses={averageExpenses}
                 />
 
                 {/* Row 1.5: Inventory Potential - Ganancia proyectada */}
@@ -131,11 +170,7 @@ export const DashboardPage: React.FC = () => {
           );
         })
         .exhaustive()}
-      <WelcomeOnboardingModal
-        isOpen={isWelcomeModalOpen}
-        onClose={handleClose}
-        onSeedSuccess={handleSeedSuccess}
-      />
+      <WelcomeOnboardingModal isOpen={isWelcomeModalOpen} onClose={handleClose} onSeedSuccess={handleSeedSuccess} />
     </div>
   );
 };

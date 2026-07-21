@@ -7,7 +7,7 @@ import { usePlocState } from "@hooks/use-ploc-state";
 import { useClientsPloc } from "@contexts/clients-context";
 import { Paginator } from "@components/Paginator";
 import { ClientsStateKind } from "@modules/client/presentation/ploc/clients-state";
-import { Plus, Eye, Edit2, Trash2, Search } from "lucide-react";
+import { Plus, Edit2, Trash2, Search, MessageCircle, MapPin, ArrowRight, Fingerprint, Phone, ShoppingCart } from "lucide-react";
 
 import Alert from "../../components/Alert";
 import Spinkit from "../../components/Spinkit";
@@ -96,7 +96,7 @@ export const ClientList: React.FC<ClientListProps> = ({ session }) => {
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search client by name, address or whatsapp..."
+          placeholder="Search client by name, address, ID or whatsapp..."
           className="block w-full pl-10 pr-4 py-2.5 h-11 text-sm bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 border border-stone-200 dark:border-stone-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent placeholder-stone-400 dark:placeholder-stone-500 shadow-sm transition-all duration-150"
         />
         {searchQuery && (
@@ -135,6 +135,7 @@ export const ClientList: React.FC<ClientListProps> = ({ session }) => {
               const lastName = (client.lastName || "").toLowerCase();
               const address = (client.address || "").toLowerCase();
               const whatsapp = (client.whatsapp || "").toLowerCase();
+              const nationalId = (client.nationalId || "").toLowerCase();
               const fullName = `${firstName} ${lastName}`;
 
               return (
@@ -142,6 +143,7 @@ export const ClientList: React.FC<ClientListProps> = ({ session }) => {
                 lastName.includes(term) ||
                 address.includes(term) ||
                 whatsapp.includes(term) ||
+                nationalId.includes(term) ||
                 fullName.includes(term)
               );
             });
@@ -164,7 +166,7 @@ export const ClientList: React.FC<ClientListProps> = ({ session }) => {
                       </p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                       {filteredClients.map((client) => {
                         const id = client.id!;
                         const initials = getInitials(
@@ -175,74 +177,94 @@ export const ClientList: React.FC<ClientListProps> = ({ session }) => {
                         return (
                           <div
                             key={id}
-                            className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800/80 rounded-xl p-5 hover:border-stone-300 dark:hover:border-stone-700 hover:shadow-md transition-all duration-200 flex flex-col justify-between gap-5"
+                            className="group flex flex-col bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800/80 rounded-2xl p-5 hover:shadow-xl hover:shadow-emerald-500/5 hover:border-emerald-500/30 dark:hover:shadow-emerald-900/10 transition-all duration-300 relative h-full"
                           >
-                            {/* Top: Info section with avatar */}
-                            <div className="flex items-start gap-4">
-                              <div className="h-11 w-11 rounded-full bg-stone-100 dark:bg-stone-800 flex items-center justify-center text-sm font-bold text-stone-700 dark:text-stone-300 shrink-0 select-none border border-stone-200/50 dark:border-stone-700/50 mt-1">
+                            {/* Actions Menu */}
+                            <div className="absolute top-5 right-5 flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200 bg-white/80 dark:bg-stone-900/80 backdrop-blur-sm rounded-lg p-0.5 z-10">
+                              <Link
+                                to={`/clients/edit/${id}`}
+                                title="Edit Client"
+                                className="p-1.5 text-stone-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-md transition-colors"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </Link>
+                              <button
+                                type="button"
+                                title="Delete Client"
+                                onClick={() => handleDelete(id, String(client.lastName))}
+                                className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+
+                            {/* Top Header: Avatar + Name + Type */}
+                            <div className="flex items-start gap-4 mb-5">
+                              <div className="shrink-0 h-12 w-12 rounded-full bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-950/40 dark:to-emerald-900/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-lg font-bold ring-1 ring-emerald-500/20">
                                 {initials}
                               </div>
-                              <div className="flex flex-col gap-1 min-w-0">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <span className="font-semibold text-lg text-stone-900 dark:text-stone-100 truncate max-w-full">
-                                    {client.firstName} {client.lastName}
-                                  </span>
+                              <div className="flex-1 min-w-0 pr-12">
+                                <h3 className="font-semibold text-base text-stone-900 dark:text-stone-100 truncate">
+                                  {client.firstName} {client.lastName}
+                                </h3>
+                                <div className="mt-1">
                                   {client.type === ClientRatingTier.PREMIUM ? (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50">
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50">
                                       PREMIUM
                                     </span>
                                   ) : client.type === ClientRatingTier.CONCURRENT ? (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50">
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50">
                                       CONCURRENT
                                     </span>
                                   ) : (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400 border border-stone-200 dark:border-stone-700/60">
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400 border border-stone-200 dark:border-stone-700/60">
                                       BASIC
                                     </span>
                                   )}
                                 </div>
-                                <span className="text-sm text-stone-500 dark:text-stone-400 truncate">
-                                  {client.address}
-                                </span>
-                                <a
-                                  href={`https://wa.me/${String(client.whatsapp).replace(/[^0-9]/g, "")}`}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-xs text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 font-medium underline mt-0.5 truncate"
-                                >
-                                  WhatsApp: {client.whatsapp}
-                                </a>
                               </div>
                             </div>
 
-                            {/* Bottom: Actions */}
-                            <div className="grid grid-cols-3 gap-2 sm:gap-3 pt-4 border-t border-stone-100 dark:border-stone-800/60 mt-auto">
+                            {/* Details List (Left Aligned) */}
+                            <div className="flex flex-col gap-3.5 text-sm text-stone-600 dark:text-stone-400 mb-6">
+                              <div className="flex items-center gap-3">
+                                <Fingerprint className="w-4 h-4 text-stone-400 shrink-0" />
+                                <span className="truncate">{client.nationalId || "No ID"}</span>
+                              </div>
+                              
+                              <a
+                                href={`https://wa.me/${String(client.whatsapp).replace(/[^0-9]/g, "")}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="flex items-center gap-3 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors group/wa w-fit"
+                                title="Chat on WhatsApp"
+                              >
+                                <Phone className="w-4 h-4 text-stone-400 shrink-0 group-hover/wa:text-emerald-500" />
+                                <span className="truncate">{client.whatsapp || "No phone"}</span>
+                              </a>
+
+                              <div className="flex items-start gap-3">
+                                <MapPin className="w-4 h-4 text-stone-400 shrink-0 mt-0.5" />
+                                <span className="line-clamp-2 leading-relaxed">{client.address || "No address"}</span>
+                              </div>
+                            </div>
+
+                            {/* Footer Divider + Bottom Action */}
+                            <div className="mt-auto pt-4 border-t border-stone-100 dark:border-stone-800/80 flex items-center justify-between">
+                              <div className="flex items-center gap-1.5 text-stone-500 dark:text-stone-400 bg-stone-50 dark:bg-stone-900/50 px-2 py-1 rounded-md border border-stone-100 dark:border-stone-800">
+                                <ShoppingCart className="w-3.5 h-3.5" />
+                                <span className="text-[11px] font-bold tracking-wide">
+                                  {client.orders ? client.orders.length : 0} ORDER{(client.orders && client.orders.length !== 1) ? "S" : ""}
+                                </span>
+                              </div>
+
                               <Link
                                 to={`/orders/${id}`}
-                                className="inline-flex items-center justify-center h-10 px-3 rounded-lg text-xs font-semibold text-stone-700 dark:text-stone-200 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 active:bg-stone-300 dark:active:bg-stone-600 border border-stone-200 dark:border-stone-700/60 transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500 w-full gap-1.5"
+                                className="flex items-center gap-1 text-xs font-semibold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors group/link"
                               >
-                                <Eye className="w-3.5 h-3.5 shrink-0" />
-                                <span className="truncate">Orders</span>
+                                View Details
+                                <ArrowRight className="w-3.5 h-3.5 group-hover/link:translate-x-0.5 transition-transform" />
                               </Link>
-
-                              <Link
-                                to={`/clients/edit/${id}`}
-                                className="inline-flex items-center justify-center h-10 px-3 rounded-lg text-xs font-semibold text-stone-700 dark:text-stone-200 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 active:bg-stone-300 dark:active:bg-stone-600 border border-stone-200 dark:border-stone-700/60 transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500 w-full gap-1.5"
-                              >
-                                <Edit2 className="w-3.5 h-3.5 shrink-0" />
-                                <span className="truncate">Edit</span>
-                              </Link>
-
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleDelete(id, String(client.lastName))
-                                }
-                                className="inline-flex items-center justify-center h-10 px-3 rounded-lg text-xs font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/20 hover:bg-red-100 dark:hover:bg-red-950/40 active:bg-red-200 dark:active:bg-red-950/60 border border-red-200 dark:border-red-900/30 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 w-full gap-1.5"
-                              >
-                                <Trash2 className="w-3.5 h-3.5 shrink-0" />
-                                <span className="truncate">Delete</span>
-                              </button>
                             </div>
                           </div>
                         );

@@ -101,7 +101,8 @@ const AppView: React.FC = () => {
                   <Route path="/products/edit/:id" element={<EditProduct />} />
                   <Route path="/orders" element={<OrdersPageGlobalWrapper />} />
                   <Route path="/orders/:id" element={<OrdersRouteWrapper />} />
-                  <Route path="/orders/new/:id" element={<CreateOrderRouteWrapper />} />
+                  <Route path="/orders/new" element={<CreateOrderRouteWrapper />} />
+                  <Route path="/orders/new/:clientId" element={<CreateOrderRouteWrapper />} />
                   <Route path="/dashboard" element={<DashboardRouteWrapper />} />
                   <Route path="/dashboard/profit" element={<ProfitDetailPage />} />
                   <Route path="/dashboard/analytics/:contextId" element={<AnalyticsPage />} />

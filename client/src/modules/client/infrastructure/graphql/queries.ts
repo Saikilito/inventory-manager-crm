@@ -11,6 +11,7 @@ export const CLIENTS_QUERY = gql`
       nationalId
       type
       sellerId
+      orders
     }
     totalClients(sellerId: $sellerId)
   }
@@ -27,6 +28,7 @@ export const SINGLE_CLIENT_QUERY = gql`
       nationalId
       type
       sellerId
+      orders
     }
   }
 `;

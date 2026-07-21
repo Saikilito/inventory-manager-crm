@@ -7,6 +7,7 @@ type Client {
   nationalId: String!
   type: ClientType!
   sellerId: ID
+  orders: [ID!]
 }
 
 enum ClientType {

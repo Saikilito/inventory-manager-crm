@@ -30,6 +30,7 @@ const mapToGql = (client: IClient) => {
     nationalId: client.nationalId,
     type: client.type,
     sellerId: client.sellerId,
+    orders: client.orders,
   };
 };
 
