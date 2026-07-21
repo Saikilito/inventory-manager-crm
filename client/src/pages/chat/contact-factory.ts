@@ -20,7 +20,6 @@ export const buildLiveContact = (params: {
   time: "Just now",
   unreadCount: 0,
   tier: "Basic",
-  age: 0,
   phone: params.whatsappId,
   email: "",
   avgOrderValue: "$0",
@@ -30,10 +29,15 @@ export const buildLiveContact = (params: {
   purchases: [],
 });
 
+export interface ClientNameLookup {
+  whatsapp: string;
+  firstName?: string | null;
+  lastName?: string | null;
+}
+
 export const resolveClientName = (params: {
   whatsappId: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Client list sourced from untyped GraphQL response; coupling this helper to the schema would be overkill.
-  clients: any[] | undefined;
+  clients: ClientNameLookup[] | undefined;
 }): string => {
   const { clients, whatsappId } = params;
   if (!clients) return whatsappId;

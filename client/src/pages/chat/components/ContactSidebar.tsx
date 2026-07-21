@@ -3,6 +3,23 @@ import { useQuery, useSubscription, gql } from "@apollo/client";
 import { Sparkles, X, Search, MessageSquare, Plus } from "lucide-react";
 import { CLIENTS_QUERY } from "../../../modules/client/infrastructure/graphql/queries";
 import { CreateChatSessionModal } from "./CreateChatSessionModal";
+import type { ClientNameLookup } from "../contact-factory";
+
+interface LiveSession {
+  id: string;
+  whatsappId: string;
+  status: string;
+  contactName?: string;
+  tags?: string[];
+}
+
+interface ClientsQueryData {
+  getAllClients: ClientNameLookup[];
+}
+
+interface SessionsQueryData {
+  getChatSessions: LiveSession[];
+}
 
 export const ChatTag = {
   ACTIVE_ORDER: "ACTIVE ORDER",
@@ -124,42 +141,29 @@ export const ContactSidebar: React.FC<ContactSidebarProps> = ({
 }) => {
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
 
-  // Query CRM Clients
-  const { data: clientsData } = useQuery(CLIENTS_QUERY);
-
-  // Query and subscribe to live chat sessions
-  const { data: sessionsData, refetch: refetchSessions } = useQuery(GET_CHAT_SESSIONS);
+  const { data: clientsData } = useQuery<ClientsQueryData>(CLIENTS_QUERY);
+  const { data: sessionsData, refetch: refetchSessions } = useQuery<SessionsQueryData>(GET_CHAT_SESSIONS);
 
   const { data: subData } = useSubscription(CHAT_SESSION_UPDATED_SUB);
 
-  // Auto-refetch when session update subscription triggers
   React.useEffect(() => {
     if (subData?.chatSessionUpdated) {
       refetchSessions();
     }
   }, [subData, refetchSessions]);
 
-  // Helper to map session/whatsappId to Display Name
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Session GraphQL payload is untyped at this presentation boundary; the alternative (typing every list operation against the GraphQL schema) couples this view to the entire domain.
-  const getSessionDisplayName = (session: any) => {
-    if (clientsData?.getAllClients) {
-      const client = clientsData.getAllClients.find(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Same justification as above; client list comes from untyped GraphQL response.
-        (c: any) => c.whatsapp === session.whatsappId
-      );
-      if (client) {
-        return `${client.firstName || ""} ${client.lastName || ""}`.trim();
-      }
+  const getSessionDisplayName = (session: LiveSession): string => {
+    const client = clientsData?.getAllClients.find(
+      (c) => c.whatsapp === session.whatsappId
+    );
+    if (client) {
+      return `${client.firstName || ""} ${client.lastName || ""}`.trim();
     }
-    if (session.contactName) {
-      return session.contactName;
-    }
-    return session.whatsappId;
+    return session.contactName ?? session.whatsappId;
   };
 
-  const liveSessions = sessionsData?.getChatSessions || [];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Live sessions are untyped GraphQL results consumed only for filtering; see getSessionDisplayName.
-  const filteredLiveSessions = liveSessions.filter((session: any) =>
+  const liveSessions: LiveSession[] = sessionsData?.getChatSessions || [];
+  const filteredLiveSessions = liveSessions.filter((session) =>
     session.whatsappId.toLowerCase().includes(searchQuery.toLowerCase()) ||
     getSessionDisplayName(session).toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -172,7 +176,6 @@ export const ContactSidebar: React.FC<ContactSidebarProps> = ({
         ${isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
       `}
     >
-      {/* Header of contacts list */}
       <div className="p-4 border-b border-stone-200 dark:border-stone-800 flex items-center justify-between">
         <h2 className="text-xs font-bold uppercase tracking-wider text-stone-900 dark:text-stone-100 flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400 animate-pulse" />
@@ -187,7 +190,6 @@ export const ContactSidebar: React.FC<ContactSidebarProps> = ({
         </button>
       </div>
 
-      {/* Search Bar */}
       <div className="p-3 border-b border-stone-200 dark:border-stone-800">
         <div className="relative">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-stone-400" />
@@ -201,9 +203,7 @@ export const ContactSidebar: React.FC<ContactSidebarProps> = ({
         </div>
       </div>
 
-      {/* Lists */}
       <div className="flex-1 overflow-y-auto divide-y divide-stone-100 dark:divide-stone-800/40 p-2 space-y-4">
-        {/* SECTION 1: WHATSAPP LIVE CHATS */}
         <div className="space-y-1">
           <div className="flex items-center justify-between px-3 mb-2">
             <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">
@@ -222,7 +222,7 @@ export const ContactSidebar: React.FC<ContactSidebarProps> = ({
               No active customer chats.
             </div>
           ) : (
-            filteredLiveSessions.map((session: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any -- Same untyped GraphQL payload as the surrounding filter; see getSessionDisplayName.
+            filteredLiveSessions.map((session: LiveSession) => {
               const isActive = session.whatsappId === activeContactId;
               const clientName = getSessionDisplayName(session);
               const isBot = session.status === "BOT";

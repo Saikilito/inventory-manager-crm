@@ -15,7 +15,6 @@ export interface Contact {
   time: string;
   unreadCount: number;
   tier: "Gold" | "Basic";
-  age: number;
   phone: string;
   email: string;
   avgOrderValue: string;

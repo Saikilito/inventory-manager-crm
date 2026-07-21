@@ -57,6 +57,14 @@ export type ConnectionStatus = "DISCONNECTED" | "CONNECTING" | "QR" | "CONNECTED
 export type ChatChannel = "whatsapp" | "whisper";
 export type ActiveTab = "conversations" | "agents";
 
+interface SessionLookup {
+  whatsappId: string;
+}
+
+interface ChatMessageLookup {
+  id: string;
+}
+
 export interface UseChatSessionResult {
   contacts: Contact[];
   setContacts: React.Dispatch<React.SetStateAction<Contact[]>>;
@@ -121,8 +129,7 @@ export const useChatSession = (): UseChatSessionResult => {
   const { data: sessionsData, loading: sessionsLoading, refetch: refetchSessions } = useQuery(GET_CHAT_SESSIONS);
 
   const currentSession = sessionsData?.getChatSessions?.find(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- GraphQL session payload is untyped at the presentation layer.
-    (s: any) => s.whatsappId === activeContactId,
+    (s: SessionLookup) => s.whatsappId === activeContactId,
   );
 
   const { data: liveMessagesData, subscribeToMore } = useQuery(GET_CHAT_MESSAGES, {
@@ -138,8 +145,7 @@ export const useChatSession = (): UseChatSessionResult => {
       updateQuery: (prev, { subscriptionData }) => {
         if (!subscriptionData.data || !prev?.getChatMessages) return prev;
         const newMsg = subscriptionData.data.chatMessageReceived;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- GraphQL message payload is untyped at the presentation layer.
-        if (prev.getChatMessages.some((m: any) => m.id === newMsg.id)) {
+        if (prev.getChatMessages.some((m: ChatMessageLookup) => m.id === newMsg.id)) {
           return prev;
         }
         return {
@@ -155,8 +161,7 @@ export const useChatSession = (): UseChatSessionResult => {
     const sessions = sessionsData.getChatSessions;
     if (isWhatsAppMode && activeContactId) {
       const exists = sessions.some(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- GraphQL session payload is untyped.
-        (s: any) => s.whatsappId === activeContactId,
+        (s: SessionLookup) => s.whatsappId === activeContactId,
       );
       if (!exists) {
         if (sessions.length > 0) {

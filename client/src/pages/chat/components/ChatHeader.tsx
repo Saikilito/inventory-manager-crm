@@ -27,8 +27,12 @@ export interface ChatHeaderProps {
   whatsappId?: string;
   status?: "BOT" | "HUMAN" | "PENDING_HUMAN";
   onStatusUpdated?: () => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Extracted session payload is passed through to the header without further type narrowing; keeping `any` avoids duplicating GraphQL response shape in this presentational component.
-  extractedData?: any;
+  extractedData?: {
+    client?: {
+      firstName?: string;
+      lastName?: string;
+    };
+  } | null;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
