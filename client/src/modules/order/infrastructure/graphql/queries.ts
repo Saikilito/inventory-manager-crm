@@ -13,19 +13,22 @@ export const CLIENT_ORDERS_QUERY = gql`
       clientId
       status
       sellerId
+      contextId
     }
   }
 `;
 
 export const GET_ALL_ORDERS = gql`
-  query getAllOrders($limit: Int) {
-    getAllOrders(limit: $limit) {
+  query getAllOrders($limit: Int, $date: String) {
+    getAllOrders(limit: $limit, date: $date) {
       _id
       clientId
       createdAt
       status
       paymentStatus
       deliveryStatus
+      contextId
+      total
       items {
         productId
         quantity

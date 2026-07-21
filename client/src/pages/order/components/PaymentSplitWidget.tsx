@@ -142,7 +142,9 @@ export const PaymentSplitWidget: React.FC<PaymentSplitWidgetProps> = ({
     }
 
     if (Math.abs(remainingUSD) > 0.015) {
-      setError(`Allocated sum ($${allocatedUSD.toFixed(2)}) does not equal the order total ($${totalUSD.toFixed(2)}).`);
+      const allocatedFormatted = allocatedUSD ? allocatedUSD.toFixed(2) : "0.00";
+      const totalFormatted = totalUSD ? totalUSD.toFixed(2) : "0.00";
+      setError(`Allocated sum ($${allocatedFormatted}) does not equal the order total ($${totalFormatted}).`);
       return;
     }
 
@@ -173,7 +175,7 @@ export const PaymentSplitWidget: React.FC<PaymentSplitWidgetProps> = ({
           Mixed Payment Split Allocations
         </h4>
         <span className="text-xs font-bold text-stone-500 dark:text-stone-400 font-mono">
-          Target: ${totalUSD.toFixed(2)} USD
+          Target: ${totalUSD ? totalUSD.toFixed(2) : "0.00"} USD
         </span>
       </div>
 
@@ -239,7 +241,7 @@ export const PaymentSplitWidget: React.FC<PaymentSplitWidgetProps> = ({
                     </div>
                   </td>
                   <td className="py-2.5 text-right pr-2 text-xs font-semibold font-mono text-stone-900 dark:text-stone-100">
-                    ${row.usdEquivalent.toFixed(2)}
+                    ${row.usdEquivalent ? row.usdEquivalent.toFixed(2) : "0.00"}
                   </td>
                   <td className="py-2.5 text-center">
                     <button
@@ -272,20 +274,20 @@ export const PaymentSplitWidget: React.FC<PaymentSplitWidgetProps> = ({
       <div className="bg-white dark:bg-stone-950 border border-stone-100 dark:border-stone-800/80 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
           <div className="text-xs text-stone-500 dark:text-stone-400">
-            Allocated: <span className="font-bold font-mono text-stone-800 dark:text-stone-200">${allocatedUSD.toFixed(2)}</span>
+            Allocated: <span className="font-bold font-mono text-stone-800 dark:text-stone-200">${allocatedUSD ? allocatedUSD.toFixed(2) : "0.00"}</span>
           </div>
           <div className="text-xs">
             Remaining:{" "}
             <span
               className={`font-extrabold font-mono ${
-                Math.abs(remainingUSD) <= 0.015
+                Math.abs(remainingUSD || 0) <= 0.015
                   ? "text-emerald-600 dark:text-emerald-400"
-                  : remainingUSD > 0
+                  : (remainingUSD || 0) > 0
                   ? "text-amber-600"
                   : "text-red-600"
               }`}
             >
-              ${remainingUSD.toFixed(2)} USD
+              ${remainingUSD ? remainingUSD.toFixed(2) : "0.00"} USD
             </span>
           </div>
         </div>

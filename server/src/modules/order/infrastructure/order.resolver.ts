@@ -11,6 +11,7 @@ interface SetOrderInput {
   total: number;
   clientId: string;
   sellerId: string;
+  contextId?: string;
 }
 
 interface UpdateOrderInput {
@@ -20,6 +21,13 @@ interface UpdateOrderInput {
   clientId?: string;
   status?: OrderStatus;
   sellerId?: string;
+  contextId?: string;
+}
+
+interface GetAllOrdersInput {
+  limit?: number;
+  offset?: number;
+  date?: string;
 }
 
 const mapToGql = (order: IOrder) => {
@@ -28,12 +36,30 @@ const mapToGql = (order: IOrder) => {
     items: (order.items || []).map((item) => ({
       productId: item.productId,
       quantity: item.quantity,
+      sellingPriceAtSale: item.sellingPriceAtSale,
+      purchasePriceAtSale: item.purchasePriceAtSale,
     })),
     total: order.total,
     createdAt: order.createdAt,
     clientId: order.clientId,
     status: order.status,
+    paymentStatus: order.paymentStatus,
+    deliveryStatus: order.deliveryStatus,
     sellerId: order.sellerId,
+    contextId: order.contextId,
+  };
+};
+
+// Helper to build date range filter for a specific day
+const buildDateFilter = (dateStr: string) => {
+  // dateStr is expected in YYYY-MM-DD format
+  const startOfDay = new Date(dateStr + 'T00:00:00.000Z');
+  const endOfDay = new Date(dateStr + 'T23:59:59.999Z');
+  
+  return {
+    field: 'createdAt',
+    operator: '>=' as const,
+    value: startOfDay.toISOString(),
   };
 };
 
@@ -57,10 +83,11 @@ export default {
 
     getAllOrders: async (
       _parent: unknown,
-      { limit, offset }: { limit?: number; offset?: number },
+      { limit, offset, date }: GetAllOrdersInput,
       { container }: IContext,
     ) => {
-      const result = await container.order.getAllOrders({ limit, offset });
+      const result = await container.order.getAllOrders({ limit, offset, date });
+      
       if (result.isFailure) {
         throw result.getError();
       }
@@ -83,6 +110,7 @@ export default {
         total: input.total,
         clientId: input.clientId,
         sellerId: input.sellerId,
+        contextId: input.contextId,
       });
       return !result.isFailure;
     },
@@ -95,6 +123,7 @@ export default {
         clientId: input.clientId,
         status: input.status,
         sellerId: input.sellerId,
+        contextId: input.contextId,
       });
       return !result.isFailure;
     },

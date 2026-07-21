@@ -17,6 +17,10 @@ import {
   MessageSquare,
   ShoppingCart,
   Settings,
+  Wallet,
+  Receipt,
+  Truck,
+  Clock,
 } from "lucide-react";
 import { ElectronicBrainLogo } from "./ElectronicBrainLogo";
 
@@ -57,6 +61,26 @@ export const DesktopSidebar: React.FC = () => {
       path: "/products",
       label: "Products",
       icon: Package,
+    },
+    {
+      path: "/finance",
+      label: "Finance",
+      icon: Wallet,
+    },
+    {
+      path: "/expenses",
+      label: "Expenses",
+      icon: Receipt,
+    },
+    {
+      path: "/deliveries",
+      label: "Deliveries",
+      icon: Truck,
+    },
+    {
+      path: "/rentals",
+      label: "Rentals",
+      icon: Clock,
     },
     {
       path: "/chat",

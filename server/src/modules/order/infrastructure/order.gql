@@ -5,23 +5,41 @@ type Order {
   createdAt: String
   clientId: ID!
   status: OrderStatus
+  paymentStatus: PaymentStatus
+  deliveryStatus: DeliveryStatus
   sellerId: ID
+  contextId: ID
 }
 
 type OrderItem {
   productId: ID!
   quantity: Int
+  sellingPriceAtSale: Float
+  purchasePriceAtSale: Float
 }
 
 enum OrderStatus {
   PENDING
   COMPLETED
+  ACTIVE
   CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  REFUNDED
+}
+
+enum DeliveryStatus {
+  PENDING
+  SENT
+  COMPLETE
 }
 
 type Query {
   getOrderClient(clientId: ID!): [Order]!
-  getAllOrders(limit: Int, offset: Int): [Order]!
+  getAllOrders(limit: Int, offset: Int, date: String): [Order]!
   getOrder(_id: ID!): Order!
   totalOrders: Int
 }
@@ -38,7 +56,10 @@ input OrderInput {
   createdAt: String
   clientId: ID!
   status: OrderStatus
+  paymentStatus: PaymentStatus
+  deliveryStatus: DeliveryStatus
   sellerId: ID!
+  contextId: ID
 }
 
 type Mutation {

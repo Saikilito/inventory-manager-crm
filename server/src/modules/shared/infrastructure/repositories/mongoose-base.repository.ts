@@ -57,7 +57,20 @@ export const mapWhereFieldsToMongooseQuery = (fields?: WhereField[]): Record<str
     });
 
     if (conditions.length === 1) {
-      Object.assign(query, conditions[0]);
+      const condition = conditions[0];
+      const key = Object.keys(condition)[0];
+      
+      if (
+        query[key] !== undefined && 
+        typeof query[key] === 'object' && 
+        typeof condition[key] === 'object' && 
+        !Array.isArray(query[key]) && 
+        !Array.isArray(condition[key])
+      ) {
+        query[key] = { ...(query[key] as Record<string, unknown>), ...condition[key] };
+      } else {
+        Object.assign(query, condition);
+      }
     } else if (conditions.length > 1) {
       if (!query.$or) {
         query.$or = [];

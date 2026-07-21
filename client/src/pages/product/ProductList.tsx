@@ -12,6 +12,7 @@ import {
   Trash2,
   CheckCircle2,
   AlertTriangle,
+  Layers,
 } from "lucide-react";
 
 import Alert from "../../components/Alert";
@@ -62,7 +63,14 @@ export const ProductList: React.FC = () => {
             Manage products, control stock, and adjust prices.
           </p>
         </div>
-        <div>
+        <div className="flex items-center gap-3">
+          <Link
+            to="/products/contexts"
+            className="inline-flex items-center justify-center h-11 px-5 rounded-xl text-sm font-medium text-stone-700 dark:text-stone-200 bg-white dark:bg-stone-800 border border-stone-300 dark:border-stone-700 hover:bg-stone-50 dark:hover:bg-stone-750 active:bg-stone-100 dark:active:bg-stone-700 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-stone-950"
+          >
+            <Layers className="w-4 h-4 mr-2" />
+            Contexts
+          </Link>
           <Link
             to="/products/new"
             className="inline-flex items-center justify-center h-11 px-5 rounded-xl text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-stone-950"
