@@ -53,7 +53,8 @@ export const SEND_WHISPER_MESSAGE = gql`
   }
 `;
 
-export type ConnectionStatus = "DISCONNECTED" | "CONNECTING" | "QR" | "CONNECTED";
+import type { ConnectionStatus as _ConnectionStatus } from "@shared-domain/chat/agent.entity";
+export type ConnectionStatus = _ConnectionStatus;
 export type ChatChannel = "whatsapp" | "whisper";
 export type ActiveTab = "conversations" | "agents";
 

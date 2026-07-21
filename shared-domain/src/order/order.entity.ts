@@ -8,7 +8,10 @@ import { ValidationError } from '../shared/validation-error.js';
 export const PRICE_DECIMAL_PRECISION = 2;
 export const QUANTITY_DECIMAL_PRECISION = 4;
 
-export const DEFAULT_PRICE_FALLBACK = 0.01;
+export const ORDER_DEFAULT_PRICE_FALLBACK = 0.01;
+
+/** @deprecated Use ORDER_DEFAULT_PRICE_FALLBACK for orders or PRODUCT_DEFAULT_PRICE_FALLBACK for products. */
+export const DEFAULT_PRICE_FALLBACK = ORDER_DEFAULT_PRICE_FALLBACK;
 
 export interface IOrderItem {
   productId: Id;

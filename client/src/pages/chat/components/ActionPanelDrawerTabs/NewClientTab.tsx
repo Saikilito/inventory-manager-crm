@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useMutation } from "@apollo/client";
 import { UserPlus, Loader2 } from "lucide-react";
 import { CREATE_CLIENT } from "../../../../modules/client/infrastructure/graphql/mutations";
+import { DEFAULT_SELLER_ID } from "@shared-domain/chat/agent.entity";
 
 interface NewClientTabProps {
   whatsappId: string;
@@ -41,7 +42,7 @@ export const NewClientTab: React.FC<NewClientTabProps> = ({
             address,
             whatsapp: clientWhatsapp,
             nationalId,
-            sellerId: "550e8400-e29b-41d4-a716-446655440003", // Default seller ID
+            sellerId: DEFAULT_SELLER_ID,
           },
         },
       });

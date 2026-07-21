@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { gql, useQuery, useMutation, useApolloClient } from "@apollo/client";
 import { Database, RefreshCw, AlertTriangle, Sparkles } from "lucide-react";
 import Spinkit from "../../components/Spinkit";
+import { SEED_DATABASE, WIPE_DATABASE } from "../../lib/graphql/mutations";
 
 // Modular Sub-components
 import { DatabaseInventoryGrid } from "./components/DatabaseInventoryGrid.js";
@@ -20,18 +21,6 @@ const GET_DATABASE_STATUS = gql`
       usersCount
       testingUsersCount
     }
-  }
-`;
-
-const SEED_DATABASE = gql`
-  mutation SeedDatabase {
-    seedDatabase
-  }
-`;
-
-const WIPE_DATABASE = gql`
-  mutation WipeDatabase {
-    wipeDatabase
   }
 `;
 

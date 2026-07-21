@@ -4,14 +4,13 @@ import { DomainError, NotFoundError } from '../../../../../../shared-domain/src/
 import { ValidationError } from '../../../../../../shared-domain/src/shared/validation-error.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
-import { BillingMonthVO } from '../../../../../../shared-domain/src/shared/value-objects/billing-month.vo.js';
-import { zodIdString } from '../../../../../../shared-domain/src/shared/zod-schemas.js';
+import { zodIdString, zodBillingMonth } from '../../../../../../shared-domain/src/shared/zod-schemas.js';
 import { IFixedExpensePaymentRepository } from '../repositories/fixed-expense.repository.js';
 import { IExpenseRepository } from '../repositories/expense.repository.js';
 
 export const UnpayFixedExpenseSchema = z.object({
   fixedExpenseId: zodIdString,
-  billingMonth: z.string().refine((v) => !BillingMonthVO.createResult(v).isFailure, { message: 'Billing month must be in YYYY-MM format' }),
+  billingMonth: zodBillingMonth,
 });
 
 export type UnpayFixedExpenseInput = z.infer<typeof UnpayFixedExpenseSchema>;

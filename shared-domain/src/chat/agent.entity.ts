@@ -19,3 +19,6 @@ export const ConnectionStatus = {
   QR: 'QR',
 } as const;
 export type ConnectionStatus = typeof ConnectionStatus[keyof typeof ConnectionStatus];
+
+/** Default seller ID used when creating orders/clients from WhatsApp chat. */
+export { DEFAULT_SELLER_ID } from '../shared/constants.js';

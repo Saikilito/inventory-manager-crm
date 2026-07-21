@@ -2,22 +2,9 @@ import { BaseRepository } from "../../../../../../shared-domain/src/shared/repos
 import { Id, IdVO } from "../../../../../../shared-domain/src/shared/value-objects/id.vo.js";
 import { NonEmptyString, NonEmptyStringVO } from "../../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js";
 import { DateTime, DateTimeVO } from "../../../../../../shared-domain/src/shared/value-objects/date-time.vo.js";
+import { AgentStatus, AgentRole } from "../../../../../../shared-domain/src/chat/agent.entity.js";
 
-export const AgentStatus = {
-  ACTIVE: "ACTIVE",
-  INACTIVE: "INACTIVE",
-} as const;
-
-export type AgentStatus = (typeof AgentStatus)[keyof typeof AgentStatus];
-
-export const AgentRole = {
-  SALES: "SALES",
-  SUPPORT: "SUPPORT",
-  CRM_OPERATOR: "CRM_OPERATOR",
-  LIBRARIAN: "LIBRARIAN",
-} as const;
-
-export type AgentRole = (typeof AgentRole)[keyof typeof AgentRole];
+export { AgentStatus, AgentRole } from "../../../../../../shared-domain/src/chat/agent.entity.js";
 
 export const AgentTool = {
   SEARCH_STOCK: "searchStock",

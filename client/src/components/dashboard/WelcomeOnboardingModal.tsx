@@ -1,5 +1,5 @@
 import React from "react";
-import { gql, useMutation, useApolloClient } from "@apollo/client";
+import { useMutation, useApolloClient } from "@apollo/client";
 import {
   Sparkles,
   Database,
@@ -10,12 +10,7 @@ import {
   RefreshCw,
   X,
 } from "lucide-react";
-
-const SEED_DATABASE = gql`
-  mutation SeedDatabase {
-    seedDatabase
-  }
-`;
+import { SEED_DATABASE } from "../../lib/graphql/mutations";
 
 interface WelcomeOnboardingModalProps {
   isOpen: boolean;

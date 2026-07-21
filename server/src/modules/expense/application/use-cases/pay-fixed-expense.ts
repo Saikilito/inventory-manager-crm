@@ -5,8 +5,7 @@ import { ValidationError } from '../../../../../../shared-domain/src/shared/vali
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { ResultComposer } from '../../../../../../shared-domain/src/shared/result-composer.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
-import { BillingMonthVO } from '../../../../../../shared-domain/src/shared/value-objects/billing-month.vo.js';
-import { zodIdString, zodOptionalNullableIdString, zodPositiveNumber } from '../../../../../../shared-domain/src/shared/zod-schemas.js';
+import { zodIdString, zodOptionalNullableIdString, zodPositiveNumber, zodBillingMonth } from '../../../../../../shared-domain/src/shared/zod-schemas.js';
 import { makeFixedExpensePayment, IFixedExpensePayment } from '../../../../../../shared-domain/src/expense/fixed-expense.entity.js';
 import { makeExpense } from '../../../../../../shared-domain/src/expense/expense.entity.js';
 import { IFixedExpenseRepository, IFixedExpensePaymentRepository } from '../repositories/fixed-expense.repository.js';
@@ -15,7 +14,7 @@ import { CreateEntityInput } from '../../../../../../shared-domain/src/shared/re
 
 export const PayFixedExpenseSchema = z.object({
   fixedExpenseId: zodIdString,
-  billingMonth: z.string().refine((v) => !BillingMonthVO.createResult(v).isFailure, { message: 'Billing month must be in YYYY-MM format' }),
+  billingMonth: zodBillingMonth,
   amountPaid: zodPositiveNumber,
   contextId: zodOptionalNullableIdString,
 });

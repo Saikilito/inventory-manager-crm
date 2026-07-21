@@ -10,6 +10,7 @@ import {
   DEFAULT_ORIGIN_LAT,
   DEFAULT_ORIGIN_LNG,
 } from "@shared-domain/delivery/delivery-calculator";
+import { DEFAULT_SELLER_ID } from "@shared-domain/chat/agent.entity";
 import { GET_CHAT_SESSIONS } from "../../../../modules/chat/infrastructure/graphql/queries";
 import { OrderItem, CARACAS_ZONES } from "../ActionPanelDrawerTabs/DraftOrderTab";
 
@@ -206,7 +207,7 @@ export const useActionPanelLogic = (whatsappId: string) => {
               address: editedClient.address || "WhatsApp AI Extraction",
               whatsapp: whatsappId,
               nationalId: editedClient.nationalId || "0",
-              sellerId: "550e8400-e29b-41d4-a716-446655440003",
+              sellerId: DEFAULT_SELLER_ID,
             },
           },
         });
@@ -258,7 +259,7 @@ export const useActionPanelLogic = (whatsappId: string) => {
             clientId,
             items: itemsInput,
             total: totalOrder,
-            sellerId: "550e8400-e29b-41d4-a716-446655440003",
+            sellerId: DEFAULT_SELLER_ID,
             deliveryCost: finalDeliveryFee,
             deliveryAddress: deliveryType === "delivery" ? (editedClient.address || "WhatsApp Extraction") : "PICKUP",
             status: "PENDING",

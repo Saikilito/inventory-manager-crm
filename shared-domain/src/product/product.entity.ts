@@ -9,7 +9,10 @@ import { ValidationError } from '../shared/validation-error.js';
 export const PRICE_DECIMAL_PRECISION = 2;
 export const QUANTITY_DECIMAL_PRECISION = 4;
 
-export const DEFAULT_PRICE_FALLBACK = 1.00;
+export const PRODUCT_DEFAULT_PRICE_FALLBACK = 1.00;
+
+/** @deprecated Use PRODUCT_DEFAULT_PRICE_FALLBACK for products or ORDER_DEFAULT_PRICE_FALLBACK for orders. */
+export const DEFAULT_PRICE_FALLBACK = PRODUCT_DEFAULT_PRICE_FALLBACK;
 
 export interface IProductPresentation {
   packagingType: PackagingType;

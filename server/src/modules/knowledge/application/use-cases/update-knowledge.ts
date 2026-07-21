@@ -7,6 +7,8 @@ import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { ResultComposer } from '../../../../../../shared-domain/src/shared/result-composer.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
 import { NonEmptyStringVO } from '../../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js';
+import { zodIdString, zodKnowledgeStatus } from '../../../../../../shared-domain/src/shared/zod-schemas.js';
+import { validateInput } from '../../../../../../shared-domain/src/shared/validate-input.js';
 import {
   IKnowledge,
   makeKnowledgeResult,
@@ -19,15 +21,15 @@ import { WikiLinkVO } from '../../../../../../shared-domain/src/knowledge/value-
 import { IKnowledgeRepository } from '../repositories/knowledge.repository.js';
 
 export const updateKnowledgeInputSchema = z.object({
-  id: z.string().min(1, 'id is required'),
+  id: zodIdString,
   category: z.string().optional(),
   title: z.string().optional(),
   content: z.string().optional(),
   hierarchyLevel: z.string().optional(),
   tags: z.array(z.string()).optional(),
-  status: z.enum([KnowledgeStatus.DRAFT, KnowledgeStatus.ACTIVE, KnowledgeStatus.REJECTED]).optional(),
-  productId: z.string().min(1).optional(),
-  updatedBy: z.string().min(1, 'updatedBy is required'),
+  status: zodKnowledgeStatus.optional(),
+  productId: zodIdString.optional(),
+  updatedBy: zodIdString,
 });
 
 export type UpdateKnowledgeInput = z.infer<typeof updateKnowledgeInputSchema>;
@@ -36,71 +38,70 @@ export type UpdateKnowledge = UseCase<UpdateKnowledgeInput, void, DomainError>;
 
 export const makeUpdateKnowledge = (knowledgeRepository: IKnowledgeRepository): UpdateKnowledge => {
   return async (input: UpdateKnowledgeInput) => {
-    const parsed = updateKnowledgeInputSchema.safeParse(input);
-    if (!parsed.success) {
-      const message = parsed.error.issues.map((i) => i.message).join(', ');
-      return Result.fail(new ValidationError(message));
-    }
+    const parsed = validateInput(updateKnowledgeInputSchema, input);
+    if (parsed.isFailure) return Result.fail(parsed.getError());
 
-    const existingResult = await knowledgeRepository.getById(IdVO.create(parsed.data.id));
+    const validated = parsed.getValue();
+
+    const existingResult = await knowledgeRepository.getById(IdVO.create(validated.id));
     if (existingResult.isFailure) {
       return Result.fail(existingResult.getError());
     }
 
     const existing = existingResult.getValue();
     if (!existing) {
-      return Result.fail(new NotFoundError(`Knowledge not found: ${parsed.data.id}`));
+      return Result.fail(new NotFoundError(`Knowledge not found: ${validated.id}`));
     }
 
     const composerResult = await ResultComposer.start()
       .useResult('updated', () => {
-        const nextCategory = match(parsed.data.category)
+        const nextCategory = match(validated.category)
           .when(
             (v) => v !== undefined,
             () => {
-              const r = KnowledgeCategoryVO.createResult(parsed.data.category!);
+              const r = KnowledgeCategoryVO.createResult(validated.category!);
               if (r.isFailure) throw new ValidationError(r.getError().message);
               return r.getValue();
             },
           )
           .otherwise(() => existing.category);
 
-        const nextHierarchy = match(parsed.data.hierarchyLevel)
+        const nextHierarchy = match(validated.hierarchyLevel)
           .when(
             (v) => v !== undefined,
             () => {
-              const r = HierarchyLevelVO.createResult(parsed.data.hierarchyLevel!);
+              const r = HierarchyLevelVO.createResult(validated.hierarchyLevel!);
               if (r.isFailure) throw new ValidationError(r.getError().message);
               return r.getValue();
             },
           )
           .otherwise(() => existing.metadata.hierarchyLevel);
 
-        const nextStatus = match(parsed.data.status)
+        const nextStatus = match(validated.status)
           .when(
             (v) => v !== undefined,
-            () => KnowledgeStatusVO.create(parsed.data.status!),
+            () => KnowledgeStatusVO.create(validated.status!),
           )
           .otherwise(() => existing.status);
 
-        const nextTitle = parsed.data.title !== undefined
-          ? NonEmptyStringVO.create(parsed.data.title)
+        const nextTitle = validated.title !== undefined
+          ? NonEmptyStringVO.create(validated.title)
           : existing.title;
-        const nextContent = parsed.data.content !== undefined
-          ? NonEmptyStringVO.create(parsed.data.content)
+        const nextContent = validated.content !== undefined
+          ? NonEmptyStringVO.create(validated.content)
           : existing.content;
 
         const wikiLinks = WikiLinkVO.extractFromContent(nextContent.toString());
 
-        const nextProductId = parsed.data.productId !== undefined
-          ? IdVO.create(parsed.data.productId)
+        const nextProductId = validated.productId !== undefined
+          ? IdVO.create(validated.productId)
           : existing.metadata.productId;
 
         const metadata: IKnowledgeMetadata = {
           hierarchyLevel: nextHierarchy,
-          tags: parsed.data.tags !== undefined ? parsed.data.tags : existing.metadata.tags,
+          tags: validated.tags !== undefined ? validated.tags : existing.metadata.tags,
           createdBy: existing.metadata.createdBy,
-          updatedBy: IdVO.create(parsed.data.updatedBy),
+          updatedBy: IdVO.create(validated.updatedBy),
           ...(nextProductId ? { productId: nextProductId } : {}),
         };
 
@@ -109,7 +110,7 @@ export const makeUpdateKnowledge = (knowledgeRepository: IKnowledgeRepository): 
         }
 
         const result = makeKnowledgeResult({
-          id: parsed.data.id,
+          id: validated.id,
           category: nextCategory,
           title: nextTitle.toString(),
           content: nextContent.toString(),
@@ -118,7 +119,7 @@ export const makeUpdateKnowledge = (knowledgeRepository: IKnowledgeRepository): 
           status: nextStatus,
           productId: nextProductId?.toString(),
           createdBy: existing.metadata.createdBy.toString(),
-          updatedBy: parsed.data.updatedBy,
+          updatedBy: validated.updatedBy,
           ...(existing.metadata.lastVerified ? { lastVerified: existing.metadata.lastVerified.toString() } : {}),
           isActive: existing.isActive,
           wikiLinks,
@@ -130,9 +131,9 @@ export const makeUpdateKnowledge = (knowledgeRepository: IKnowledgeRepository): 
       })
       .useResult('save', ({ updated }) =>
         knowledgeRepository.updateById(
-          IdVO.create(parsed.data.id),
+          IdVO.create(validated.id),
           updated as unknown as IKnowledge,
-          IdVO.create(parsed.data.updatedBy),
+          IdVO.create(validated.updatedBy),
         ),
       )
       .run();

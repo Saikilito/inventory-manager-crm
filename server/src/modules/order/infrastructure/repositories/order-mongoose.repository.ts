@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { IOrderRepository } from '../../application/repositories/order.repository.js';
-import { IOrder, makeOrder, OrderStatus, PaymentStatus, DeliveryStatus, DEFAULT_PRICE_FALLBACK } from '../../../../../../shared-domain/src/order/order.entity.js';
+import { IOrder, makeOrder, OrderStatus, PaymentStatus, DeliveryStatus, ORDER_DEFAULT_PRICE_FALLBACK } from '../../../../../../shared-domain/src/order/order.entity.js';
 import OrderModel, { IOrderDocument } from '../order.model.js';
 import { makeMongooseBaseRepository } from '../../../shared/infrastructure/repositories/mongoose-base.repository.js';
 
@@ -24,8 +24,8 @@ const mapToDomain = (doc: IOrderDocument): IOrder => {
     items: (doc.items as unknown as IRawMongooseOrderItem[]).map((item) => ({
       productId: item.productId.toString(),
       quantity: item.quantity,
-      purchasePriceAtSale: item.purchasePriceAtSale !== undefined && item.purchasePriceAtSale !== null ? item.purchasePriceAtSale : DEFAULT_PRICE_FALLBACK,
-      sellingPriceAtSale: item.sellingPriceAtSale !== undefined && item.sellingPriceAtSale !== null ? item.sellingPriceAtSale : DEFAULT_PRICE_FALLBACK,
+      purchasePriceAtSale: item.purchasePriceAtSale !== undefined && item.purchasePriceAtSale !== null ? item.purchasePriceAtSale : ORDER_DEFAULT_PRICE_FALLBACK,
+      sellingPriceAtSale: item.sellingPriceAtSale !== undefined && item.sellingPriceAtSale !== null ? item.sellingPriceAtSale : ORDER_DEFAULT_PRICE_FALLBACK,
     })),
     total: doc.total,
     createdAt: createdAtStr,

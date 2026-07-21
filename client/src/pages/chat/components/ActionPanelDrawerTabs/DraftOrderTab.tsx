@@ -4,6 +4,7 @@ import { Minus, Plus, Trash2, ShoppingBag, Loader2 } from "lucide-react";
 import { CREATE_ORDER } from "../../../../modules/order/infrastructure/graphql/mutations";
 import { calculateDistance, DEFAULT_ORIGIN_LAT, DEFAULT_ORIGIN_LNG } from "@shared-domain/delivery/delivery-calculator";
 import { formatCurrency } from "@utils/formatters";
+import { DEFAULT_SELLER_ID } from "@shared-domain/chat/agent.entity";
 
 // Defined the same as ActionPanelDrawer
 export const CARACAS_ZONES = [
@@ -123,7 +124,7 @@ export const DraftOrderTab: React.FC<DraftOrderTabProps> = ({
             clientId: selectedClientId,
             items: itemsInput,
             total: totalOrder,
-            sellerId: "550e8400-e29b-41d4-a716-446655440003", // Default seller ID
+            sellerId: DEFAULT_SELLER_ID,
             deliveryCost: deliveryCost,
             deliveryAddress: deliveryType === "delivery" ? deliveryAddress : "PICKUP",
             status: "PENDING",

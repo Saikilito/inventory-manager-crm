@@ -4,15 +4,15 @@ import { DomainError } from '../../../../../../shared-domain/src/shared/errors.j
 import { ValidationError } from '../../../../../../shared-domain/src/shared/validation-error.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { NonEmptyStringVO } from '../../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js';
-import { BillingMonthVO } from '../../../../../../shared-domain/src/shared/value-objects/billing-month.vo.js';
 import { PositiveNumberVO } from '../../../../../../shared-domain/src/shared/value-objects/positive-number.vo.js';
+import { zodBillingMonth, zodOptionalNullableIdString } from '../../../../../../shared-domain/src/shared/zod-schemas.js';
 import { WhereField } from '../../../../../../shared-domain/src/shared/repository.js';
 import { IFixedExpense, IFixedExpensePayment } from '../../../../../../shared-domain/src/expense/fixed-expense.entity.js';
 import { IFixedExpenseRepository, IFixedExpensePaymentRepository } from '../repositories/fixed-expense.repository.js';
 
 export const GetFixedExpensePaymentsSchema = z.object({
-  billingMonth: z.string().refine((v) => !BillingMonthVO.createResult(v).isFailure, { message: 'Billing month must be in YYYY-MM format' }),
-  contextId: z.string().optional().nullable(),
+  billingMonth: zodBillingMonth,
+  contextId: zodOptionalNullableIdString,
 });
 
 export type GetFixedExpensePaymentsInput = z.infer<typeof GetFixedExpensePaymentsSchema>;

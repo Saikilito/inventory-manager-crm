@@ -1,11 +1,13 @@
 import { z } from 'zod';
 import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
 import { DomainError } from '../../../../../../shared-domain/src/shared/errors.js';
-import { ValidationError } from '../../../../../../shared-domain/src/shared/validation-error.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { ResultComposer } from '../../../../../../shared-domain/src/shared/result-composer.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
+import { zodIdString } from '../../../../../../shared-domain/src/shared/zod-schemas.js';
+import { validateInput } from '../../../../../../shared-domain/src/shared/validate-input.js';
 import { KnowledgeStatus } from '../../../../../../shared-domain/src/knowledge/value-objects/knowledge-status.vo.js';
+import { zodKnowledgeStatus } from '../../../../../../shared-domain/src/shared/zod-schemas.js';
 import {
   IKnowledge,
   makeKnowledgeResult,
@@ -18,9 +20,9 @@ export const createKnowledgeInputSchema = z.object({
   content: z.string().trim().min(1, 'Content is required'),
   hierarchyLevel: z.string().min(1, 'Hierarchy level is required'),
   tags: z.array(z.string()).optional(),
-  status: z.enum([KnowledgeStatus.DRAFT, KnowledgeStatus.ACTIVE, KnowledgeStatus.REJECTED]).optional(),
-  productId: z.string().min(1).optional(),
-  createdBy: z.string().min(1, 'createdBy is required'),
+  status: zodKnowledgeStatus.optional(),
+  productId: zodIdString.optional(),
+  createdBy: zodIdString,
 });
 
 export type CreateKnowledgeInput = z.infer<typeof createKnowledgeInputSchema>;
@@ -29,27 +31,24 @@ export type CreateKnowledge = UseCase<CreateKnowledgeInput, IKnowledge, DomainEr
 
 export const makeCreateKnowledge = (knowledgeRepository: IKnowledgeRepository): CreateKnowledge => {
   return async (input: CreateKnowledgeInput) => {
-    const parsed = createKnowledgeInputSchema.safeParse(input);
-    if (!parsed.success) {
-      const message = parsed.error.issues.map((i) => i.message).join(', ');
-      return Result.fail(new ValidationError(message));
-    }
+    const parsed = validateInput(createKnowledgeInputSchema, input);
+    if (parsed.isFailure) return Result.fail(parsed.getError());
 
     const composerResult = await ResultComposer.start()
       .useResult('knowledge', () => {
         return makeKnowledgeResult({
-          category: parsed.data.category,
-          title: parsed.data.title,
-          content: parsed.data.content,
-          hierarchyLevel: parsed.data.hierarchyLevel,
-          tags: parsed.data.tags || [],
-          status: parsed.data.status ?? KnowledgeStatus.DRAFT,
-          productId: parsed.data.productId,
-          createdBy: parsed.data.createdBy,
+          category: parsed.getValue().category,
+          title: parsed.getValue().title,
+          content: parsed.getValue().content,
+          hierarchyLevel: parsed.getValue().hierarchyLevel,
+          tags: parsed.getValue().tags || [],
+          status: parsed.getValue().status ?? KnowledgeStatus.DRAFT,
+          productId: parsed.getValue().productId,
+          createdBy: parsed.getValue().createdBy,
           isActive: true,
         });
       })
-      .useResult('saved', ({ knowledge }) => knowledgeRepository.create(knowledge, IdVO.create(parsed.data.createdBy)))
+      .useResult('saved', ({ knowledge }) => knowledgeRepository.create(knowledge, IdVO.create(parsed.getValue().createdBy)))
       .run();
 
     if (composerResult.isFailure) {

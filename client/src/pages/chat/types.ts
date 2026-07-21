@@ -1,3 +1,5 @@
+import type { AgentRole } from "@shared-domain/chat/agent.entity";
+
 interface Purchase {
   id: string;
   date: string;
@@ -41,7 +43,7 @@ export interface Message {
 export interface Agent {
   id: string;
   name: string;
-  role: "SALES" | "SUPPORT" | "CRM_OPERATOR";
+  role: AgentRole;
   status: string;
   systemPrompt: string;
   enabledTools: string[];
