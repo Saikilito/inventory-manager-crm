@@ -28,7 +28,10 @@ export interface UpdateOrderInput {
   total?: number;
   clientId?: string;
   status?: OrderStatus;
+  paymentStatus?: PaymentStatus;
+  deliveryStatus?: DeliveryStatus;
   sellerId?: string;
+  contextId?: string;
 }
 
 export type UpdateOrder = UseCase<UpdateOrderInput, void, DomainError>;
@@ -60,20 +63,54 @@ export const makeUpdateOrder = (
       validateExisting: IOrder;
     };
 
+    const itemsToProcess = input.items || existing.items;
+    
+    // Auto-heal missing prices for legacy/broken orders
+    const healedItems = await Promise.all(
+      itemsToProcess.map(async (item) => {
+        let pPrice = (item as any).purchasePriceAtSale;
+        let sPrice = (item as any).sellingPriceAtSale;
+
+        if (input.items) {
+          const existingItem = existing.items.find(ei => ei.productId === item.productId);
+          pPrice = existingItem?.purchasePriceAtSale;
+          sPrice = existingItem?.sellingPriceAtSale;
+        }
+
+        if (pPrice === undefined || sPrice === undefined || isNaN(pPrice) || isNaN(sPrice)) {
+          const prodResult = await productRepository.getById(IdVO.create(item.productId));
+          if (!prodResult.isFailure && prodResult.getValue()) {
+            const prod = prodResult.getValue()!;
+            pPrice = prod.purchasePrice || 0;
+            sPrice = prod.sellingPrice || prod.price || 0;
+          } else {
+            pPrice = 0;
+            sPrice = 0;
+          }
+        }
+
+        return {
+          productId: item.productId,
+          quantity: item.quantity,
+          purchasePriceAtSale: pPrice,
+          sellingPriceAtSale: sPrice,
+        };
+      })
+    );
+
     const updated = makeOrder({
       id: input.id,
-      items: input.items
-        ? input.items
-        : existing.items.map((item: IOrderItem) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-          })),
+      items: healedItems,
       total: input.total !== undefined ? input.total : existing.total,
       clientId:
         input.clientId !== undefined ? input.clientId : existing.clientId,
       status: input.status !== undefined ? input.status : existing.status,
+      paymentStatus: input.paymentStatus !== undefined ? input.paymentStatus : existing.paymentStatus,
+      deliveryStatus: input.deliveryStatus !== undefined ? input.deliveryStatus : existing.deliveryStatus,
       sellerId:
         input.sellerId !== undefined ? input.sellerId : existing.sellerId,
+      contextId:
+        input.contextId !== undefined ? input.contextId : existing.contextId,
     });
 
     const operation = match([existing.status, updated.status])

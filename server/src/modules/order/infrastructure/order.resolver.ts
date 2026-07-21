@@ -20,6 +20,8 @@ interface UpdateOrderInput {
   total?: number;
   clientId?: string;
   status?: OrderStatus;
+  paymentStatus?: PaymentStatus;
+  deliveryStatus?: DeliveryStatus;
   sellerId?: string;
   contextId?: string;
 }
@@ -122,6 +124,8 @@ export default {
         total: input.total,
         clientId: input.clientId,
         status: input.status,
+        paymentStatus: input.paymentStatus,
+        deliveryStatus: input.deliveryStatus,
         sellerId: input.sellerId,
         contextId: input.contextId,
       });

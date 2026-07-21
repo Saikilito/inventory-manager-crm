@@ -19,6 +19,9 @@ const mapToDomain = (doc: IOrderDocument): IOrder => {
       ? createdAtRaw
       : new Date().toISOString();
 
+  // Handle potential undefined statuses by defaulting to PENDING
+  const rawDoc = doc as any;
+
   return makeOrder({
     id: doc._id.toString(),
     items: (doc.items as unknown as IRawMongooseOrderItem[]).map((item) => ({
@@ -31,7 +34,10 @@ const mapToDomain = (doc: IOrderDocument): IOrder => {
     createdAt: createdAtStr,
     clientId: doc.clientId.toString(),
     status: doc.status as OrderStatus,
+    paymentStatus: (rawDoc.paymentStatus as any) || 'PENDING',
+    deliveryStatus: (rawDoc.deliveryStatus as any) || 'PENDING',
     sellerId: doc.sellerId.toString(),
+    contextId: doc.contextId?.toString(),
   });
 };
 
@@ -51,8 +57,11 @@ export const makeOrderMongooseRepository = (): IOrderRepository => {
       }
       if (order.total !== undefined) data.total = order.total;
       if (order.status !== undefined) data.status = order.status;
+      if (order.paymentStatus !== undefined) (data as any).paymentStatus = order.paymentStatus;
+      if (order.deliveryStatus !== undefined) (data as any).deliveryStatus = order.deliveryStatus;
       if (order.clientId !== undefined) data.clientId = new mongoose.Types.ObjectId(order.clientId);
       if (order.sellerId !== undefined) data.sellerId = new mongoose.Types.ObjectId(order.sellerId);
+      if (order.contextId !== undefined) data.contextId = order.contextId ? new mongoose.Types.ObjectId(order.contextId) : null;
       return data;
     },
   });

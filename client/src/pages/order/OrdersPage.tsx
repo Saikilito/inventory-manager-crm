@@ -201,8 +201,10 @@ export const OrdersPage: React.FC<OrdersPageProps> = () => {
       
       await refetchOrders();
       handleCloseModal();
-    } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : "Failed to update order";
+    } catch (err: any) {
+      const errorMsg = err?.graphQLErrors?.[0]?.message 
+        || err?.message 
+        || "Failed to update order. Please check the data and try again.";
       setUpdateError(errorMsg);
       throw err; // Re-throw so child components know the await failed
     }
