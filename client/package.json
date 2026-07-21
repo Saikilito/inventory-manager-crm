@@ -6,6 +6,7 @@
   "dependencies": {
     "@apollo/client": "^3.13.0",
     "@vitejs/plugin-react": "^4.4.0",
+    "@xyflow/react": "^12.3.0",
     "graphql": "^16.11.0",
     "graphql-ws": "^6.1.0",
     "lucide-react": "^1.21.0",

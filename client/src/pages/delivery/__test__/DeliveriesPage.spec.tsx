@@ -177,8 +177,8 @@ describe("DeliveriesPage - Daily Delivery Counter", () => {
     expect(screen.getByText("Selected Day:")).toBeInTheDocument();
     expect(screen.getByText("Total Delivery Revenue")).toBeInTheDocument();
 
-    // Today is 2026-07-10, so formatDayLabel should show "10/07/2026"
-    expect(screen.getByText("10/07/2026")).toBeInTheDocument();
+    // Today is 2026-07-10, so formatDayLabel should show "(Today)"
+    expect(screen.getByDisplayValue("2026-07-10")).toBeInTheDocument();
 
     // Delivery-1 ($15.00 PENDING) and Delivery-2 ($20.00 DELIVERED) are on 2026-07-10.
     // Delivery-3 is CANCELLED so it is not summed.
@@ -195,8 +195,8 @@ describe("DeliveriesPage - Daily Delivery Counter", () => {
     const prevDayButton = screen.getByTitle("Previous Day");
     fireEvent.click(prevDayButton);
 
-    // Date navigator should update to 09/07/2026
-    expect(screen.getByText("09/07/2026")).toBeInTheDocument();
+    // Date navigator should update to (Yesterday)
+    expect(screen.getByDisplayValue("2026-07-09")).toBeInTheDocument();
 
     // On 2026-07-09, only Delivery-4 ($10.00 PENDING) is scheduled.
     // Expected sum: $10.00 (shown in KPI Card and in the delivery cost list)
@@ -213,8 +213,8 @@ describe("DeliveriesPage - Daily Delivery Counter", () => {
     fireEvent.click(nextDayButton); // Go to 10/07/2026
     fireEvent.click(nextDayButton); // Go to 11/07/2026
 
-    // Date navigator should show "11/07/2026"
-    expect(screen.getByText("11/07/2026")).toBeInTheDocument();
+    // Date navigator should show "(Tomorrow)"
+    expect(screen.getByDisplayValue("2026-07-11")).toBeInTheDocument();
 
     // On 2026-07-11, there are no scheduled deliveries.
     // Expected sum: $0.00

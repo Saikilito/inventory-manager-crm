@@ -49,7 +49,7 @@ describe("Apollo Context Integration", () => {
 
   it("should verify a valid token and attach the user to req.actualUser", async () => {
     const payload = { id: "user_123", email: "test@example.com" };
-    const secret = process.env.JWT_SECRET || "JWT_SECRET_DEFAULT";
+    const secret = process.env.JWT_SECRET as string;
     const token = jwt.sign(payload, secret);
 
     const mockReq = {

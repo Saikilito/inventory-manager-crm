@@ -19,7 +19,17 @@ export type AuthenticateUser = (
   input: AuthenticateUserInput,
 ) => Promise<Result<AuthenticationResult, Error>>;
 
-const __secret = process.env.JWT_SECRET || "JWT_SECRET_DEFAULT";
+const resolveJwtSecret = (): string => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret.length === 0 || secret === "JWT_SECRET_DEFAULT") {
+    throw new Error(
+      "JWT_SECRET environment variable is missing or set to the insecure default. Refusing to sign tokens.",
+    );
+  }
+  return secret;
+};
+
+const __secret = resolveJwtSecret();
 
 const createToken = (
   email: string,

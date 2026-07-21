@@ -110,7 +110,7 @@ describe('Product Use Cases (TDD)', () => {
 
   it('should successfully create a valid product (CreateProduct)', async () => {
     const repo = makeMockProductRepository();
-    const createProduct = makeCreateProduct(repo);
+    const createProduct = makeCreateProduct({ productRepository: repo });
 
     const result = await createProduct({
       name: 'Alfajor Saikilo',
@@ -126,7 +126,7 @@ describe('Product Use Cases (TDD)', () => {
 
   it('should fail to create a product with negative stock or price (CreateProduct)', async () => {
     const repo = makeMockProductRepository();
-    const createProduct = makeCreateProduct(repo);
+    const createProduct = makeCreateProduct({ productRepository: repo });
 
     // Negative price should throw a ValidationError upon Value Object creation
     const resultNegPrice = await createProduct({

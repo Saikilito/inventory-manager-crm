@@ -9,8 +9,10 @@ export interface IRentalReservationDocument extends Omit<IRentalReservation, "id
 }
 
 const rentalSchema = new Schema<IRentalReservationDocument>({
-  productId: { type: Schema.Types.ObjectId, ref: "Product", required: true },
-  orderId: { type: Schema.Types.ObjectId, ref: "Order", required: true },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mongoose's Schema.Types.ObjectId typing is incompatible with the strict generics of `Schema<IRentalReservationDocument>`.
+  productId: { type: Schema.Types.ObjectId as any, ref: "Product", required: true },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mongoose's Schema.Types.ObjectId typing is incompatible with the strict generics of `Schema<IRentalReservationDocument>`.
+  orderId: { type: Schema.Types.ObjectId as any, ref: "Order", required: true },
   startDateTime: { type: Date, required: true },
   endDateTime: { type: Date, required: true },
   quantity: { type: Number, required: true },

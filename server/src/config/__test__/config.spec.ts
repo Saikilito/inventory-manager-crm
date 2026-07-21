@@ -2,12 +2,16 @@ import { describe, it, expect } from "vitest";
 import { parseConfig } from "../index.js";
 
 describe("Environment Variables Config Parser", () => {
-  it("should parse and return default values when environment variables are empty", () => {
-    const config = parseConfig({});
-    expect(config.PORT).toBe(4555);
-    expect(config.database).toBe("mongodb://localhost:27017/CRM-Apollo");
-    expect(config.secret).toBe("JWT_SECRET_DEFAULT");
-    expect(config.corsOrigin).toBe("http://localhost:3000");
+  it("should throw when JWT_SECRET is missing", () => {
+    expect(() => parseConfig({})).toThrow(
+      "Invalid environment variables configuration",
+    );
+  });
+
+  it("should throw when JWT_SECRET uses the insecure default value", () => {
+    expect(() => parseConfig({ JWT_SECRET: "JWT_SECRET_DEFAULT" })).toThrow(
+      "Invalid environment variables configuration",
+    );
   });
 
   it("should successfully parse valid custom environment variables", () => {
@@ -27,6 +31,7 @@ describe("Environment Variables Config Parser", () => {
 
   it("should throw an error if PORT is not a positive integer", () => {
     const invalidEnv = {
+      JWT_SECRET: "CUSTOM_SECURE_TOKEN_123",
       PORT: "-10",
     };
 
@@ -38,6 +43,7 @@ describe("Environment Variables Config Parser", () => {
   it("should throw an error if a required field is empty", () => {
     // If we override MONGODB_URI to be empty string, Zod min(1) validation should fail
     const invalidEnv = {
+      JWT_SECRET: "CUSTOM_SECURE_TOKEN_123",
       MONGODB_URI: "",
     };
 

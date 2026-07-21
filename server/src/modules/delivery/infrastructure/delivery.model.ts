@@ -7,7 +7,8 @@ export interface IDeliveryDocument extends Omit<IDelivery, "id">, Document {
 }
 
 const deliverySchema = new Schema<IDeliveryDocument>({
-  orderId: { type: Schema.Types.ObjectId, ref: "Order", required: true },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mongoose's Schema.Types.ObjectId typing is incompatible with the strict generics of `Schema<IDeliveryDocument>` when a custom document interface is provided. A full type-safe replacement would require a refactor to use `mongoose.Schema.Types.ObjectId` directly across every Mongoose model in the codebase.
+  orderId: { type: Schema.Types.ObjectId as any, ref: "Order", required: true },
   scheduledDate: { type: String, required: true }, // Saved as ISO/Caracas string from DateTimeVO
   deliveryTime: { type: String, required: true },
   address: { type: String, required: true },

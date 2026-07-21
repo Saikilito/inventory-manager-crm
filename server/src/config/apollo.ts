@@ -1,4 +1,5 @@
 import { ApolloServer } from '@apollo/server';
+import { makeExecutableSchema } from '@graphql-tools/schema';
 import { loadFilesSync } from '@graphql-tools/load-files';
 import { mergeTypeDefs, mergeResolvers } from '@graphql-tools/merge';
 import path from 'path';
@@ -22,7 +23,8 @@ const resolvers = mergeResolvers(
   ])
 );
 
-const server = new ApolloServer({ typeDefs, resolvers });
+export const schema = makeExecutableSchema({ typeDefs, resolvers });
+const server = new ApolloServer({ schema });
 
 export default server;
 

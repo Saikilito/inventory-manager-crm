@@ -5,7 +5,11 @@ import {
   Users,
   Package,
   ShoppingCart,
-  MessageSquare
+  MessageSquare,
+  Receipt,
+  Wallet,
+  Truck,
+  Clock
 } from 'lucide-react';
 
 export const MobileBottomBar: React.FC = () => {
@@ -33,6 +37,26 @@ export const MobileBottomBar: React.FC = () => {
       path: '/orders',
       label: 'Orders',
       icon: ShoppingCart,
+    },
+    {
+      path: '/expenses',
+      label: 'Expenses',
+      icon: Receipt,
+    },
+    {
+      path: '/finance',
+      label: 'Finance',
+      icon: Wallet,
+    },
+    {
+      path: '/rentals',
+      label: 'Rentals',
+      icon: Clock,
+    },
+    {
+      path: '/deliveries',
+      label: 'Deliveries',
+      icon: Truck,
     },
     {
       path: '/chat',

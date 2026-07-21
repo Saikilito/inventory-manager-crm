@@ -4,8 +4,8 @@ import { calculateTransactionLines } from "./aggregation";
 
 describe("calculateTransactionLines", () => {
     const productsMap = new Map([
-      ["prod1", { name: "Product A", purchasePrice: 5, cost: 5 }],
-      ["prod2", { name: "Product B", purchasePrice: 10, cost: 10 }],
+      ["p1", { name: "Product 1", purchasePrice: 5, cost: 5 }],
+      ["p2", { name: "Product 2", purchasePrice: 15, cost: 15 }],
     ]);
 
   const orders = [

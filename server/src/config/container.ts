@@ -1,44 +1,73 @@
-import { IProductRepository } from '../modules/product/application/repositories/product.repository.js';
+import { pubSubInstance } from '../modules/chat/infrastructure/pubsub.js';
+import config from './index.js';
+import {
+  buildChatModule,
+  type ChatSubContainer,
+} from './container/chat-module.js';
+import {
+  buildProductModule,
+  buildUserModule,
+  buildClientModule,
+  buildOrderModule,
+  buildDashboardModule,
+  buildContextModule,
+  buildDeliveryModule,
+  buildRentalModule,
+  buildFinancialModule,
+  buildExpenseModule,
+  buildKnowledgeModule,
+  type ProductSubContainer,
+  type UserSubContainer,
+  type ClientSubContainer,
+  type OrderSubContainer,
+  type DashboardSubContainer,
+  type ContextSubContainer,
+  type DeliverySubContainer,
+  type RentalSubContainer,
+  type FinancialSubContainer,
+  type ExpenseSubContainer,
+  type KnowledgeSubContainer,
+} from './container/other-modules.js';
 import { makeProductMongooseRepository } from '../modules/product/infrastructure/repositories/product-mongoose.repository.js';
-import { GetProduct, makeGetProduct } from '../modules/product/application/use-cases/get-product.js';
-import { GetAllProducts, makeGetAllProducts } from '../modules/product/application/use-cases/get-all-products.js';
-import { TotalProducts, makeTotalProducts } from '../modules/product/application/use-cases/total-products.js';
-import { CreateProduct, makeCreateProduct } from '../modules/product/application/use-cases/create-product.js';
-import { UpdateProduct, makeUpdateProduct } from '../modules/product/application/use-cases/update-product.js';
-import { DeleteProduct, makeDeleteProduct } from '../modules/product/application/use-cases/delete-product.js';
-
-import { IUserRepository } from '../modules/user/application/repositories/user.repository.js';
 import { makeUserMongooseRepository } from '../modules/user/infrastructure/repositories/user-mongoose.repository.js';
-import { GetUserByEmail, makeGetUserByEmail } from '../modules/user/application/use-cases/get-user.js';
-import { RegisterUser, makeRegisterUser } from '../modules/user/application/use-cases/register-user.js';
-import { AuthenticateUser, makeAuthenticateUser } from '../modules/user/application/use-cases/authenticate-user.js';
-import { GetAllUsers, makeGetAllUsers } from '../modules/user/application/use-cases/get-all-users.js';
-import { UpdateUser, makeUpdateUser } from '../modules/user/application/use-cases/update-user.js';
-
-import { IClientRepository } from '../modules/client/application/repositories/client.repository.js';
 import { makeClientMongooseRepository } from '../modules/client/infrastructure/repositories/client-mongoose.repository.js';
-import { GetClient, makeGetClient } from '../modules/client/application/use-cases/get-client.js';
-import { GetAllClients, makeGetAllClients } from '../modules/client/application/use-cases/get-all-clients.js';
-import { TotalClients, makeTotalClients } from '../modules/client/application/use-cases/total-clients.js';
-import { CreateClient, makeCreateClient } from '../modules/client/application/use-cases/create-client.js';
-import { UpdateClient, makeUpdateClient } from '../modules/client/application/use-cases/update-client.js';
-import { DeleteClient, makeDeleteClient } from '../modules/client/application/use-cases/delete-client.js';
-import { RecalculateClientRating, makeRecalculateClientRating } from '../modules/client/application/use-cases/recalculate-client-rating.js';
-
-import { IOrderRepository } from '../modules/order/application/repositories/order.repository.js';
 import { makeOrderMongooseRepository } from '../modules/order/infrastructure/repositories/order-mongoose.repository.js';
-import { GetOrder, makeGetOrder } from '../modules/order/application/use-cases/get-order.js';
-import { GetOrderClient, makeGetOrderClient } from '../modules/order/application/use-cases/get-order-client.js';
-import { GetAllOrders, makeGetAllOrders } from '../modules/order/application/use-cases/get-all-orders.js';
-import { TotalOrders, makeTotalOrders } from '../modules/order/application/use-cases/total-orders.js';
-import { CreateOrder, makeCreateOrder } from '../modules/order/application/use-cases/create-order.js';
-import { UpdateOrder, makeUpdateOrder } from '../modules/order/application/use-cases/update-order.js';
-import { DeleteOrder, makeDeleteOrder } from '../modules/order/application/use-cases/delete-order.js';
-
-import { IDashboardRepository } from '../modules/dashboard/application/repositories/dashboard.repository.js';
 import { makeDashboardMongooseRepository } from '../modules/dashboard/infrastructure/repositories/dashboard-mongoose.repository.js';
-import { GetTopClients, makeGetTopClients } from '../modules/dashboard/application/use-cases/get-top-clients.js';
-import { GetTopSellers, makeGetTopSellers } from '../modules/dashboard/application/use-cases/get-top-sellers.js';
+import { makeContextMongooseRepository } from '../modules/context/infrastructure/repositories/context-mongoose.repository.js';
+import { makeDeliveryMongooseRepository } from '../modules/delivery/infrastructure/repositories/delivery-mongoose.repository.js';
+import { makeRentalMongooseRepository } from '../modules/rental/infrastructure/repositories/rental-mongoose.repository.js';
+import {
+  makeAccountMongooseRepository,
+  makeTransactionMongooseRepository,
+  makeExchangeRateMongooseRepository,
+  makeFinancialDayMongooseRepository,
+} from '../modules/financial/infrastructure/repositories/financial-mongoose.repository.js';
+import { makeExpenseMongooseRepository } from '../modules/expense/infrastructure/repositories/expense-mongoose.repository.js';
+import { makeFixedExpenseMongooseRepository, makeFixedExpensePaymentMongooseRepository } from '../modules/expense/infrastructure/repositories/fixed-expense-mongoose.repository.js';
+import { IKnowledgeRepository } from '../modules/knowledge/application/repositories/knowledge.repository.js';
+import { makeKnowledgeMongooseRepository } from '../modules/knowledge/infrastructure/repositories/knowledge-mongoose.repository.js';
+import { IProductRepository } from '../modules/product/application/repositories/product.repository.js';
+import { IUserRepository } from '../modules/user/application/repositories/user.repository.js';
+import { IClientRepository } from '../modules/client/application/repositories/client.repository.js';
+import { IOrderRepository } from '../modules/order/application/repositories/order.repository.js';
+import { IDashboardRepository } from '../modules/dashboard/application/repositories/dashboard.repository.js';
+import { IContextRepository } from '../modules/context/application/repositories/context.repository.js';
+import { IDeliveryRepository } from '../modules/delivery/application/repositories/delivery.repository.js';
+import { IRentalRepository } from '../modules/rental/application/repositories/rental.repository.js';
+import {
+  IAccountRepository,
+  ITransactionRepository,
+  IExchangeRateRepository,
+  IFinancialDayRepository,
+} from '../modules/financial/application/repositories/financial.repository.js';
+import { IExpenseRepository } from '../modules/expense/application/repositories/expense.repository.js';
+import { IFixedExpenseRepository, IFixedExpensePaymentRepository } from '../modules/expense/application/repositories/fixed-expense.repository.js';
+import { IAgentRepository } from '../modules/chat/application/repositories/agent.repository.js';
+import { IChatSessionRepository } from '../modules/chat/application/repositories/chat-session.repository.js';
+import { IChatMessageRepository } from '../modules/chat/application/repositories/chat-message.repository.js';
+import { IUnsatisfiedDemandRepository } from '../modules/chat/application/repositories/unsatisfied-demand.repository.js';
+import { IBaileysAuthRepository } from '../modules/chat/application/repositories/baileys-auth.repository.js';
+import { makeRecalculateClientRating } from '../modules/client/application/use-cases/recalculate-client-rating.js';
 
 export interface ContainerDependencies {
   productRepository?: IProductRepository;
@@ -46,50 +75,37 @@ export interface ContainerDependencies {
   clientRepository?: IClientRepository;
   orderRepository?: IOrderRepository;
   dashboardRepository?: IDashboardRepository;
+  contextRepository?: IContextRepository;
+  deliveryRepository?: IDeliveryRepository;
+  rentalRepository?: IRentalRepository;
+  accountRepository?: IAccountRepository;
+  transactionRepository?: ITransactionRepository;
+  exchangeRateRepository?: IExchangeRateRepository;
+  financialDayRepository?: IFinancialDayRepository;
+  expenseRepository?: IExpenseRepository;
+  fixedExpenseRepository?: IFixedExpenseRepository;
+  fixedExpensePaymentRepository?: IFixedExpensePaymentRepository;
+  knowledgeRepository?: IKnowledgeRepository;
+  agentRepository?: IAgentRepository;
+  chatSessionRepository?: IChatSessionRepository;
+  chatMessageRepository?: IChatMessageRepository;
+  unsatisfiedDemandRepository?: IUnsatisfiedDemandRepository;
+  baileysAuthRepository?: IBaileysAuthRepository;
 }
 
 export type Container = Readonly<{
-  product: Readonly<{
-    getProduct: GetProduct;
-    getAllProducts: GetAllProducts;
-    totalProducts: TotalProducts;
-    createProduct: CreateProduct;
-    updateProduct: UpdateProduct;
-    deleteProduct: DeleteProduct;
-  }>;
-
-  user: Readonly<{
-    getUserByEmail: GetUserByEmail;
-    registerUser: RegisterUser;
-    authenticateUser: AuthenticateUser;
-    getAllUsers: GetAllUsers;
-    updateUser: UpdateUser;
-  }>;
-
-  client: Readonly<{
-    getClient: GetClient;
-    getAllClients: GetAllClients;
-    totalClients: TotalClients;
-    createClient: CreateClient;
-    updateClient: UpdateClient;
-    deleteClient: DeleteClient;
-    recalculateClientRating: RecalculateClientRating;
-  }>;
-
-  order: Readonly<{
-    getOrder: GetOrder;
-    getOrderClient: GetOrderClient;
-    getAllOrders: GetAllOrders;
-    totalOrders: TotalOrders;
-    createOrder: CreateOrder;
-    updateOrder: UpdateOrder;
-    deleteOrder: DeleteOrder;
-  }>;
-
-  dashboard: Readonly<{
-    getTopClients: GetTopClients;
-    getTopSellers: GetTopSellers;
-  }>;
+  product: ProductSubContainer;
+  user: UserSubContainer;
+  client: ClientSubContainer;
+  order: OrderSubContainer;
+  dashboard: DashboardSubContainer;
+  context: ContextSubContainer;
+  delivery: DeliverySubContainer;
+  rental: RentalSubContainer;
+  financial: FinancialSubContainer;
+  expense: ExpenseSubContainer;
+  knowledge: KnowledgeSubContainer;
+  chat: ChatSubContainer;
 }>;
 
 export const makeContainer = (overrides: ContainerDependencies = {}): Container => {
@@ -97,53 +113,88 @@ export const makeContainer = (overrides: ContainerDependencies = {}): Container 
   const userRepository = overrides.userRepository ?? makeUserMongooseRepository();
   const clientRepository = overrides.clientRepository ?? makeClientMongooseRepository();
   const orderRepository = overrides.orderRepository ?? makeOrderMongooseRepository();
-  const dashboardRepository = overrides.dashboardRepository ?? makeDashboardMongooseRepository();
 
+  const knowledge = buildKnowledgeModule({
+    knowledgeRepository: overrides.knowledgeRepository,
+    librarianEnabled: config.librarianEnabled,
+  });
+
+  const product = buildProductModule({ productRepository, librarian: knowledge.librarian });
+  const user = buildUserModule({ userRepository });
   const recalculateClientRating = makeRecalculateClientRating(clientRepository, orderRepository);
+  const client = buildClientModule({ clientRepository, orderRepository, recalculateClientRating });
+  const order = buildOrderModule({
+    orderRepository,
+    productRepository,
+    recalculateClientRating,
+  });
 
-  const container: Container = {
-    product: {
-      getProduct: makeGetProduct(productRepository),
-      getAllProducts: makeGetAllProducts(productRepository),
-      totalProducts: makeTotalProducts(productRepository),
-      createProduct: makeCreateProduct(productRepository),
-      updateProduct: makeUpdateProduct(productRepository),
-      deleteProduct: makeDeleteProduct(productRepository),
+  const dashboard = buildDashboardModule({
+    dashboardRepository: overrides.dashboardRepository ?? makeDashboardMongooseRepository(),
+  });
+
+  const expense = buildExpenseModule({
+    expenseRepository: overrides.expenseRepository ?? makeExpenseMongooseRepository(),
+    fixedExpenseRepository: overrides.fixedExpenseRepository ?? makeFixedExpenseMongooseRepository(),
+    fixedExpensePaymentRepository:
+      overrides.fixedExpensePaymentRepository ?? makeFixedExpensePaymentMongooseRepository(),
+  });
+
+  const delivery = buildDeliveryModule({
+    deliveryRepository: overrides.deliveryRepository ?? makeDeliveryMongooseRepository(),
+    orderRepository,
+  });
+
+  const rental = buildRentalModule({
+    rentalRepository: overrides.rentalRepository ?? makeRentalMongooseRepository(),
+    productRepository,
+  });
+
+  const accountRepository = overrides.accountRepository ?? makeAccountMongooseRepository();
+  const transactionRepository = overrides.transactionRepository ?? makeTransactionMongooseRepository();
+  const exchangeRateRepository = overrides.exchangeRateRepository ?? makeExchangeRateMongooseRepository();
+  const financialDayRepository = overrides.financialDayRepository ?? makeFinancialDayMongooseRepository();
+
+  const financial = buildFinancialModule({
+    accountRepository,
+    transactionRepository,
+    exchangeRateRepository,
+    financialDayRepository,
+    deliveryRepository: delivery.deliveryRepository,
+  });
+
+  const context = buildContextModule({
+    productRepository,
+    orderRepository,
+    expenseRepository: overrides.expenseRepository ?? makeExpenseMongooseRepository(),
+    accountRepository,
+    contextRepository: overrides.contextRepository ?? makeContextMongooseRepository(),
+  });
+
+  const chat = buildChatModule({
+    productRepository,
+    clientRepository,
+    pubSubInstance,
+    knowledgeRepository: overrides.knowledgeRepository ?? makeKnowledgeMongooseRepository(),
+    config: {
+      knowledgeInjectionEnabled: config.knowledgeInjectionEnabled,
+      knowledgeInjectionTopN: config.knowledgeInjectionTopN,
+      knowledgeInjectionTokenBudget: config.knowledgeInjectionTokenBudget,
     },
+  });
 
-    user: {
-      getUserByEmail: makeGetUserByEmail(userRepository),
-      registerUser: makeRegisterUser(userRepository),
-      authenticateUser: makeAuthenticateUser(userRepository),
-      getAllUsers: makeGetAllUsers(userRepository),
-      updateUser: makeUpdateUser(userRepository),
-    },
-
-    client: {
-      getClient: makeGetClient(clientRepository),
-      getAllClients: makeGetAllClients(clientRepository),
-      totalClients: makeTotalClients(clientRepository),
-      createClient: makeCreateClient(clientRepository),
-      updateClient: makeUpdateClient(clientRepository),
-      deleteClient: makeDeleteClient(clientRepository),
-      recalculateClientRating,
-    },
-
-    order: {
-      getOrder: makeGetOrder(orderRepository),
-      getOrderClient: makeGetOrderClient(orderRepository),
-      getAllOrders: makeGetAllOrders(orderRepository),
-      totalOrders: makeTotalOrders(orderRepository),
-      createOrder: makeCreateOrder(orderRepository, recalculateClientRating),
-      updateOrder: makeUpdateOrder(orderRepository, productRepository, recalculateClientRating),
-      deleteOrder: makeDeleteOrder(orderRepository, recalculateClientRating),
-    },
-
-    dashboard: {
-      getTopClients: makeGetTopClients(dashboardRepository),
-      getTopSellers: makeGetTopSellers(dashboardRepository),
-    },
-  };
-
-  return Object.freeze(container);
+  return Object.freeze({
+    product,
+    user,
+    client,
+    order,
+    dashboard,
+    context,
+    delivery,
+    rental,
+    financial,
+    expense,
+    knowledge,
+    chat,
+  });
 };

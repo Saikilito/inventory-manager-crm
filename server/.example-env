@@ -5,7 +5,22 @@ PORT=4555
 MONGODB_URI=mongodb://localhost:27017/CRM-Apollo
 
 # JWT Signature Secret Key
-SECRET=JWT_SECRET_DEFAULT
+# REQUIRED. Generate a strong random value, e.g.:
+#   node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+# Refusing to start with the placeholder "JWT_SECRET_DEFAULT".
+JWT_SECRET=replace-me-with-a-strong-random-secret
 
 # Frontend URL Client for CORS Origins
 CLIENT_URL=http://localhost:3000
+
+# --- Knowledge Brain Phase 2 feature flags ---
+
+# Toggle automatic knowledge extraction when a product is created.
+# Set to "false" to keep product creation fast (no extra Mongo writes).
+# Default (unset or truthy values "1", "true", "yes", "on") is enabled.
+LIBRARIAN_ENABLED=true
+
+# Toggle visibility of the knowledge Graph tab in the client.
+# Set to "false" to hide the React Flow view and fall back to list view.
+# Default (unset or truthy values "1", "true", "yes", "on") is enabled.
+GRAPH_UI_ENABLED=true
