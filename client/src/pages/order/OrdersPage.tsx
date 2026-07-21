@@ -19,6 +19,7 @@ import { DateOnlyVO, DEFAULT_TIMEZONE } from "@shared-domain/shared/value-object
 
 import Spinkit from "../../components/Spinkit";
 import { OrderDetailModal } from "./components/OrderDetailModal";
+import { NewOrderClientModal } from "./components/NewOrderClientModal";
 import { DateNavigator, formatDisplayDateInTimezone } from "../../components/ui/DateNavigator";
 import { OrderCard, Order } from "./components/OrderCard";
 
@@ -62,6 +63,7 @@ export const OrdersPage: React.FC<OrdersPageProps> = () => {
   // Modal State
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isNewOrderModalOpen, setIsNewOrderModalOpen] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
 
   // Fetch Orders with date filter
@@ -274,13 +276,13 @@ export const OrdersPage: React.FC<OrdersPageProps> = () => {
         </div>
 
         {/* New Order Button */}
-        <Link
-          to="/clients"
-          className="inline-flex items-center justify-center h-10 px-4 rounded-xl text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 transition-colors shadow-sm gap-1.5"
+        <button
+          onClick={() => setIsNewOrderModalOpen(true)}
+          className="inline-flex items-center justify-center h-10 px-4 rounded-xl text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 transition-colors shadow-sm gap-1.5 cursor-pointer"
         >
           <Plus className="w-4 h-4 shrink-0" />
           New Order
-        </Link>
+        </button>
       </div>
 
       {/* Orders List */}
@@ -296,13 +298,13 @@ export const OrdersPage: React.FC<OrdersPageProps> = () => {
               ? "No orders found matching the filters."
               : `No orders for ${displayDateStr.toLowerCase()}.`}
           </p>
-          <Link
-            to="/clients"
-            className="inline-flex items-center justify-center mt-4 h-10 px-4 rounded-xl text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors gap-1.5"
+          <button
+            onClick={() => setIsNewOrderModalOpen(true)}
+            className="inline-flex items-center justify-center mt-4 h-10 px-4 rounded-xl text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors gap-1.5 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             Create Order
-          </Link>
+          </button>
         </div>
       ) : (
         <div className="space-y-6">
@@ -377,6 +379,12 @@ export const OrdersPage: React.FC<OrdersPageProps> = () => {
           onStatusChange={handleStatusChange}
         />
       )}
+
+      <NewOrderClientModal
+        isOpen={isNewOrderModalOpen}
+        onClose={() => setIsNewOrderModalOpen(false)}
+        clients={clientsData?.getAllClients || []}
+      />
     </div>
   );
 };
