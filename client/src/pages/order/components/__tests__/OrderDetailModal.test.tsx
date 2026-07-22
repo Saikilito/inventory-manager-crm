@@ -39,11 +39,11 @@ const mocks = [
 
 describe("OrderDetailModal Presenter", () => {
   const mockClients: Client[] = [
-    { _id: "client1", firstName: "John", lastName: "Doe" },
+    { _id: "client1", firstName: "John", lastName: "Doe", address: "", whatsapp: "", nationalId: "", type: "REGULAR", sellerId: "seller1" },
   ];
 
   const mockProducts: Product[] = [
-    { _id: "prod1", name: "Laptop Pro" },
+    { _id: "prod1", name: "Laptop Pro", price: 625, purchasePrice: 400, sellingPrice: 625, profit: 225, profitMargin: 36, stock: 10, stockValue: 6250, potentialProfit: 2250 },
   ];
 
   const mockOrder: Order = {

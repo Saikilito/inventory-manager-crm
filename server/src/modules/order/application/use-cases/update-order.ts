@@ -12,6 +12,8 @@ import {
   IOrderItem,
   makeOrder,
   OrderStatus,
+  PaymentStatus,
+  DeliveryStatus,
 } from "../../../../../../shared-domain/src/order/order.entity.js";
 import { IOrderRepository } from "../repositories/order.repository.js";
 import { IProductRepository } from "../../../product/application/repositories/product.repository.js";
@@ -32,6 +34,7 @@ export interface UpdateOrderInput {
   deliveryStatus?: DeliveryStatus;
   sellerId?: string;
   contextId?: string;
+  deliveryCost?: number;
 }
 
 export type UpdateOrder = UseCase<UpdateOrderInput, void, DomainError>;
@@ -68,8 +71,9 @@ export const makeUpdateOrder = (
     // Auto-heal missing prices for legacy/broken orders
     const healedItems = await Promise.all(
       itemsToProcess.map(async (item) => {
-        let pPrice = (item as any).purchasePriceAtSale;
-        let sPrice = (item as any).sellingPriceAtSale;
+        const orderItem = item as Partial<IOrderItem>;
+        let pPrice = orderItem.purchasePriceAtSale;
+        let sPrice = orderItem.sellingPriceAtSale;
 
         if (input.items) {
           const existingItem = existing.items.find(ei => ei.productId === item.productId);
@@ -111,6 +115,8 @@ export const makeUpdateOrder = (
         input.sellerId !== undefined ? input.sellerId : existing.sellerId,
       contextId:
         input.contextId !== undefined ? input.contextId : existing.contextId,
+      deliveryCost:
+        input.deliveryCost !== undefined ? input.deliveryCost : (existing.deliveryCost as unknown as number),
     });
 
     const operation = match([existing.status, updated.status])

@@ -1,50 +1,82 @@
-import mongoose, { Schema, Document } from "mongoose";
-import { IOrder } from "../../../../../shared-domain/src/order/order.entity.js";
+import mongoose, { Schema, Document } from 'mongoose';
+import { IOrder } from '../../../../../shared-domain/src/order/order.entity.js';
 
-export interface IOrderDocument extends Omit<IOrder, "id">, Document {
+export interface IOrderDocument extends Omit<IOrder, 'id' | 'clientId' | 'sellerId' | 'contextId' | 'deliveryId' | 'items' | 'payments'>, Document {
   _id: mongoose.Types.ObjectId;
+  clientId: mongoose.Types.ObjectId;
+  sellerId: mongoose.Types.ObjectId;
+  contextId?: mongoose.Types.ObjectId | null;
+  deliveryId?: mongoose.Types.ObjectId | null;
+  items: Array<{
+    productId: mongoose.Types.ObjectId;
+    quantity: number;
+    purchasePriceAtSale?: number;
+    sellingPriceAtSale?: number;
+  }>;
+  payments?: Array<{
+    accountId: mongoose.Types.ObjectId;
+    amount: number;
+    exchangeRate: number;
+  }>;
   isTesting: boolean;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mongoose's Schema.Types.ObjectId typing is incompatible with the strict generics of the custom `IOrderItem` schema when a custom document interface is provided.
 const orderItemSchema = new Schema({
-  productId: { type: Schema.Types.ObjectId as any, ref: "Product", required: true },
+  productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
   quantity: { type: Number, required: true },
   purchasePriceAtSale: { type: Number },
   sellingPriceAtSale: { type: Number },
+});
+
+const orderPaymentSchema = new Schema({
+  accountId: { type: Schema.Types.ObjectId, ref: 'FinancialAccount', required: true },
+  amount: { type: Number, required: true },
+  exchangeRate: { type: Number, required: true },
 });
 
 const orderSchema = new Schema<IOrderDocument>({
   items: { type: [orderItemSchema], required: true },
   total: { type: Number, required: true },
   createdAt: { type: Date, default: Date.now },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mongoose's Schema.Types.ObjectId typing is incompatible with the strict generics of `Schema<IOrderDocument>`. See chat-module sibling models for the same workaround.
+
   clientId: {
-    type: Schema.Types.ObjectId as any,
-    ref: "Client",
+    type: Schema.Types.ObjectId,
+    ref: 'Client',
     required: true,
   },
   status: {
     type: String,
-    enum: ["PENDING", "COMPLETED", "ACTIVE", "CANCELLED"],
-    default: "PENDING",
+    enum: ['PENDING', 'COMPLETED', 'ACTIVE', 'CANCELLED'],
+    default: 'PENDING',
   },
   paymentStatus: {
     type: String,
-    enum: ["PENDING", "PAID", "REFUNDED"],
-    default: "PENDING",
+    enum: ['PENDING', 'PAID', 'REFUNDED'],
+    default: 'PENDING',
   },
   deliveryStatus: {
     type: String,
-    enum: ["PENDING", "SENT", "COMPLETE"],
-    default: "PENDING",
+    enum: ['PENDING', 'SENT', 'COMPLETE'],
+    default: 'PENDING',
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mongoose's Schema.Types.ObjectId typing is incompatible with the strict generics of `Schema<IOrderDocument>`.
-  sellerId: { type: Schema.Types.ObjectId as any, ref: "User", required: true },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mongoose's Schema.Types.ObjectId typing is incompatible with the strict generics of `Schema<IOrderDocument>`.
-  contextId: { type: Schema.Types.ObjectId as any, ref: "Context", default: null },
+  sellerId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  contextId: { type: Schema.Types.ObjectId, ref: 'Context', default: null },
+  // Reference to Delivery document (created when deliveryCost > 0)
+  deliveryId: { type: Schema.Types.ObjectId, ref: 'Delivery', default: null },
+  // Delivery cost (included in total)
+  deliveryCost: { type: Number, default: null },
+  // Custom delivery address (overrides client's address)
+  customDeliveryAddress: { type: String, default: null },
+  // Payment records
+  payments: { type: [orderPaymentSchema], default: [] },
   isTesting: { type: Boolean, default: false, index: true },
 });
 
-export const OrderModel = (mongoose.models.Order as mongoose.Model<IOrderDocument>) || mongoose.model<IOrderDocument>("Order", orderSchema);
+// Indexes
+orderSchema.index({ contextId: 1 });
+orderSchema.index({ deliveryId: 1 });
+orderSchema.index({ createdAt: 1 });
+
+export const OrderModel =
+  (mongoose.models.Order as mongoose.Model<IOrderDocument>) || mongoose.model<IOrderDocument>('Order', orderSchema);
 export default OrderModel;

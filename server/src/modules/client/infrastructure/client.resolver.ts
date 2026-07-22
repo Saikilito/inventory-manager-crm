@@ -1,5 +1,7 @@
 import { IContext } from '../../../config/apollo.js';
 import { IClient } from '../../../../../shared-domain/src/client/client.entity.js';
+import OrderModel from '../../order/infrastructure/order.model.js';
+import mongoose from 'mongoose';
 
 interface SetClientInput {
   firstName: string;
@@ -20,7 +22,11 @@ interface UpdateClientInput {
   sellerId?: string;
 }
 
-const mapToGql = (client: IClient) => {
+const mapToGql = async (client: IClient) => {
+  const orders = await OrderModel.find({ 
+    clientId: new mongoose.Types.ObjectId(client.id) 
+  }).select('_id').lean();
+  
   return {
     _id: client.id,
     firstName: client.firstName,
@@ -30,7 +36,7 @@ const mapToGql = (client: IClient) => {
     nationalId: client.nationalId,
     type: client.type,
     sellerId: client.sellerId,
-    orders: client.orders,
+    orders: orders.map(o => o._id.toString()),
   };
 };
 
@@ -45,7 +51,8 @@ export default {
       if (result.isFailure) {
         throw result.getError();
       }
-      return result.getValue().map(mapToGql);
+      const clients = result.getValue();
+      return Promise.all(clients.map(mapToGql));
     },
 
     getClient: async (_parent: unknown, { _id }: { _id: string }, { container }: IContext) => {

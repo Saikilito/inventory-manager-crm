@@ -12,6 +12,7 @@ interface SetOrderInput {
   clientId: string;
   sellerId: string;
   contextId?: string;
+  deliveryCost?: number;
 }
 
 interface UpdateOrderInput {
@@ -24,6 +25,7 @@ interface UpdateOrderInput {
   deliveryStatus?: DeliveryStatus;
   sellerId?: string;
   contextId?: string;
+  deliveryCost?: number;
 }
 
 interface GetAllOrdersInput {
@@ -49,6 +51,14 @@ const mapToGql = (order: IOrder) => {
     deliveryStatus: order.deliveryStatus,
     sellerId: order.sellerId,
     contextId: order.contextId,
+    deliveryId: order.deliveryId,
+    deliveryCost: order.deliveryCost,
+    customDeliveryAddress: order.customDeliveryAddress,
+    payments: order.payments?.map((p) => ({
+      accountId: p.accountId,
+      amount: p.amount,
+      exchangeRate: p.exchangeRate,
+    })),
   };
 };
 
@@ -113,6 +123,7 @@ export default {
         clientId: input.clientId,
         sellerId: input.sellerId,
         contextId: input.contextId,
+        deliveryCost: input.deliveryCost,
       });
       return !result.isFailure;
     },
@@ -128,6 +139,7 @@ export default {
         deliveryStatus: input.deliveryStatus,
         sellerId: input.sellerId,
         contextId: input.contextId,
+        deliveryCost: input.deliveryCost,
       });
       return !result.isFailure;
     },

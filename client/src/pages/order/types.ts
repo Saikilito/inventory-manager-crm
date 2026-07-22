@@ -31,7 +31,8 @@ export interface OrderDetailModalProps {
     newStatus?: OrderStatus,
     newPaymentStatus?: PaymentStatus,
     newDeliveryStatus?: DeliveryStatus,
-    payments?: Array<{ accountId: string; amount: number; exchangeRate: number }>
+    payments?: Array<{ accountId: string; amount: number; exchangeRate: number }>,
+    newContextId?: string | null,
   ) => Promise<void>;
 }
 

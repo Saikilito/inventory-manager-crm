@@ -61,7 +61,8 @@ export interface IOrder {
   paymentStatus: PaymentStatus;
   deliveryStatus: DeliveryStatus;
   sellerId: Id;
-  contextId?: Id;
+  contextId?: Id | null;
+  deliveryId?: Id; // Reference to Delivery document
   deliveryCost?: NonNegativeNumber;
   customDeliveryAddress?: NonEmptyString;
   payments?: IOrderPayment[];
@@ -83,6 +84,7 @@ export const makeOrder = (props: {
   deliveryStatus?: DeliveryStatus;
   sellerId: string;
   contextId?: string;
+  deliveryId?: string;
   deliveryCost?: number;
   customDeliveryAddress?: string;
   payments?: Array<{
@@ -153,7 +155,8 @@ export const makeOrder = (props: {
     paymentStatus: props.paymentStatus || PaymentStatus.PENDING,
     deliveryStatus: props.deliveryStatus || DeliveryStatus.PENDING,
     sellerId: IdVO.create(props.sellerId),
-    contextId: props.contextId ? IdVO.create(props.contextId) : undefined,
+    contextId: props.contextId !== undefined && props.contextId !== null ? IdVO.create(props.contextId) : props.contextId === null ? null : undefined,
+    deliveryId: props.deliveryId ? IdVO.create(props.deliveryId) : undefined,
     deliveryCost: roundedDeliveryCost !== undefined ? NonNegativeNumberVO.create(roundedDeliveryCost || 0) : undefined,
     customDeliveryAddress: props.customDeliveryAddress
       ? NonEmptyStringVO.create(props.customDeliveryAddress)

@@ -9,6 +9,7 @@ type Order {
   deliveryStatus: DeliveryStatus
   sellerId: ID
   contextId: ID
+  deliveryCost: Float
 }
 
 type OrderItem {
@@ -60,6 +61,7 @@ input OrderInput {
   deliveryStatus: DeliveryStatus
   sellerId: ID!
   contextId: ID
+  deliveryCost: Float
 }
 
 type Mutation {

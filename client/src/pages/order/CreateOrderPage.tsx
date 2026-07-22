@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useApolloClient, useQuery } from "@apollo/client";
+import { useApolloClient, useQuery, ApolloClient, NormalizedCacheObject } from "@apollo/client";
 import Select from "react-select";
 import makeAnimated from "react-select/animated";
 
@@ -29,6 +29,7 @@ import ClientSummary from "./components/ClientSummary";
 import SelectedProductsTable from "./components/SelectedProductsTable";
 import OrderActionsBar from "./components/OrderActionsBar";
 import { NewClientInlineModal } from "./components/NewClientInlineModal";
+import DeliveryFeeSelector from "./components/DeliveryFeeSelector";
 
 const animatedComponents = makeAnimated();
 
@@ -56,17 +57,19 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({ session }) => 
   const [isNewClientModalOpen, setIsNewClientModalOpen] = useState(false);
 
   const [selectedProducts, setSelectedProducts] = useState<Array<IProduct & { quantity: number }>>([]);
+  const [deliveryFee, setDeliveryFee] = useState<number>(0);
 
   const { data: contextsData } = useQuery(GET_ALL_CONTEXTS, { fetchPolicy: "cache-first" });
 
-  const total = selectedProducts.reduce((sum, p) => sum + Number(p.sellingPrice) * p.quantity, 0);
+  const subtotal = selectedProducts.reduce((sum, p) => sum + Number(p.sellingPrice) * p.quantity, 0);
+  const total = subtotal + deliveryFee;
 
   const currentClientId = client?.id || clientIdFromParams;
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const clientRepo = makeApolloClientRepository(apolloClient as any);
+        const clientRepo = makeApolloClientRepository(apolloClient as ApolloClient<NormalizedCacheObject>);
 
         const getClients = makeGetClientsUseCase(clientRepo);
         const clientsResult = await getClients.execute();
@@ -84,7 +87,7 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({ session }) => 
           }
         }
 
-        const productRepo = makeApolloProductRepository(apolloClient as any);
+        const productRepo = makeApolloProductRepository(apolloClient as ApolloClient<NormalizedCacheObject>);
         const getProducts = makeGetProductsUseCase(productRepo);
         const productsResult = await getProducts.execute(
           PositiveNumberVO.create(100),
@@ -94,8 +97,9 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({ session }) => 
         if (!productsResult.isFailure) {
           setProducts(productsResult.getValue().products);
         }
-      } catch (err: any) {
-        setError(err.message || "Error initializing page");
+      } catch (err: unknown) {
+        const error = err as Error;
+        setError(error.message || "Error initializing page");
       } finally {
         setLoading(false);
       }
@@ -104,7 +108,7 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({ session }) => 
     loadData();
   }, [clientIdFromParams, apolloClient]);
 
-  const handleClientSelect = (selectedOption: any) => {
+  const handleClientSelect = (selectedOption: { value: string; label: string } | null) => {
     if (!selectedOption) {
       setClient(null);
       return;
@@ -114,7 +118,7 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({ session }) => 
   };
 
   const handleClientCreated = async () => {
-    const clientRepo = makeApolloClientRepository(apolloClient as any);
+    const clientRepo = makeApolloClientRepository(apolloClient as ApolloClient<NormalizedCacheObject>);
     const getClients = makeGetClientsUseCase(clientRepo);
     const clientsResult = await getClients.execute();
     if (!clientsResult.isFailure) {
@@ -126,13 +130,14 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({ session }) => 
     }
   };
 
-  const handleSelectChange = (selected: any) => {
+  const handleSelectChange = (selected: unknown) => {
     if (!selected) {
       setSelectedProducts([]);
       return;
     }
 
-    const updated = (selected as any[]).map((p: any) => {
+    const selectedList = selected as IProduct[];
+    const updated = selectedList.map((p) => {
       const existing = selectedProducts.find((ep) => String(ep.id) === String(p.id));
       return { ...p, quantity: existing ? existing.quantity : 1 };
     });
@@ -166,10 +171,11 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({ session }) => 
       quantity: p.quantity,
     }));
 
-    await ploc.createOrder(String(currentClientId), items, total, session._id, selectedContextId || undefined);
-
-    if (state.kind !== "orders:error") {
+    try {
+      await ploc.createOrder(String(currentClientId), items, total, session._id, selectedContextId || undefined, deliveryFee || undefined);
       navigate(`/orders/${currentClientId}`);
+    } catch {
+      // Error is handled by PLOC state
     }
   };
 
@@ -294,15 +300,16 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({ session }) => 
 
             <Select
               onChange={handleSelectChange}
-              options={products as any}
+              options={products as unknown as Array<{ value: string; label: string }>}
               isMulti
               components={animatedComponents}
               placeholder="Select products..."
-              getOptionValue={(option: any) => String(option.id)}
-              getOptionLabel={(option: any) =>
-                `${option.name} ($${Number(option.price).toLocaleString()})`
-              }
-              value={selectedProducts as any}
+              getOptionValue={(option) => String((option as unknown as IProduct).id)}
+              getOptionLabel={(option) => {
+                const prod = option as unknown as IProduct;
+                return `${prod.name} ($${Number(prod.sellingPrice).toLocaleString()})`;
+              }}
+              value={selectedProducts as unknown as Array<{ value: string; label: string }>}
               unstyled
               classNames={{
                 control: ({ isFocused }) =>
@@ -345,6 +352,12 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({ session }) => 
                   selectedProducts={selectedProducts}
                   onCountChange={handleCountChange}
                   onRemoveProduct={handleRemoveProduct}
+                />
+
+                <DeliveryFeeSelector
+                  deliveryFee={deliveryFee}
+                  onChange={setDeliveryFee}
+                  subtotal={subtotal}
                 />
 
                 <OrderActionsBar

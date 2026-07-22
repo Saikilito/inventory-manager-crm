@@ -6,6 +6,7 @@ import { CreateProduct, makeCreateProduct } from '../../modules/product/applicat
 import { UpdateProduct, makeUpdateProduct } from '../../modules/product/application/use-cases/update-product.js';
 import { DeleteProduct, makeDeleteProduct } from '../../modules/product/application/use-cases/delete-product.js';
 import { IProductRepository } from '../../modules/product/application/repositories/product.repository.js';
+import { LibrarianService } from '../../modules/knowledge/application/services/librarian.service.js';
 
 import { makeUserMongooseRepository } from '../../modules/user/infrastructure/repositories/user-mongoose.repository.js';
 import { GetUserByEmail, makeGetUserByEmail } from '../../modules/user/application/use-cases/get-user.js';
@@ -74,40 +75,9 @@ import { UpdateExchangeRate, makeUpdateExchangeRate } from '../../modules/financ
 import { OpenFinancialDay, makeOpenFinancialDay } from '../../modules/financial/application/use-cases/open-financial-day.js';
 import { CloseFinancialDay, makeCloseFinancialDay } from '../../modules/financial/application/use-cases/close-financial-day.js';
 import { GetFinancialDayByDate, makeGetFinancialDayByDate } from '../../modules/financial/application/use-cases/get-financial-day.js';
-
-import { makeExpenseMongooseRepository } from '../../modules/expense/infrastructure/repositories/expense-mongoose.repository.js';
-import { makeFixedExpenseMongooseRepository, makeFixedExpensePaymentMongooseRepository } from '../../modules/expense/infrastructure/repositories/fixed-expense-mongoose.repository.js';
-import { GetExpense, makeGetExpense } from '../../modules/expense/application/use-cases/get-expense.js';
-import { GetAllExpenses, makeGetAllExpenses } from '../../modules/expense/application/use-cases/get-all-expenses.js';
-import { CreateExpense, makeCreateExpense } from '../../modules/expense/application/use-cases/create-expense.js';
-import { UpdateExpense, makeUpdateExpense } from '../../modules/expense/application/use-cases/update-expense.js';
-import { DeleteExpense, makeDeleteExpense } from '../../modules/expense/application/use-cases/delete-expense.js';
 import { IExpenseRepository } from '../../modules/expense/application/repositories/expense.repository.js';
-import { IFixedExpenseRepository, IFixedExpensePaymentRepository } from '../../modules/expense/application/repositories/fixed-expense.repository.js';
-import { makeKnowledgeMongooseRepository } from '../../modules/knowledge/infrastructure/repositories/knowledge-mongoose.repository.js';
-import { IKnowledgeRepository } from '../../modules/knowledge/application/repositories/knowledge.repository.js';
-import { makeCognitiveRouter } from '../../modules/knowledge/domain/services/cognitive-router.js';
-import { CreateKnowledge, makeCreateKnowledge } from '../../modules/knowledge/application/use-cases/create-knowledge.js';
-import { UpdateKnowledge, makeUpdateKnowledge } from '../../modules/knowledge/application/use-cases/update-knowledge.js';
-import { DeleteKnowledge, makeDeleteKnowledge } from '../../modules/knowledge/application/use-cases/delete-knowledge.js';
-import { GetKnowledge, makeGetKnowledge } from '../../modules/knowledge/application/use-cases/get-knowledge.js';
-import { GetKnowledgeList, makeGetKnowledgeList } from '../../modules/knowledge/application/use-cases/get-knowledge-list.js';
-import { SearchKnowledge, makeSearchKnowledge } from '../../modules/knowledge/application/use-cases/search-knowledge.js';
-import { GetPendingKnowledge, makeGetPendingKnowledge } from '../../modules/knowledge/application/use-cases/get-pending-knowledge.js';
-import { GetKnowledgeGraph, makeGetKnowledgeGraph } from '../../modules/knowledge/application/use-cases/get-knowledge-graph.js';
-import { ApproveKnowledge, makeApproveKnowledge } from '../../modules/knowledge/application/use-cases/approve-knowledge.js';
-import { RejectKnowledge, makeRejectKnowledge } from '../../modules/knowledge/application/use-cases/reject-knowledge.js';
-import { EnrichKnowledge, makeEnrichKnowledge } from '../../modules/knowledge/application/use-cases/enrich-knowledge.js';
-import { makeProductExtractor } from '../../modules/knowledge/application/services/product-extractor.js';
-import { makeWebEnricher } from '../../modules/knowledge/application/services/web-enricher.js';
-import { makeLibrarianService, LibrarianService, isLibrarianEnabled } from '../../modules/knowledge/application/services/librarian.service.js';
-import { GetAllFixedExpenses, makeGetAllFixedExpenses } from '../../modules/expense/application/use-cases/get-all-fixed-expenses.js';
-import { GetFixedExpensePayments, makeGetFixedExpensePayments } from '../../modules/expense/application/use-cases/get-fixed-expense-payments.js';
-import { CreateFixedExpense, makeCreateFixedExpense } from '../../modules/expense/application/use-cases/create-fixed-expense.js';
-import { UpdateFixedExpense, makeUpdateFixedExpense } from '../../modules/expense/application/use-cases/update-fixed-expense.js';
-import { DeleteFixedExpense, makeDeleteFixedExpense } from '../../modules/expense/application/use-cases/delete-fixed-expense.js';
-import { PayFixedExpense, makePayFixedExpense } from '../../modules/expense/application/use-cases/pay-fixed-expense.js';
-import { UnpayFixedExpense, makeUnpayFixedExpense } from '../../modules/expense/application/use-cases/unpay-fixed-expense.js';
+
+
 
 export interface ProductSubContainer {
   getProduct: GetProduct;
@@ -195,6 +165,8 @@ export const buildOrderModule = (deps: {
   orderRepository?: IOrderRepository;
   productRepository: IProductRepository;
   recalculateClientRating: RecalculateClientRating;
+  clientRepository: IClientRepository;
+  deliveryRepository: IDeliveryRepository;
 }): OrderSubContainer => {
   const orderRepository = deps.orderRepository ?? makeOrderMongooseRepository();
   return {
@@ -202,7 +174,7 @@ export const buildOrderModule = (deps: {
     getOrderClient: makeGetOrderClient(orderRepository),
     getAllOrders: makeGetAllOrders(orderRepository),
     totalOrders: makeTotalOrders(orderRepository),
-    createOrder: makeCreateOrder(orderRepository, deps.productRepository, deps.recalculateClientRating),
+    createOrder: makeCreateOrder(orderRepository, deps.productRepository, deps.recalculateClientRating, deps.clientRepository, deps.deliveryRepository),
     updateOrder: makeUpdateOrder(orderRepository, deps.productRepository, deps.recalculateClientRating),
     deleteOrder: makeDeleteOrder(orderRepository, deps.recalculateClientRating),
   };
@@ -361,93 +333,4 @@ export const buildFinancialModule = (deps: FinancialModuleDependencies): Financi
   };
 };
 
-export interface ExpenseSubContainer {
-  getExpense: GetExpense;
-  getAllExpenses: GetAllExpenses;
-  createExpense: CreateExpense;
-  updateExpense: UpdateExpense;
-  deleteExpense: DeleteExpense;
-  getAllFixedExpenses: GetAllFixedExpenses;
-  getFixedExpensePayments: GetFixedExpensePayments;
-  createFixedExpense: CreateFixedExpense;
-  updateFixedExpense: UpdateFixedExpense;
-  deleteFixedExpense: DeleteFixedExpense;
-  payFixedExpense: PayFixedExpense;
-  unpayFixedExpense: UnpayFixedExpense;
-}
 
-export const buildExpenseModule = (deps: {
-  expenseRepository?: IExpenseRepository;
-  fixedExpenseRepository?: IFixedExpenseRepository;
-  fixedExpensePaymentRepository?: IFixedExpensePaymentRepository;
-}): ExpenseSubContainer => {
-  const expenseRepository = deps.expenseRepository ?? makeExpenseMongooseRepository();
-  const fixedExpenseRepository = deps.fixedExpenseRepository ?? makeFixedExpenseMongooseRepository();
-  const fixedExpensePaymentRepository =
-    deps.fixedExpensePaymentRepository ?? makeFixedExpensePaymentMongooseRepository();
-
-  return {
-    getExpense: makeGetExpense(expenseRepository),
-    getAllExpenses: makeGetAllExpenses(expenseRepository),
-    createExpense: makeCreateExpense(expenseRepository),
-    updateExpense: makeUpdateExpense(expenseRepository),
-    deleteExpense: makeDeleteExpense(expenseRepository),
-    getAllFixedExpenses: makeGetAllFixedExpenses(fixedExpenseRepository),
-    getFixedExpensePayments: makeGetFixedExpensePayments(fixedExpenseRepository, fixedExpensePaymentRepository),
-    createFixedExpense: makeCreateFixedExpense(fixedExpenseRepository),
-    updateFixedExpense: makeUpdateFixedExpense(fixedExpenseRepository),
-    deleteFixedExpense: makeDeleteFixedExpense(fixedExpenseRepository),
-    payFixedExpense: makePayFixedExpense(fixedExpenseRepository, fixedExpensePaymentRepository, expenseRepository),
-    unpayFixedExpense: makeUnpayFixedExpense(fixedExpensePaymentRepository, expenseRepository),
-  };
-};
-
-export interface KnowledgeSubContainer {
-  createKnowledge: CreateKnowledge;
-  updateKnowledge: UpdateKnowledge;
-  deleteKnowledge: DeleteKnowledge;
-  getKnowledge: GetKnowledge;
-  getKnowledgeList: GetKnowledgeList;
-  searchKnowledge: SearchKnowledge;
-  getPendingKnowledge: GetPendingKnowledge;
-  getKnowledgeGraph: GetKnowledgeGraph;
-  approveKnowledge: ApproveKnowledge;
-  rejectKnowledge: RejectKnowledge;
-  enrichKnowledge: EnrichKnowledge;
-  librarian: LibrarianService;
-  knowledgeRepository: IKnowledgeRepository;
-}
-
-export const buildKnowledgeModule = (deps: {
-  knowledgeRepository?: IKnowledgeRepository;
-  librarianEnabled?: boolean;
-}): KnowledgeSubContainer => {
-  const knowledgeRepository = deps.knowledgeRepository ?? makeKnowledgeMongooseRepository();
-  const cognitiveRouter = makeCognitiveRouter({
-    textSearch: (query, category) => knowledgeRepository.textSearch(query, category),
-  });
-
-  const productExtractor = makeProductExtractor();
-  const webEnricher = makeWebEnricher();
-  const librarian = makeLibrarianService({
-    knowledgeRepository,
-    productExtractor,
-    enabled: deps.librarianEnabled ?? isLibrarianEnabled(process.env.LIBRARIAN_ENABLED),
-  });
-
-  return {
-    createKnowledge: makeCreateKnowledge(knowledgeRepository),
-    updateKnowledge: makeUpdateKnowledge(knowledgeRepository),
-    deleteKnowledge: makeDeleteKnowledge(knowledgeRepository),
-    getKnowledge: makeGetKnowledge(knowledgeRepository),
-    getKnowledgeList: makeGetKnowledgeList(knowledgeRepository),
-    searchKnowledge: makeSearchKnowledge({ knowledgeRepository, cognitiveRouter }),
-    getPendingKnowledge: makeGetPendingKnowledge(knowledgeRepository),
-    getKnowledgeGraph: makeGetKnowledgeGraph(knowledgeRepository),
-    approveKnowledge: makeApproveKnowledge(knowledgeRepository),
-    rejectKnowledge: makeRejectKnowledge(knowledgeRepository),
-    enrichKnowledge: makeEnrichKnowledge({ knowledgeRepository, webEnricher }),
-    librarian,
-    knowledgeRepository,
-  };
-};

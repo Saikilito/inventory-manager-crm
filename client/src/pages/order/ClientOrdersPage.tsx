@@ -76,6 +76,11 @@ export const ClientOrdersPage: React.FC = () => {
 
       {/* Main Content Area */}
       {match(state)
+        .with({ kind: OrdersStateKind.IDLE }, () => (
+          <div className="flex items-center justify-center min-h-[300px]">
+            <Spinkit />
+          </div>
+        ))
         .with({ kind: OrdersStateKind.LOADING }, () => (
           <div className="flex items-center justify-center min-h-[300px]">
             <Spinkit />

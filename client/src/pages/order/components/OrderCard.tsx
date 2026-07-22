@@ -1,5 +1,5 @@
 import React from "react";
-import { Package, Eye } from "lucide-react";
+import { Package, Eye, Store } from "lucide-react";
 import { OrderStatus, PaymentStatus, DeliveryStatus } from "@shared-domain/order/order.entity";
 import type { GQLOrder, GQLOrderItem } from "@modules/order/infrastructure/graphql/types";
 
@@ -12,6 +12,7 @@ interface OrderCardProps {
   formatDate: (d: string) => string;
   formatTime: (d: string) => string;
   onNavigate: () => void;
+  onChangeContext?: () => void;
 }
 
 const statusColors: Record<OrderStatus, string> = {
@@ -40,6 +41,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   formatDate,
   formatTime,
   onNavigate,
+  onChangeContext,
 }) => {
   return (
     <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl p-4 hover:border-stone-300 dark:hover:border-stone-700 hover:shadow-md transition-all duration-200">
@@ -86,13 +88,24 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         <span className="text-[11px] text-stone-400 dark:text-stone-500">
           {formatDate(String(order.createdAt))} · {formatTime(String(order.createdAt))}
         </span>
-        <button
-          onClick={onNavigate}
-          className="inline-flex items-center justify-center h-8 px-3 rounded-lg text-xs font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/30 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-900/30 transition-colors gap-1"
-        >
-          <Eye className="w-3.5 h-3.5" />
-          View
-        </button>
+        <div className="flex items-center gap-2">
+          {onChangeContext && (
+            <button
+              onClick={onChangeContext}
+              className="inline-flex items-center justify-center h-8 px-3 rounded-lg text-xs font-semibold text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-950/30 hover:bg-violet-100 dark:hover:bg-violet-950/50 border border-violet-200 dark:border-violet-900/30 transition-colors gap-1"
+            >
+              <Store className="w-3.5 h-3.5" />
+              Context
+            </button>
+          )}
+          <button
+            onClick={onNavigate}
+            className="inline-flex items-center justify-center h-8 px-3 rounded-lg text-xs font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/30 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-900/30 transition-colors gap-1"
+          >
+            <Eye className="w-3.5 h-3.5" />
+            View
+          </button>
+        </div>
       </div>
     </div>
   );

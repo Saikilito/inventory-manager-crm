@@ -1,6 +1,7 @@
 import { IOrder } from '@shared-domain/order/order.entity.js';
 
 export const OrdersStateKind = {
+  IDLE: 'orders:idle',
   LOADING: 'orders:loading',
   LOADED: 'orders:loaded',
   ERROR: 'orders:error',
@@ -10,6 +11,10 @@ export type OrdersStateKind = typeof OrdersStateKind[keyof typeof OrdersStateKin
 
 export interface CommonOrdersState {
   errorMessage?: string;
+}
+
+export interface IdleOrdersState {
+  kind: typeof OrdersStateKind.IDLE;
 }
 
 export interface LoadingOrdersState {
@@ -27,11 +32,12 @@ export interface ErrorOrdersState {
 }
 
 export type OrdersState = (
+  | IdleOrdersState
   | LoadingOrdersState
   | LoadedOrdersState
   | ErrorOrdersState
 ) & CommonOrdersState;
 
 export const ordersInitialState: OrdersState = {
-  kind: OrdersStateKind.LOADING,
+  kind: OrdersStateKind.IDLE,
 };

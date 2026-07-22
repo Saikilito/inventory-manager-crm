@@ -31,6 +31,7 @@ interface GQLClient {
   nationalId: string;
   type: string;
   sellerId: string;
+  orders: string[];
 }
 
 interface GetAllClientsData {
@@ -59,7 +60,7 @@ export function makeApolloClientRepository(
       whatsapp: gqlClient.whatsapp,
       nationalId: gqlClient.nationalId,
       type: typeCoerced,
-      orders: [],
+      orders: gqlClient.orders || [],
       sellerId: gqlClient.sellerId,
     });
   };

@@ -8,7 +8,7 @@ import { makeOrder, OrderStatus, IOrder } from '@shared-domain/order/order.entit
 
 export interface OrdersPloc extends Ploc<OrdersState> {
   loadClientOrders(clientId: string): Promise<void>;
-  createOrder(clientId: string, items: Array<{ productId: string; quantity: number }>, total: number, sellerId: string, contextId?: string): Promise<void>;
+  createOrder(clientId: string, items: Array<{ productId: string; quantity: number }>, total: number, sellerId: string, contextId?: string, deliveryCost?: number): Promise<void>;
   updateOrderStatus(order: IOrder, newStatus: OrderStatus): Promise<void>;
 }
 
@@ -43,7 +43,8 @@ export function makeOrdersPloc(
     items: Array<{ productId: string; quantity: number }>,
     total: number,
     sellerId: string,
-    contextId?: string
+    contextId?: string,
+    deliveryCost?: number
   ) => {
     ploc.changeState({ kind: OrdersStateKind.LOADING });
 
@@ -55,6 +56,7 @@ export function makeOrdersPloc(
         sellerId,
         status: OrderStatus.ACTIVE,
         contextId,
+        deliveryCost,
       });
 
       const result = await createOrderUseCase.execute(orderEntity);
@@ -65,8 +67,7 @@ export function makeOrdersPloc(
           errorMessage: result.getError().message || 'Error creating order',
         });
       } else {
-        // Reload order list
-        loadClientOrders(clientId);
+        ploc.changeState({ kind: OrdersStateKind.IDLE });
       }
     } catch (e: unknown) {
       ploc.changeState({

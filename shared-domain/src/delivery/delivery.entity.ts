@@ -1,5 +1,6 @@
 import { Id, IdVO } from '../shared/value-objects/id.vo.js';
 import { NonEmptyString, NonEmptyStringVO } from '../shared/value-objects/non-empty-string.vo.js';
+import { NonNegativeNumber, NonNegativeNumberVO } from '../shared/value-objects/non-negative-number.vo.js';
 import { DateTime, DateTimeVO } from '../shared/value-objects/date-time.vo.js';
 import { Result } from '../shared/result.js';
 import { ValidationError } from '../shared/validation-error.js';
@@ -22,6 +23,7 @@ export interface IDelivery {
   address: NonEmptyString;
   status: DeliveryStatus;
   notes: string;
+  deliveryCost?: NonNegativeNumber;
 }
 
 export const makeDelivery = (props: {
@@ -32,6 +34,7 @@ export const makeDelivery = (props: {
   address: string;
   status: string;
   notes?: string;
+  deliveryCost?: number;
 }): Result<IDelivery, ValidationError> => {
   // Validate status
   const statusStr = props.status.toUpperCase();
@@ -48,6 +51,9 @@ export const makeDelivery = (props: {
       address: NonEmptyStringVO.create(props.address),
       status: statusStr as DeliveryStatus,
       notes: props.notes || '',
+      deliveryCost: props.deliveryCost !== undefined && props.deliveryCost > 0 
+        ? NonNegativeNumberVO.create(props.deliveryCost) 
+        : undefined,
     };
     return Result.ok(delivery);
   } catch (err: unknown) {

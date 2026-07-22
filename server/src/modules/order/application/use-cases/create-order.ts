@@ -1,12 +1,16 @@
-import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
-import { DomainError, NotFoundError } from '../../../../../../shared-domain/src/shared/errors.js';
-import { Result } from '../../../../../../shared-domain/src/shared/result.js';
-import { ResultComposer } from '../../../../../../shared-domain/src/shared/result-composer.js';
-import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
+import { UseCase } from "../../../../../../shared-domain/src/shared/use-case.js";
+import { DomainError, NotFoundError } from "../../../../../../shared-domain/src/shared/errors.js";
+import { Result } from "../../../../../../shared-domain/src/shared/result.js";
+import { ResultComposer } from "../../../../../../shared-domain/src/shared/result-composer.js";
+import { IdVO } from "../../../../../../shared-domain/src/shared/value-objects/id.vo.js";
 import { IOrder, makeOrder, OrderStatus } from '../../../../../../shared-domain/src/order/order.entity.js';
 import { IOrderRepository } from '../repositories/order.repository.js';
 import { RecalculateClientRating } from '../../../client/application/use-cases/recalculate-client-rating.js';
 import { IProductRepository } from '../../../product/application/repositories/product.repository.js';
+import { IClientRepository } from '../../../client/application/repositories/client.repository.js';
+import { IDeliveryRepository } from '../../../delivery/application/repositories/delivery.repository.js';
+import { makeDelivery, DeliveryStatus } from '../../../../../../shared-domain/src/delivery/delivery.entity.js';
+import { DateTimeVO } from "../../../../../../shared-domain/src/shared/value-objects/date-time.vo.js";
 
 export interface CreateOrderInput {
   items: Array<{ productId: string; quantity: number }>;
@@ -14,6 +18,8 @@ export interface CreateOrderInput {
   clientId: string;
   sellerId: string;
   contextId?: string;
+  deliveryCost?: number;
+  customDeliveryAddress?: string;
 }
 
 export type CreateOrder = UseCase<CreateOrderInput, IOrder, DomainError>;
@@ -22,6 +28,8 @@ export const makeCreateOrder = (
   orderRepository: IOrderRepository,
   productRepository: IProductRepository,
   recalculateClientRating: RecalculateClientRating,
+  clientRepository: IClientRepository,
+  deliveryRepository: IDeliveryRepository,
 ): CreateOrder => {
   return async (input: CreateOrderInput) => {
     const composerResult = await ResultComposer.start()
@@ -35,6 +43,13 @@ export const makeCreateOrder = (
           productMap.set(item.productId, product);
         }
         return Result.ok(productMap);
+      })
+      .useResult('client', async () => {
+        const clientResult = await clientRepository.getById(IdVO.create(input.clientId));
+        if (clientResult.isFailure) return Result.fail(clientResult.getError());
+        const client = clientResult.getValue();
+        if (!client) return Result.fail(new NotFoundError(`Client not found: ${input.clientId}`));
+        return Result.ok(client);
       })
       .useResult('order', ({ products }) => {
         const enrichedItems = input.items.map(item => {
@@ -53,22 +68,77 @@ export const makeCreateOrder = (
           status: OrderStatus.PENDING,
           sellerId: input.sellerId,
           contextId: input.contextId,
+          deliveryCost: input.deliveryCost,
+          customDeliveryAddress: input.customDeliveryAddress,
         }));
       })
       .useResult('savedOrder', ({ order }) => orderRepository.create(order, IdVO.generateNil()))
-      .useResult('recalcRating', async () => {
-        const reResult = await recalculateClientRating(input.clientId);
-        if (reResult.isFailure) {
-          return Result.fail(reResult.getError());
-        }
-        return Result.ok();
-      })
       .run();
 
     if (composerResult.isFailure) {
       return Result.fail(composerResult.getError());
     }
 
-    return Result.ok(composerResult.getValue().savedOrder);
+    const { savedOrder, client } = composerResult.getValue() as {
+      savedOrder: IOrder;
+      client: { address?: string };
+    };
+
+    // Auto-create Delivery if deliveryCost > 0
+    if (input.deliveryCost && input.deliveryCost > 0 && savedOrder.id) {
+      const deliveryAddress = input.customDeliveryAddress || client.address || 'No address provided';
+      
+      const deliveryResult = makeDelivery({
+        orderId: savedOrder.id.toString(),
+        scheduledDate: DateTimeVO.create(new Date()).toString(),
+        deliveryTime: '09:00', // Default delivery time
+        address: deliveryAddress,
+        status: DeliveryStatus.PENDING,
+        notes: 'Auto-created from order',
+        deliveryCost: input.deliveryCost,
+      });
+
+      if (!deliveryResult.isFailure) {
+        const delivery = deliveryResult.getValue();
+        const savedDeliveryResult = await deliveryRepository.create(delivery, IdVO.generateNil());
+        
+        if (!savedDeliveryResult.isFailure && savedDeliveryResult.getValue().id) {
+          // Update order with deliveryId reference
+          const updatedOrder = makeOrder({
+            id: savedOrder.id?.toString(),
+            items: savedOrder.items.map(item => ({
+              productId: item.productId.toString(),
+              quantity: item.quantity.valueOf(),
+              purchasePriceAtSale: item.purchasePriceAtSale?.valueOf(),
+              sellingPriceAtSale: item.sellingPriceAtSale?.valueOf(),
+            })),
+            total: savedOrder.total.valueOf(),
+            clientId: savedOrder.clientId.toString(),
+            status: savedOrder.status,
+            paymentStatus: savedOrder.paymentStatus,
+            deliveryStatus: savedOrder.deliveryStatus,
+            sellerId: savedOrder.sellerId.toString(),
+            contextId: savedOrder.contextId?.toString(),
+            deliveryId: savedDeliveryResult.getValue().id?.toString(),
+            deliveryCost: input.deliveryCost,
+            customDeliveryAddress: input.customDeliveryAddress,
+          });
+
+          await orderRepository.updateById(
+            IdVO.create(savedOrder.id!.toString()),
+            updatedOrder,
+            IdVO.generateNil()
+          );
+        }
+      }
+    }
+
+    // Recalculate client rating
+    const recalcResult = await recalculateClientRating(input.clientId);
+    if (recalcResult.isFailure) {
+      return Result.fail(recalcResult.getError());
+    }
+
+    return Result.ok(savedOrder);
   };
 };

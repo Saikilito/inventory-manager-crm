@@ -14,8 +14,6 @@ import {
   buildDeliveryModule,
   buildRentalModule,
   buildFinancialModule,
-  buildExpenseModule,
-  buildKnowledgeModule,
   type ProductSubContainer,
   type UserSubContainer,
   type ClientSubContainer,
@@ -25,9 +23,15 @@ import {
   type DeliverySubContainer,
   type RentalSubContainer,
   type FinancialSubContainer,
-  type ExpenseSubContainer,
-  type KnowledgeSubContainer,
 } from './container/other-modules.js';
+import {
+  buildExpenseModule,
+  type ExpenseSubContainer,
+} from './container/expense-module.js';
+import {
+  buildKnowledgeModule,
+  type KnowledgeSubContainer,
+} from './container/knowledge-module.js';
 import { makeProductMongooseRepository } from '../modules/product/infrastructure/repositories/product-mongoose.repository.js';
 import { makeUserMongooseRepository } from '../modules/user/infrastructure/repositories/user-mongoose.repository.js';
 import { makeClientMongooseRepository } from '../modules/client/infrastructure/repositories/client-mongoose.repository.js';
@@ -113,6 +117,7 @@ export const makeContainer = (overrides: ContainerDependencies = {}): Container 
   const userRepository = overrides.userRepository ?? makeUserMongooseRepository();
   const clientRepository = overrides.clientRepository ?? makeClientMongooseRepository();
   const orderRepository = overrides.orderRepository ?? makeOrderMongooseRepository();
+  const deliveryRepository = overrides.deliveryRepository ?? makeDeliveryMongooseRepository();
 
   const knowledge = buildKnowledgeModule({
     knowledgeRepository: overrides.knowledgeRepository,
@@ -127,6 +132,8 @@ export const makeContainer = (overrides: ContainerDependencies = {}): Container 
     orderRepository,
     productRepository,
     recalculateClientRating,
+    clientRepository,
+    deliveryRepository,
   });
 
   const dashboard = buildDashboardModule({
@@ -141,7 +148,7 @@ export const makeContainer = (overrides: ContainerDependencies = {}): Container 
   });
 
   const delivery = buildDeliveryModule({
-    deliveryRepository: overrides.deliveryRepository ?? makeDeliveryMongooseRepository(),
+    deliveryRepository,
     orderRepository,
   });
 
@@ -160,7 +167,7 @@ export const makeContainer = (overrides: ContainerDependencies = {}): Container 
     transactionRepository,
     exchangeRateRepository,
     financialDayRepository,
-    deliveryRepository: delivery.deliveryRepository,
+    deliveryRepository,
   });
 
   const context = buildContextModule({

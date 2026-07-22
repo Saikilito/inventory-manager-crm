@@ -11,6 +11,7 @@ const mapToGql = (delivery: IDelivery) => {
     address: delivery.address,
     status: delivery.status,
     notes: delivery.notes,
+    deliveryCost: delivery.deliveryCost,
   };
 };
 

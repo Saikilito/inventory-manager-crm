@@ -9,6 +9,7 @@ export const CLIENT_ORDERS_QUERY = gql`
         quantity
       }
       total
+      deliveryCost
       createdAt
       clientId
       status
@@ -30,6 +31,7 @@ export const GET_ALL_ORDERS = gql`
       deliveryStatus
       contextId
       total
+      deliveryCost
       items {
         productId
         quantity

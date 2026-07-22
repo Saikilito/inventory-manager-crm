@@ -37,7 +37,7 @@ export const SelectedProductsTable: React.FC<SelectedProductsTableProps> = ({
                   className="text-stone-900 dark:text-stone-100 hover:bg-stone-50/50 dark:hover:bg-stone-900/20 transition-colors"
                 >
                   <td className="px-4 py-3.5 font-medium">{p.name}</td>
-                  <td className="px-4 py-3.5">${Number(p.price).toLocaleString()}</td>
+                  <td className="px-4 py-3.5">${Number(p.sellingPrice).toLocaleString()}</td>
                   <td className="px-4 py-3.5">
                     <span
                       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${

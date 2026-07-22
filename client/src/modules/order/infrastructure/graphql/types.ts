@@ -9,6 +9,12 @@ export interface GQLOrderItem {
   purchasePriceAtSale?: number | null;
 }
 
+export interface GQLOrderPayment {
+  accountId: string;
+  amount: number;
+  exchangeRate: number;
+}
+
 export interface GQLOrder {
   _id: string;
   clientId: string;
@@ -18,10 +24,12 @@ export interface GQLOrder {
   paymentStatus: PaymentStatus;
   deliveryStatus: DeliveryStatus;
   contextId?: string;
+  deliveryId?: string;
   total: number;
   items: GQLOrderItem[];
   deliveryCost?: number;
   customDeliveryAddress?: string;
+  payments?: GQLOrderPayment[];
 }
 
 export interface GQLGetAllOrdersResponse {

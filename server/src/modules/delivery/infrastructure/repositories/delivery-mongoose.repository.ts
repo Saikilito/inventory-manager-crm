@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { IDelivery, makeDelivery } from '../../../../../../shared-domain/src/delivery/delivery.entity.js';
 import { IDeliveryDocument, DeliveryModel } from '../delivery.model.js';
 import { IDeliveryRepository } from '../../application/repositories/delivery.repository.js';
@@ -12,6 +13,7 @@ const mapToDomain = (doc: IDeliveryDocument): IDelivery => {
     address: doc.address,
     status: doc.status,
     notes: doc.notes,
+    deliveryCost: doc.deliveryCost,
   });
   if (result.isFailure) {
     throw result.getError();
@@ -23,14 +25,17 @@ export const makeDeliveryMongooseRepository = (): IDeliveryRepository => {
   const base = makeMongooseBaseRepository<IDelivery, IDeliveryDocument>({
     model: DeliveryModel,
     mapToDomain,
-    mapToDocumentData: (delivery) => {
-      const data: Partial<IDeliveryDocument> = {};
-      if (delivery.orderId !== undefined) data.orderId = delivery.orderId;
+      mapToDocumentData: (delivery) => {
+        const data: Partial<IDeliveryDocument> = {};
+        if (delivery.orderId !== undefined) {
+          data.orderId = new mongoose.Types.ObjectId(delivery.orderId);
+        }
       if (delivery.scheduledDate !== undefined) data.scheduledDate = delivery.scheduledDate;
       if (delivery.deliveryTime !== undefined) data.deliveryTime = delivery.deliveryTime;
       if (delivery.address !== undefined) data.address = delivery.address;
       if (delivery.status !== undefined) data.status = delivery.status;
       if (delivery.notes !== undefined) data.notes = delivery.notes;
+      if (delivery.deliveryCost !== undefined) data.deliveryCost = delivery.deliveryCost;
       return data;
     },
   });
