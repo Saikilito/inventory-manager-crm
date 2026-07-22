@@ -1,7 +1,7 @@
 import { IDashboardRepository, ITopClient, ITopSeller } from '../../application/repositories/dashboard.repository.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import OrderModel from '../../../order/infrastructure/order.model.js';
-import { OrderStatus } from '../../../../../../shared-domain/src/order/order.entity.js';
+import { OrderStatus, PaymentStatus } from '../../../../../../shared-domain/src/order/order.entity.js';
 
 export const makeDashboardMongooseRepository = (): IDashboardRepository => {
   return {
@@ -9,7 +9,10 @@ export const makeDashboardMongooseRepository = (): IDashboardRepository => {
       try {
         const totalOrder = await OrderModel.aggregate([
           {
-            $match: { status: OrderStatus.COMPLETED },
+            $match: { 
+              status: { $ne: OrderStatus.CANCELLED },
+              paymentStatus: PaymentStatus.PAID
+            },
           },
           {
             $group: {
@@ -42,7 +45,10 @@ export const makeDashboardMongooseRepository = (): IDashboardRepository => {
       try {
         const totalOrder = await OrderModel.aggregate([
           {
-            $match: { status: OrderStatus.COMPLETED },
+            $match: { 
+              status: { $ne: OrderStatus.CANCELLED },
+              paymentStatus: PaymentStatus.PAID
+            },
           },
           {
             $group: {

@@ -2,6 +2,7 @@ import React from "react";
 import { Package, Eye, Store } from "lucide-react";
 import { OrderStatus, PaymentStatus, DeliveryStatus } from "@shared-domain/order/order.entity";
 import type { GQLOrder, GQLOrderItem } from "@modules/order/infrastructure/graphql/types";
+import { formatCurrency } from "@utils/formatters";
 
 export type { GQLOrder as Order, GQLOrderItem as OrderItem };
 
@@ -81,6 +82,14 @@ export const OrderCard: React.FC<OrderCardProps> = ({
       <div className="flex items-center gap-2 text-xs text-stone-500 dark:text-stone-400 mb-3">
         <Package className="w-3.5 h-3.5" />
         <span>{order.items?.length || 0} items</span>
+      </div>
+
+      {/* Total */}
+      <div className="flex items-center justify-between py-2 px-3 bg-stone-50 dark:bg-stone-800/50 rounded-lg mb-3">
+        <span className="text-xs text-stone-500 dark:text-stone-400">Total</span>
+        <span className="text-sm font-bold text-stone-900 dark:text-stone-100 tabular-nums">
+          {formatCurrency(order.total)}
+        </span>
       </div>
 
       {/* Footer */}

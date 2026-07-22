@@ -51,6 +51,8 @@ import { GetContextMetrics, makeGetContextMetrics } from '../../modules/context/
 import { GeneratePdfReport, makeGeneratePdfReport } from '../../modules/context/application/use-cases/generate-pdf-report.js';
 import { makePdfReportService } from '../../modules/context/infrastructure/services/pdfkit-report-service.js';
 import { IContextRepository } from '../../modules/context/application/repositories/context.repository.js';
+import { GetBusinessCostMetrics, makeGetBusinessCostMetrics } from '../../modules/context/application/use-cases/get-business-cost-metrics.js';
+import { IFixedExpenseRepository } from '../../modules/expense/application/repositories/fixed-expense.repository.js';
 
 import { makeDeliveryMongooseRepository } from '../../modules/delivery/infrastructure/repositories/delivery-mongoose.repository.js';
 import { GetDelivery, makeGetDelivery } from '../../modules/delivery/application/use-cases/get-delivery.js';
@@ -203,6 +205,7 @@ export interface ContextSubContainer {
   deleteContext: DeleteContext;
   getContextMetrics: GetContextMetrics;
   generatePdfReport: GeneratePdfReport;
+  getBusinessCostMetrics: GetBusinessCostMetrics;
 }
 
 export interface ContextModuleDependencies {
@@ -211,6 +214,8 @@ export interface ContextModuleDependencies {
   expenseRepository: IExpenseRepository;
   accountRepository: IAccountRepository;
   contextRepository?: IContextRepository;
+  clientRepository: IClientRepository;
+  fixedExpenseRepository: IFixedExpenseRepository;
 }
 
 export const buildContextModule = (deps: ContextModuleDependencies): ContextSubContainer => {
@@ -237,6 +242,11 @@ export const buildContextModule = (deps: ContextModuleDependencies): ContextSubC
         deps.accountRepository,
       ),
       makePdfReportService(),
+    ),
+    getBusinessCostMetrics: makeGetBusinessCostMetrics(
+      deps.expenseRepository,
+      deps.fixedExpenseRepository,
+      deps.clientRepository,
     ),
   };
 };

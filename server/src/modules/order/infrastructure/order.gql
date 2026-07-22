@@ -1,4 +1,5 @@
 type Order {
+  id: ID
   _id: ID
   items: [OrderItem]!
   total: Float!
@@ -9,7 +10,16 @@ type Order {
   deliveryStatus: DeliveryStatus
   sellerId: ID
   contextId: ID
+  deliveryId: ID
   deliveryCost: Float
+  customDeliveryAddress: String
+  payments: [OrderPayment]
+}
+
+type OrderPayment {
+  accountId: ID!
+  amount: Float!
+  exchangeRate: Float!
 }
 
 type OrderItem {

@@ -28,6 +28,7 @@ const mapToGql = async (client: IClient) => {
   }).select('_id').lean();
   
   return {
+    id: client.id,
     _id: client.id,
     firstName: client.firstName,
     lastName: client.lastName,

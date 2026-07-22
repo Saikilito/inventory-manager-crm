@@ -80,7 +80,7 @@ export function makeApolloOrderRepository(
                 status: order.status,
                 sellerId: String(order.sellerId),
                 contextId: order.contextId ? String(order.contextId) : null,
-                deliveryCost: order.deliveryCost ? Number(order.deliveryCost) : null,
+                deliveryCost: order.deliveryCost !== undefined ? Number(order.deliveryCost) : null,
               },
             },
           });
@@ -108,7 +108,7 @@ export function makeApolloOrderRepository(
                 status: order.status,
                 sellerId: String(order.sellerId),
                 contextId: order.contextId ? String(order.contextId) : null,
-                deliveryCost: order.deliveryCost ? Number(order.deliveryCost) : null,
+                deliveryCost: order.deliveryCost !== undefined ? Number(order.deliveryCost) : null,
               },
             },
           });

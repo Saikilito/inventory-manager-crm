@@ -67,10 +67,11 @@ export function calculateTrends(params: {
     }
 
     for (const order of orders) {
+      // Paid orders count for financial trends (money in hand)
+      // Only exclude CANCELLED orders - PENDING/ACTIVE both valid if PAID
       if (
-        order.status !== OrderStatus.ACTIVE ||
-        order.paymentStatus !== PaymentStatus.PAID ||
-        order.deliveryStatus !== DeliveryStatus.COMPLETE
+        order.status === OrderStatus.CANCELLED ||
+        order.paymentStatus !== PaymentStatus.PAID
       ) {
         continue;
       }

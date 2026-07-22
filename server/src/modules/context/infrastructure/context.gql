@@ -82,11 +82,29 @@ type TopSellerMetric {
   profit: Float
 }
 
+type BusinessCostMetricByPeriod {
+  period: String!
+  totalExpenses: Float!
+  daysInPeriod: Int!
+  costPerDay: Float!
+  newClients: Int!
+  customerAcquisitionCost: Float
+}
+
+type BusinessCostMetrics {
+  daily: BusinessCostMetricByPeriod!
+  weekly: BusinessCostMetricByPeriod!
+  monthly: BusinessCostMetricByPeriod!
+  averageCostPerDay: Float!
+  overallCac: Float
+}
+
 type Query {
   getAllContexts: [Context!]!
   getContext(_id: ID!): Context!
   getContextMetrics(contextId: ID, period: ReportPeriod, startDate: String, endDate: String): ContextMetrics!
   getContextReport(contextId: ID, periodType: String!): String!
+  getBusinessCostMetrics(contextId: ID, referenceDate: String): BusinessCostMetrics!
 }
 
 input UpdateContextInput {

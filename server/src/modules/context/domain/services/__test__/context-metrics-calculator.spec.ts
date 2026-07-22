@@ -94,4 +94,107 @@ describe('ContextMetricsCalculator (Pure Domain Service)', () => {
     expect(metrics.accountDistribution[1].totalReceivedUsd).toBe(2);
     expect(metrics.favoriteAccountName).toBe('Banesco');
   });
+
+  it('should count PAID orders regardless of status (PENDING or ACTIVE) - money in hand', () => {
+    // This tests the key business rule: PAID = money in hand
+    // Status (PENDING/ACTIVE) is logistics, not finance
+    const products: IProduct[] = [
+      {
+        id: PRODUCT_1_ID,
+        name: 'Coca Cola 2L',
+        purchasePrice: 1.50,
+        sellingPrice: 2.50,
+        stock: 10,
+        contextId: CONTEXT_ID,
+        createdAt: '2026-06-15T10:00:00Z',
+      }
+    ];
+
+    // Order is PAID but still in PENDING status (default for new orders)
+    const orders: IOrder[] = [
+      {
+        id: 'order-1',
+        clientId: 'client-1',
+        sellerId: 'seller-1',
+        status: OrderStatus.PENDING, // NOT ACTIVE - just created, default status
+        paymentStatus: PaymentStatus.PAID,
+        deliveryStatus: DeliveryStatus.PENDING,
+        createdAt: '2026-06-15T10:00:00Z',
+        total: 5.00,
+        items: [
+          {
+            productId: PRODUCT_1_ID,
+            quantity: 2,
+            purchasePriceAtSale: 1.50,
+            sellingPriceAtSale: 2.50,
+          },
+        ],
+        payments: []
+      }
+    ];
+
+    const metrics = calculateContextMetrics({
+      products,
+      orders,
+      expenses: [],
+      accounts: [],
+      contextId: CONTEXT_ID,
+    });
+
+    // Revenue and profit should still be counted because order is PAID
+    // Status being PENDING doesn't matter for financial metrics
+    expect(metrics.totalRevenue).toBe(5.00);
+    expect(metrics.totalCOGS).toBe(3.0); // 2 * 1.5
+    expect(metrics.netProfit).toBe(2.0); // 5.0 - 3.0
+  });
+
+  it('should NOT count CANCELLED orders even if PAID (transaction reversed)', () => {
+    const products: IProduct[] = [
+      {
+        id: PRODUCT_1_ID,
+        name: 'Coca Cola 2L',
+        purchasePrice: 1.50,
+        sellingPrice: 2.50,
+        stock: 10,
+        contextId: CONTEXT_ID,
+        createdAt: '2026-06-15T10:00:00Z',
+      }
+    ];
+
+    // Order is PAID but CANCELLED - should NOT count
+    const orders: IOrder[] = [
+      {
+        id: 'order-1',
+        clientId: 'client-1',
+        sellerId: 'seller-1',
+        status: OrderStatus.CANCELLED, // CANCELLED!
+        paymentStatus: PaymentStatus.PAID,
+        deliveryStatus: DeliveryStatus.PENDING,
+        createdAt: '2026-06-15T10:00:00Z',
+        total: 5.00,
+        items: [
+          {
+            productId: PRODUCT_1_ID,
+            quantity: 2,
+            purchasePriceAtSale: 1.50,
+            sellingPriceAtSale: 2.50,
+          },
+        ],
+        payments: []
+      }
+    ];
+
+    const metrics = calculateContextMetrics({
+      products,
+      orders,
+      expenses: [],
+      accounts: [],
+      contextId: CONTEXT_ID,
+    });
+
+    // Should be 0 because order is CANCELLED
+    expect(metrics.totalRevenue).toBe(0);
+    expect(metrics.totalCOGS).toBe(0);
+    expect(metrics.netProfit).toBe(0);
+  });
 });

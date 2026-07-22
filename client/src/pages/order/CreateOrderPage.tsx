@@ -172,7 +172,7 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({ session }) => 
     }));
 
     try {
-      await ploc.createOrder(String(currentClientId), items, total, session._id, selectedContextId || undefined, deliveryFee || undefined);
+      await ploc.createOrder(String(currentClientId), items, total, session._id, selectedContextId || undefined, deliveryFee);
       navigate(`/orders/${currentClientId}`);
     } catch {
       // Error is handled by PLOC state

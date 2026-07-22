@@ -21,6 +21,7 @@ import { TopSellersChart } from '../../modules/dashboard/infrastructure/componen
 import { DetailedSummary } from '../../modules/dashboard/infrastructure/components/DetailedSummary';
 import { ContextGrid } from './components/ContextGrid';
 import { InventoryPotentialCard } from './components/InventoryPotentialCard';
+import { BusinessCostCard } from './components/BusinessCostCard';
 
 export const DashboardPage: React.FC = () => {
   const ploc = useDashboardPloc();
@@ -33,17 +34,17 @@ export const DashboardPage: React.FC = () => {
   // Get real totals from context metrics query
   const { data: metricsData } = useQuery(GET_CONTEXT_METRICS, {
     variables: { contextId: null, period: 'MONTHLY' },
-    fetchPolicy: 'cache-first',
+    fetchPolicy: 'cache-and-network',
   });
 
   const { data: templatesData } = useQuery(GET_FIXED_EXPENSE_TEMPLATES, {
     variables: { contextId: null },
-    fetchPolicy: 'cache-first',
+    fetchPolicy: 'cache-and-network',
   });
 
   const { data: expensesData } = useQuery(GET_ALL_EXPENSES, {
     variables: { limit: 1000, contextId: null },
-    fetchPolicy: 'cache-first',
+    fetchPolicy: 'cache-and-network',
   });
 
   useEffect(() => {
@@ -151,6 +152,9 @@ export const DashboardPage: React.FC = () => {
 
                 {/* Row 1.5: Inventory Potential - Ganancia proyectada */}
                 <InventoryPotentialCard />
+
+                {/* Row 1.6: Business Cost Metrics - Costo por día y CAC */}
+                <BusinessCostCard />
 
                 {/* Row 2: Data Visualizations (Charts) */}
                 <TopClientsChart data={st.topClients} isDark={isDark} />

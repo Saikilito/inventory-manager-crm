@@ -98,6 +98,49 @@ export default {
       }
       return result.getValue();
     },
+
+    getBusinessCostMetrics: async (
+      _parent: unknown,
+      { contextId, referenceDate }: { contextId?: string; referenceDate?: string },
+      { container }: IContextApollo,
+    ) => {
+      const result = await container.context.getBusinessCostMetrics({
+        contextId,
+        referenceDate,
+      });
+      if (result.isFailure) {
+        throw result.getError();
+      }
+      const metrics = result.getValue();
+      return {
+        daily: {
+          period: metrics.daily.period,
+          totalExpenses: metrics.daily.totalExpenses,
+          daysInPeriod: metrics.daily.daysInPeriod,
+          costPerDay: metrics.daily.costPerDay,
+          newClients: metrics.daily.newClients,
+          customerAcquisitionCost: metrics.daily.customerAcquisitionCost,
+        },
+        weekly: {
+          period: metrics.weekly.period,
+          totalExpenses: metrics.weekly.totalExpenses,
+          daysInPeriod: metrics.weekly.daysInPeriod,
+          costPerDay: metrics.weekly.costPerDay,
+          newClients: metrics.weekly.newClients,
+          customerAcquisitionCost: metrics.weekly.customerAcquisitionCost,
+        },
+        monthly: {
+          period: metrics.monthly.period,
+          totalExpenses: metrics.monthly.totalExpenses,
+          daysInPeriod: metrics.monthly.daysInPeriod,
+          costPerDay: metrics.monthly.costPerDay,
+          newClients: metrics.monthly.newClients,
+          customerAcquisitionCost: metrics.monthly.customerAcquisitionCost,
+        },
+        averageCostPerDay: metrics.averageCostPerDay,
+        overallCac: metrics.overallCac,
+      };
+    },
   },
 
   Mutation: {

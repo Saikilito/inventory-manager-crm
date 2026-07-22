@@ -236,9 +236,9 @@ describe('Client Use Cases (TDD)', () => {
       repo.getStore().set(VALID_CLIENT_UUID, initialClient);
 
       const orders = [
-        { id: '1', status: 'COMPLETED', clientId: VALID_CLIENT_UUID },
-        { id: '2', status: 'COMPLETED', clientId: VALID_CLIENT_UUID },
-        { id: '3', status: 'COMPLETED', clientId: VALID_CLIENT_UUID },
+        { id: '1', status: 'ACTIVE', paymentStatus: 'PAID', deliveryStatus: 'COMPLETE', clientId: VALID_CLIENT_UUID },
+        { id: '2', status: 'ACTIVE', paymentStatus: 'PAID', deliveryStatus: 'COMPLETE', clientId: VALID_CLIENT_UUID },
+        { id: '3', status: 'ACTIVE', paymentStatus: 'PAID', deliveryStatus: 'COMPLETE', clientId: VALID_CLIENT_UUID },
       ];
 
       const mockOrderRepo = {

@@ -36,7 +36,7 @@ export const useAnalyticsLogic = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>(
-    (searchParams.get('period') as PeriodType) || 'MONTHLY'
+    (searchParams.get('period') as PeriodType) || 'MONTHLY',
   );
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
@@ -48,16 +48,18 @@ export const useAnalyticsLogic = () => {
     return contexts.find((c) => c._id === contextId);
   }, [contexts, contextId]);
 
-  const { data: metricsData, loading: loadingMetrics, error: metricsError, refetch } = useQuery(
-    GET_CONTEXT_METRICS,
-    {
-      variables: {
-        contextId,
-        period: selectedPeriod,
-      },
-      fetchPolicy: 'network-only',
-    }
-  );
+  const {
+    data: metricsData,
+    loading: loadingMetrics,
+    error: metricsError,
+    refetch,
+  } = useQuery(GET_CONTEXT_METRICS, {
+    variables: {
+      contextId,
+      period: selectedPeriod,
+    },
+    fetchPolicy: 'network-only',
+  });
 
   const metrics = metricsData?.getContextMetrics;
 
@@ -119,9 +121,8 @@ export const useAnalyticsLogic = () => {
   const totalCOGS = metrics?.totalCOGS || 0;
   const totalExpenses = metrics?.totalExpenses || 0;
   const netProfit = metrics?.netProfit || 0;
-  const investedCapital = metrics?.investedCapital || 0;
 
-  const reinvestment = totalCOGS + investedCapital;
+  const reinvestment = totalCOGS;
   const revenueTrend = metrics?.revenueTrend;
   const profitTrend = metrics?.profitTrend;
   const expenseTrend = metrics?.expenseTrend;

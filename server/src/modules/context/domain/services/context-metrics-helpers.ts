@@ -1,14 +1,10 @@
-import { getISOWeekKey } from "../../../../../../shared-domain/src/shared/utils/date-utils.js";
-import { DateTimeVO } from "../../../../../../shared-domain/src/shared/value-objects/date-time.vo.js";
-import {
-  OrderStatus,
-  PaymentStatus,
-  DeliveryStatus,
-} from "../../../../../../shared-domain/src/order/order.entity.js";
-import { IProduct } from "../../../../../../shared-domain/src/product/product.entity.js";
-import { IOrder } from "../../../../../../shared-domain/src/order/order.entity.js";
-import { IExpense } from "../../../../../../shared-domain/src/expense/expense.entity.js";
-import { PeriodMetric, TopSellerMetric } from "./context-metrics.types.js";
+import { getISOWeekKey } from '../../../../../../shared-domain/src/shared/utils/date-utils.js';
+import { DateTimeVO } from '../../../../../../shared-domain/src/shared/value-objects/date-time.vo.js';
+import { OrderStatus, PaymentStatus, DeliveryStatus } from '../../../../../../shared-domain/src/order/order.entity.js';
+import { IProduct } from '../../../../../../shared-domain/src/product/product.entity.js';
+import { IOrder } from '../../../../../../shared-domain/src/order/order.entity.js';
+import { IExpense } from '../../../../../../shared-domain/src/expense/expense.entity.js';
+import { PeriodMetric, TopSellerMetric } from './context-metrics.types.js';
 
 export type PeriodData = { revenue: number; profit: number; salesCount: number };
 
@@ -18,9 +14,7 @@ export function filterExpensesByContextAndDates(
   startDate: string | undefined,
   endDate: string | undefined,
 ): { contextExpenses: IExpense[]; totalExpenses: number } {
-  const contextExpenses = contextId
-    ? expenses.filter((e) => e.contextId?.toString() === contextId)
-    : expenses;
+  const contextExpenses = contextId ? expenses.filter((e) => e.contextId?.toString() === contextId) : expenses;
 
   let filteredExpenses = contextExpenses;
   if (startDate) {
@@ -59,16 +53,10 @@ export function aggregateStockMetrics(
   potentialRevenue: number;
   potentialMargin: number;
 } {
-  const contextProducts = contextId
-    ? products.filter((p) => p.contextId?.toString() === contextId)
-    : products;
+  const contextProducts = contextId ? products.filter((p) => p.contextId?.toString() === contextId) : products;
 
-  const contextProductIds = new Set(
-    contextProducts.map((p) => p.id?.toString()).filter(Boolean) as string[],
-  );
-  const productMap = new Map(
-    contextProducts.map((p) => [p.id?.toString(), p]),
-  );
+  const contextProductIds = new Set(contextProducts.map((p) => p.id?.toString()).filter(Boolean) as string[]);
+  const productMap = new Map(contextProducts.map((p) => [p.id?.toString(), p]));
 
   let totalStock = 0;
   let investedCapital = 0;
@@ -115,10 +103,7 @@ export function aggregateOrderPeriodsAndTopSellers(
   totalCOGS: number;
 } {
   let completedOrders = orders.filter(
-    (o) =>
-      o.status === OrderStatus.ACTIVE &&
-      o.paymentStatus === PaymentStatus.PAID &&
-      o.deliveryStatus === DeliveryStatus.COMPLETE,
+    (o) => o.status !== OrderStatus.CANCELLED && o.paymentStatus === PaymentStatus.PAID,
   );
 
   if (startDate) {
@@ -159,12 +144,7 @@ export function aggregateOrderPeriodsAndTopSellers(
   let totalRevenue = 0;
   let totalCOGS = 0;
 
-  const addToPeriodMap = (
-    map: Map<string, PeriodData>,
-    key: string,
-    orderRevenue: number,
-    orderProfit: number,
-  ) => {
+  const addToPeriodMap = (map: Map<string, PeriodData>, key: string, orderRevenue: number, orderProfit: number) => {
     const existing = map.get(key);
     if (existing) {
       existing.revenue += orderRevenue;
@@ -180,9 +160,7 @@ export function aggregateOrderPeriodsAndTopSellers(
   };
 
   for (const order of completedOrders) {
-    const orderItemsInContext = order.items.filter((item) =>
-      contextProductIds.has(item.productId.toString()),
-    );
+    const orderItemsInContext = order.items.filter((item) => contextProductIds.has(item.productId.toString()));
     if (orderItemsInContext.length === 0) {
       continue;
     }
@@ -207,8 +185,7 @@ export function aggregateOrderPeriodsAndTopSellers(
 
       const pIdStr = item.productId.toString();
       const existingTop = topSellersMap.get(pIdStr);
-      const prodName =
-        productMap.get(pIdStr)?.name.toString() || "Unknown Product";
+      const prodName = productMap.get(pIdStr)?.name.toString() || 'Unknown Product';
 
       const itemProfit = rev - cost;
       if (existingTop) {
@@ -274,9 +251,7 @@ export function aggregateOrderPeriodsAndTopSellers(
   };
 }
 
-export function mapToSortedArray(
-  map: Map<string, PeriodData>,
-): PeriodMetric[] {
+export function mapToSortedArray(map: Map<string, PeriodData>): PeriodMetric[] {
   return Array.from(map.entries())
     .map(([pKey, data]) => ({
       period: pKey,

@@ -176,6 +176,8 @@ export const makeContainer = (overrides: ContainerDependencies = {}): Container 
     expenseRepository: overrides.expenseRepository ?? makeExpenseMongooseRepository(),
     accountRepository,
     contextRepository: overrides.contextRepository ?? makeContextMongooseRepository(),
+    clientRepository,
+    fixedExpenseRepository: overrides.fixedExpenseRepository ?? makeFixedExpenseMongooseRepository(),
   });
 
   const chat = buildChatModule({

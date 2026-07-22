@@ -36,6 +36,7 @@ interface GetAllOrdersInput {
 
 const mapToGql = (order: IOrder) => {
   return {
+    id: order.id,
     _id: order.id,
     items: (order.items || []).map((item) => ({
       productId: item.productId,

@@ -1,4 +1,5 @@
 type Client {
+  id: ID
   _id: ID
   firstName: String!
   lastName: String!
