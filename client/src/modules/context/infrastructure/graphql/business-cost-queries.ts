@@ -23,10 +23,12 @@ export const GET_BUSINESS_COST_METRICS = gql`
         period
         totalExpenses
         daysInPeriod
+        daysInMonth
         costPerDay
         newClients
         customerAcquisitionCost
       }
+      fixedDailyCost
       averageCostPerDay
       overallCac
     }

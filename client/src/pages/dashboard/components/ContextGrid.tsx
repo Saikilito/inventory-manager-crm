@@ -99,8 +99,8 @@ const ContextCard: React.FC<{
   });
 
   const metrics = data?.getContextMetrics;
-  const netProfit = metrics?.netProfit || 0;
-  const profitTrend = metrics?.profitTrend;
+  const totalRevenue = metrics?.totalRevenue || 0;
+  const revenueTrend = metrics?.revenueTrend;
 
   return (
     <button
@@ -110,26 +110,29 @@ const ContextCard: React.FC<{
       <p className="text-sm font-bold text-stone-900 dark:text-stone-50 truncate">
         {contextName}
       </p>
-      <p className="text-lg font-black text-stone-900 dark:text-stone-50 font-mono mt-1">
-        {formatCurrency(netProfit)}
+      <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
+        Ventas brutas
+      </p>
+      <p className="text-lg font-black text-stone-900 dark:text-stone-50 font-mono mt-0.5">
+        {formatCurrency(totalRevenue)}
       </p>
       <div className="flex items-center gap-1 mt-1">
-        {profitTrend !== null && profitTrend !== undefined ? (
+        {revenueTrend !== null && revenueTrend !== undefined ? (
           <>
-            {profitTrend >= 0 ? (
+            {revenueTrend >= 0 ? (
               <TrendingUp className="w-3 h-3 text-emerald-500" />
             ) : (
               <TrendingDown className="w-3 h-3 text-rose-500" />
             )}
             <span
               className={`text-[10px] font-bold ${
-                profitTrend >= 0
+                revenueTrend >= 0
                   ? 'text-emerald-600 dark:text-emerald-400'
                   : 'text-rose-600 dark:text-rose-400'
               }`}
             >
-              {profitTrend >= 0 ? '+' : ''}
-              {profitTrend.toFixed(0)}%
+              {revenueTrend >= 0 ? '+' : ''}
+              {revenueTrend.toFixed(0)}%
             </span>
           </>
         ) : (

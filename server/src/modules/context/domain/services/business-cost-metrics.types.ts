@@ -2,6 +2,7 @@ export interface BusinessCostMetricByPeriod {
   period: string;
   totalExpenses: number;
   daysInPeriod: number;
+  daysInMonth?: number;
   costPerDay: number;
   newClients: number;
   customerAcquisitionCost: number | null;
@@ -11,6 +12,7 @@ export interface BusinessCostMetrics {
   daily: BusinessCostMetricByPeriod;
   weekly: BusinessCostMetricByPeriod;
   monthly: BusinessCostMetricByPeriod;
+  fixedDailyCost: number;
   averageCostPerDay: number;
   overallCac: number | null;
 }
@@ -20,6 +22,7 @@ export interface BusinessCostMetricsCalculatorParams {
     amount: number;
     createdAt?: Date | string;
     contextId?: string;
+    referenceType?: string;
   }>;
   fixedExpenses: Array<{
     amount: number;

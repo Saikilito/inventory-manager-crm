@@ -12,6 +12,7 @@ enum ExpenseCategory {
 enum ExpenseReferenceType {
   PRODUCT
   SELLER
+  FIXED_EXPENSE
 }
 
 type Expense {

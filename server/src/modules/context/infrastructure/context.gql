@@ -86,6 +86,7 @@ type BusinessCostMetricByPeriod {
   period: String!
   totalExpenses: Float!
   daysInPeriod: Int!
+  daysInMonth: Int
   costPerDay: Float!
   newClients: Int!
   customerAcquisitionCost: Float
@@ -95,6 +96,7 @@ type BusinessCostMetrics {
   daily: BusinessCostMetricByPeriod!
   weekly: BusinessCostMetricByPeriod!
   monthly: BusinessCostMetricByPeriod!
+  fixedDailyCost: Float!
   averageCostPerDay: Float!
   overallCac: Float
 }

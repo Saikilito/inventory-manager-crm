@@ -10,6 +10,7 @@ interface BusinessCostMetricByPeriod {
   period: string;
   totalExpenses: number;
   daysInPeriod: number;
+  daysInMonth?: number;
   costPerDay: number;
   newClients: number;
   customerAcquisitionCost: number | null;
@@ -20,6 +21,7 @@ interface BusinessCostMetricsData {
     daily: BusinessCostMetricByPeriod;
     weekly: BusinessCostMetricByPeriod;
     monthly: BusinessCostMetricByPeriod;
+    fixedDailyCost: number;
     averageCostPerDay: number;
     overallCac: number | null;
   };
@@ -131,14 +133,16 @@ export const BusinessCostCard: React.FC = () => {
               <div className="flex items-center gap-2 mb-3">
                 <Calendar className="w-4 h-4 text-stone-400 dark:text-stone-500" />
                 <span className="text-sm font-medium text-stone-600 dark:text-stone-400">
-                  Costo por día
+                  {selectedPeriod === 'monthly' ? 'Costo fijo diario' : 'Costo por día'}
                 </span>
               </div>
               <p className="text-2xl font-bold text-stone-900 dark:text-stone-50 font-mono tracking-tight">
-                {formatCurrency(currentMetric.costPerDay)}
+                {formatCurrency(selectedPeriod === 'monthly' ? metrics.fixedDailyCost : currentMetric.costPerDay)}
               </p>
               <p className="text-xs text-stone-500 dark:text-stone-500 mt-1">
-                {currentMetric.daysInPeriod} {currentMetric.daysInPeriod === 1 ? 'día' : 'días'}
+                {selectedPeriod === 'monthly' && currentMetric.daysInMonth
+                  ? `${currentMetric.daysInPeriod} de ${currentMetric.daysInMonth} días`
+                  : `${currentMetric.daysInPeriod} ${currentMetric.daysInPeriod === 1 ? 'día' : 'días'}`}
               </p>
             </div>
 
@@ -208,10 +212,10 @@ export const BusinessCostCard: React.FC = () => {
           <div className="grid grid-cols-3 gap-2">
             <div className="p-3 bg-stone-50 dark:bg-stone-800/50 rounded-lg text-center">
               <p className="text-xs text-stone-500 dark:text-stone-400 mb-1">
-                Promedio diario
+                Costo fijo diario
               </p>
               <p className="text-sm font-semibold text-stone-900 dark:text-stone-50 font-mono">
-                {formatCurrency(metrics.averageCostPerDay)}
+                {formatCurrency(metrics.fixedDailyCost)}
               </p>
             </div>
             <div className="p-3 bg-stone-50 dark:bg-stone-800/50 rounded-lg text-center">

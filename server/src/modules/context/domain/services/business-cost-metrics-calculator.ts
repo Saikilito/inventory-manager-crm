@@ -4,6 +4,7 @@ import {
   BusinessCostMetricsCalculatorParams,
   BusinessCostMetricsCalculator,
 } from './business-cost-metrics.types.js';
+import { ExpenseReferenceType } from '../../../../../../shared-domain/src/expense/expense.entity.js';
 
 export type {
   BusinessCostMetrics,
@@ -59,10 +60,7 @@ function getDaysInMonth(date: Date): number {
   return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
 }
 
-function filterByContext<T extends { contextId?: string }>(
-  items: T[],
-  contextId?: string,
-): T[] {
+function filterByContext<T extends { contextId?: string }>(items: T[], contextId?: string): T[] {
   if (!contextId) return items;
   return items.filter((item) => !item.contextId || item.contextId === contextId);
 }
@@ -82,11 +80,7 @@ function filterExpensesByPeriod(
   }, 0);
 }
 
-function filterClientsByPeriod(
-  clients: Array<{ createdAt?: Date | string }>,
-  startDate: Date,
-  endDate: Date,
-): number {
+function filterClientsByPeriod(clients: Array<{ createdAt?: Date | string }>, startDate: Date, endDate: Date): number {
   return clients.filter((client) => {
     if (!client.createdAt) return false;
     const clientDate = new Date(client.createdAt);
@@ -117,9 +111,7 @@ function calculatePeriodMetric(
   };
 }
 
-export function calculateBusinessCostMetrics(
-  params: BusinessCostMetricsCalculatorParams,
-): BusinessCostMetrics {
+export function calculateBusinessCostMetrics(params: BusinessCostMetricsCalculatorParams): BusinessCostMetrics {
   const { expenses, fixedExpenses, clients, contextId, referenceDate = new Date() } = params;
 
   const refDate = new Date(referenceDate);
@@ -127,6 +119,8 @@ export function calculateBusinessCostMetrics(
   const filteredExpenses = filterByContext(expenses, contextId);
   const filteredFixedExpenses = filterByContext(fixedExpenses, contextId);
   const filteredClients = filterByContext(clients, contextId);
+
+  const variableExpensesOnly = filteredExpenses.filter((e) => e.referenceType !== ExpenseReferenceType.FIXED_EXPENSE);
 
   const activeFixedExpenses = filteredFixedExpenses.filter((fe) => fe.isActive);
   const monthlyFixedExpensesTotal = activeFixedExpenses.reduce((sum, fe) => sum + fe.amount, 0);
@@ -141,9 +135,9 @@ export function calculateBusinessCostMetrics(
   const monthStart = getStartOfMonth(refDate);
   const monthEnd = getEndOfMonth(refDate);
 
-  const todayVarExpenses = filterExpensesByPeriod(filteredExpenses, todayStart, todayEnd);
-  const weekVarExpenses = filterExpensesByPeriod(filteredExpenses, weekStart, weekEnd);
-  const monthVarExpenses = filterExpensesByPeriod(filteredExpenses, monthStart, monthEnd);
+  const todayVarExpenses = filterExpensesByPeriod(variableExpensesOnly, todayStart, todayEnd);
+  const weekVarExpenses = filterExpensesByPeriod(variableExpensesOnly, weekStart, weekEnd);
+  const monthVarExpenses = filterExpensesByPeriod(variableExpensesOnly, monthStart, monthEnd);
 
   const todayTotalExpenses = todayVarExpenses + dailyFixedExpenses;
   const weekTotalExpenses = weekVarExpenses + dailyFixedExpenses * 7;
@@ -182,7 +176,8 @@ export function calculateBusinessCostMetrics(
     period: monthLabel,
     totalExpenses: monthTotalExpenses,
     daysInPeriod: daysPassedInMonth,
-    costPerDay: daysPassedInMonth > 0 ? monthTotalExpenses / daysPassedInMonth : 0,
+    daysInMonth,
+    costPerDay: dailyFixedExpenses,
     newClients: monthNewClients,
     customerAcquisitionCost: monthNewClients > 0 ? monthTotalExpenses / monthNewClients : null,
   };
@@ -196,6 +191,7 @@ export function calculateBusinessCostMetrics(
     daily,
     weekly,
     monthly,
+    fixedDailyCost: dailyFixedExpenses,
     averageCostPerDay,
     overallCac,
   };

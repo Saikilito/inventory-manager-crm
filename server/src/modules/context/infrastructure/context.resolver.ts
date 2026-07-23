@@ -133,10 +133,12 @@ export default {
           period: metrics.monthly.period,
           totalExpenses: metrics.monthly.totalExpenses,
           daysInPeriod: metrics.monthly.daysInPeriod,
+          daysInMonth: metrics.monthly.daysInMonth,
           costPerDay: metrics.monthly.costPerDay,
           newClients: metrics.monthly.newClients,
           customerAcquisitionCost: metrics.monthly.customerAcquisitionCost,
         },
+        fixedDailyCost: metrics.fixedDailyCost,
         averageCostPerDay: metrics.averageCostPerDay,
         overallCac: metrics.overallCac,
       };

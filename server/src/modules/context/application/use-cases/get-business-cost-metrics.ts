@@ -18,11 +18,7 @@ export interface GetBusinessCostMetricsInput {
   referenceDate?: string;
 }
 
-export type GetBusinessCostMetrics = UseCase<
-  GetBusinessCostMetricsInput,
-  BusinessCostMetrics,
-  DomainError
->;
+export type GetBusinessCostMetrics = UseCase<GetBusinessCostMetricsInput, BusinessCostMetrics, DomainError>;
 
 export const makeGetBusinessCostMetrics = (
   expenseRepository: IExpenseRepository,
@@ -62,7 +58,6 @@ export const makeGetBusinessCostMetrics = (
       return Result.fail(fixedExpensesResult.getError());
     }
 
-    // Query clients directly from Mongoose to get createdAt
     const clientQuery = input.contextId
       ? ClientModel.find({ contextId: input.contextId }).lean()
       : ClientModel.find().lean();
@@ -73,6 +68,7 @@ export const makeGetBusinessCostMetrics = (
       amount: Number(e.amount),
       createdAt: e.createdAt,
       contextId: e.contextId?.toString(),
+      referenceType: e.referenceType,
     }));
 
     const fixedExpenses = fixedExpensesResult.getValue().items.map((fe) => ({
