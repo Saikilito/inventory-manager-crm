@@ -8,6 +8,7 @@ import { makeUpdateProductUseCase } from "@modules/product/application/use-cases
 import { ProductForm } from "./ProductForm";
 import { IProduct } from "@shared-domain/product/product.entity";
 import { IdVO } from "@shared-domain/shared/value-objects/id.vo";
+import { PRODUCT_MESSAGES } from "@modules/product/domain/product.constants";
 
 import Spinkit from "../../components/Spinkit";
 import Alert from "../../components/Alert";
@@ -23,6 +24,7 @@ export const EditProduct: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
 
   const [useCases] = useState(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- ApolloClient type mismatch in legacy code
     const repository = makeApolloProductRepository(apolloClient as any);
     return {
       getProduct: makeGetProductUseCase(repository),
@@ -39,12 +41,13 @@ export const EditProduct: React.FC = () => {
         const result = await useCases.getProduct.execute(idVO);
 
         if (result.isFailure) {
-          setError(result.getError().message || "Error loading product");
+          setError(result.getError().message || PRODUCT_MESSAGES.ERROR_LOADING);
         } else {
           setProduct(result.getValue());
         }
-      } catch (err: any) {
-        setError(err.message || "Error loading product");
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : PRODUCT_MESSAGES.ERROR_LOADING;
+        setError(message);
       } finally {
         setLoading(false);
       }
@@ -78,12 +81,13 @@ export const EditProduct: React.FC = () => {
       const result = await useCases.updateProduct.execute(updatedProductEntity);
 
       if (result.isFailure) {
-        setError(result.getError().message || "Error updating product");
+        setError(result.getError().message || PRODUCT_MESSAGES.ERROR_UPDATING);
       } else {
         navigate("/products");
       }
-    } catch (err: any) {
-      setError(err.message || "Error updating product");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : PRODUCT_MESSAGES.ERROR_UPDATING;
+      setError(message);
     } finally {
       setSubmitting(false);
     }

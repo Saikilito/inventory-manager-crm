@@ -13,7 +13,8 @@ const VALID_UUID = "550e8400-e29b-41d4-a716-446655440000";
 const mockProduct = makeProduct({
   id: VALID_UUID,
   name: "Premium Saikilo Coffee",
-  price: 12.99,
+  purchasePrice: 8.99,
+  sellingPrice: 12.99,
   stock: 45,
 });
 

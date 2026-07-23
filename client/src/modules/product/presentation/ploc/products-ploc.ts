@@ -5,6 +5,7 @@ import { DeleteProductUseCase } from '@modules/product/application/use-cases/del
 import { PositiveNumberVO } from '@shared-domain/shared/value-objects/positive-number.vo';
 import { NonNegativeNumberVO } from '@shared-domain/shared/value-objects/non-negative-number.vo';
 import { IdVO } from '@shared-domain/shared/value-objects/id.vo';
+import { PRODUCT_MESSAGES } from '@modules/product/domain/product.constants';
 
 export interface ProductsPloc extends Ploc<ProductsState> {
   load(page?: number, limit?: number): Promise<void>;
@@ -50,7 +51,7 @@ export function makeProductsPloc(
       const err = result.getError();
       ploc.changeState({
         kind: ProductsStateKind.ERROR,
-        errorMessage: err.message || 'Error loading products',
+        errorMessage: err.message || PRODUCT_MESSAGES.ERROR_LOADING,
         searchTerm: currentState.searchTerm,
         currentPage: page,
         limit,
@@ -89,7 +90,7 @@ export function makeProductsPloc(
       ploc.changeState({
         ...currentState,
         kind: ProductsStateKind.ERROR,
-        errorMessage: err.message || 'Error deleting product',
+        errorMessage: err.message || PRODUCT_MESSAGES.ERROR_DELETING,
       });
     } else {
       load(currentState.currentPage, currentState.limit);

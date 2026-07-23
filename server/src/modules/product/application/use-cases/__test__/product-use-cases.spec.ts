@@ -4,6 +4,12 @@ import { DatabaseError } from '../../../../../../../shared-domain/src/shared/err
 import { IProduct, makeProduct } from '../../../../../../../shared-domain/src/product/product.entity.js';
 import { IdVO } from '../../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
 import { IProductRepository } from '../../repositories/product.repository.js';
+import {
+  GetAllInput,
+  IShared,
+  CreateEntityInput,
+  UpdateEntityInput,
+} from '../../../../../../../shared-domain/src/shared/repository.js';
 import { makeGetProduct } from '../get-product.js';
 import { makeGetAllProducts } from '../get-all-products.js';
 import { makeTotalProducts } from '../total-products.js';
@@ -22,7 +28,7 @@ const productMother = {
       price: overrides.price ?? 12.99,
       stock: overrides.stock ?? 45,
     });
-  }
+  },
 };
 
 // Create fully isolated mock repository
@@ -33,11 +39,11 @@ const makeMockProductRepository = (): IProductRepository => {
   store.set(initial.id!, initial);
 
   return {
-    async getById(id: string): Promise<Result<IProduct | null, any>> {
+    async getById(id: string): Promise<Result<IProduct | null, DatabaseError>> {
       return Result.ok(store.get(id) || null);
     },
 
-    async getAll(input?: any): Promise<Result<any, any>> {
+    async getAll(input?: GetAllInput): Promise<Result<IShared.PaginatedResult<IProduct>, DatabaseError>> {
       let list = Array.from(store.values());
       const page = input?.page ? Number(input.page) : 1;
       const limit = input?.limit ? Number(input.limit) : 10;
@@ -48,26 +54,27 @@ const makeMockProductRepository = (): IProductRepository => {
       return Result.ok({ items, total, page, limit, pages });
     },
 
-    async create(product: any): Promise<Result<any, any>> {
+    async create(product: CreateEntityInput<IProduct>): Promise<Result<IProduct, DatabaseError>> {
       const id = product.id || IdVO.generate();
-      const saved = { ...product, id };
+      const saved = { ...product, id } as IProduct;
       store.set(id, saved);
       return Result.ok(saved);
     },
 
-    async updateById(id: string, product: any): Promise<Result<void, any>> {
+    async updateById(id: string, product: UpdateEntityInput<IProduct>): Promise<Result<void, DatabaseError>> {
       const existing = store.get(id);
       if (!existing) return Result.fail(new DatabaseError('Product not found'));
       store.set(id, { ...existing, ...product });
       return Result.ok();
     },
 
-    async deleteByIds(ids: string[]): Promise<Result<void, any>> {
+    async deleteByIds(ids: string[]): Promise<Result<void, DatabaseError>> {
       for (const id of ids) {
         store.delete(id);
       }
       return Result.ok();
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock repository incomplete implementation for test purposes
   } as any;
 };
 
@@ -115,10 +122,11 @@ describe('Product Use Cases (TDD)', () => {
     const result = await createProduct({
       name: 'Alfajor Saikilo',
       price: 2.5,
-      stock: 100
+      stock: 100,
     });
 
     expect(result.isFailure).toBe(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Test mocking limit parameter type mismatch
     const getAllRes = await repo.getAll({ limit: 1 as any });
     const count = getAllRes.getValue().total;
     expect(count).toBe(2);
@@ -132,7 +140,7 @@ describe('Product Use Cases (TDD)', () => {
     const resultNegPrice = await createProduct({
       name: 'Negative Price Beer',
       price: -5.0,
-      stock: 10
+      stock: 10,
     });
     expect(resultNegPrice.isFailure).toBe(true);
 
@@ -140,7 +148,7 @@ describe('Product Use Cases (TDD)', () => {
     const resultNegStock = await createProduct({
       name: 'Negative Stock Beer',
       price: 5.0,
-      stock: -10
+      stock: -10,
     });
     expect(resultNegStock.isFailure).toBe(true);
   });
@@ -151,15 +159,15 @@ describe('Product Use Cases (TDD)', () => {
 
     const result = await updateProduct({
       id: VALID_UUID,
-      price: 15.00,
-      stock: 50
+      price: 15.0,
+      stock: 50,
     });
 
     expect(result.isFailure).toBe(false);
 
     const getRes = await repo.getById(IdVO.create(VALID_UUID));
     const updated = getRes.getValue()!;
-    expect(updated.price).toBe(15.00);
+    expect(updated.price).toBe(15.0);
     expect(updated.stock).toBe(50);
     expect(updated.name).toBe('Premium Saikilo Coffee'); // Kept original
   });
@@ -170,7 +178,7 @@ describe('Product Use Cases (TDD)', () => {
 
     const result = await updateProduct({
       id: VALID_UUID,
-      price: -2.00 // Broken PositiveNumberVO contract
+      price: -2.0, // Broken PositiveNumberVO contract
     });
 
     expect(result.isFailure).toBe(true);
@@ -183,6 +191,7 @@ describe('Product Use Cases (TDD)', () => {
     const result = await deleteProduct(VALID_UUID);
     expect(result.isFailure).toBe(false);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Test mocking limit parameter type mismatch
     const getAllRes = await repo.getAll({ limit: 1 as any });
     const count = getAllRes.getValue().total;
     expect(count).toBe(0);

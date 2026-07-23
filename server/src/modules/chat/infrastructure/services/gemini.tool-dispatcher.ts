@@ -310,9 +310,9 @@ export async function dispatchToolCall(
       products: matchingProducts.map((p) => ({
         id: p.id ? p.id.toString() : "",
         name: p.name.toString(),
-        price: typeof p.price === "object" && p.price !== null && "value" in p.price
-          ? Number((p.price as { value: unknown }).value)
-          : Number(p.price),
+        sellingPrice: typeof p.sellingPrice === "object" && p.sellingPrice !== null && "value" in p.sellingPrice
+          ? Number((p.sellingPrice as { value: unknown }).value)
+          : Number(p.sellingPrice),
         stock: typeof p.stock === "object" && p.stock !== null && "value" in p.stock
           ? Number((p.stock as { value: unknown }).value)
           : Number(p.stock),

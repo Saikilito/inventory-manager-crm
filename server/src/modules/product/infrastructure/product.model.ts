@@ -1,8 +1,9 @@
 import mongoose, { Schema, Document } from "mongoose";
 import { IProduct } from "../../../../../shared-domain/src/product/product.entity.js";
 
-export interface IProductDocument extends Omit<IProduct, "id">, Document {
+export interface IProductDocument extends Omit<IProduct, "id" | "contextId">, Document {
   _id: mongoose.Types.ObjectId;
+  contextId?: mongoose.Types.ObjectId;
   isTesting: boolean;
 }
 
@@ -12,7 +13,7 @@ const productSchema = new Schema<IProductDocument>({
   sellingPrice: { type: Number, default: 0, required: true },
   stock: { type: Number, required: true, default: 0 },
   unitOfMeasure: { type: String, default: 'UNIT' },
-  contextId: { type: String, default: null },
+  contextId: { type: Schema.Types.ObjectId, ref: 'Context', default: null },
   customAttributes: { type: Schema.Types.Mixed, default: {} },
   presentation: {
     packagingType: { type: String },

@@ -6,6 +6,20 @@ import { useProductsPloc } from "@contexts/products-context";
 import { Paginator } from "@components/Paginator";
 import { ProductsStateKind } from "@modules/product/presentation/ploc/products-state";
 import {
+  STOCK_THRESHOLD_LOW,
+  STOCK_THRESHOLD_MEDIUM,
+  MARGIN_THRESHOLD_GOOD,
+  MARGIN_THRESHOLD_OK,
+  DELETION_SUCCESS_TIMEOUT_MS,
+  PRODUCT_MESSAGES,
+} from "@modules/product/domain/product.constants";
+import {
+  calculateProfit,
+  calculateProfitMargin,
+  calculateStockValue,
+  calculatePotentialProfit,
+} from "@shared-domain/product/product-calculations";
+import {
   Plus,
   Edit,
   Info,
@@ -32,12 +46,12 @@ export const ProductList: React.FC = () => {
   }, [ploc]);
 
   const handleDelete = async (id: string, name: string) => {
-    if (window.confirm(`Are you sure you want to delete product ${name}?`)) {
+    if (window.confirm(`${PRODUCT_MESSAGES.CONFIRM_DELETE} ${name}?`)) {
       await ploc.deleteProduct(id);
-      setDeletionSuccess("Product deleted successfully");
+      setDeletionSuccess(PRODUCT_MESSAGES.DELETED);
       setTimeout(() => {
         setDeletionSuccess(null);
-      }, 4000);
+      }, DELETION_SUCCESS_TIMEOUT_MS);
     }
   };
 
@@ -55,7 +69,6 @@ export const ProductList: React.FC = () => {
     </div>
   ) : null;
 
-  // Calculate totals from loaded products
   const totals = match(state)
     .with(
       { kind: ProductsStateKind.LOADED },
@@ -68,9 +81,8 @@ export const ProductList: React.FC = () => {
             const sellingPrice = Number(product.sellingPrice ?? fallbackPrice) || 0;
             const stock = Number(product.stock) || 0;
 
-            const profit = sellingPrice - purchasePrice;
-            const stockValue = purchasePrice * stock;
-            const potentialProfit = profit * stock;
+            const stockValue = calculateStockValue(purchasePrice, stock);
+            const potentialProfit = calculatePotentialProfit(sellingPrice, purchasePrice, stock);
 
             return {
               totalStockValue: acc.totalStockValue + stockValue,
@@ -246,20 +258,20 @@ export const ProductList: React.FC = () => {
                           const fallbackPrice = 'price' in product ? Number((product as Record<string, unknown>).price) : 0;
                           const sellingPrice = Number(product.sellingPrice ?? fallbackPrice) || 0;
                           
-                          const profit = sellingPrice - purchasePrice;
-                          const margin = sellingPrice > 0 ? (profit / sellingPrice) * 100 : 0;
-                          const stockValue = purchasePrice * stock;
-                          const potentialProfit = profit * stock;
+                          const profit = calculateProfit(sellingPrice, purchasePrice);
+                          const margin = calculateProfitMargin(sellingPrice, purchasePrice);
+                          const stockValue = calculateStockValue(purchasePrice, stock);
+                          const potentialProfit = calculatePotentialProfit(sellingPrice, purchasePrice, stock);
 
                           let stockBadge = null;
-                          if (stock < 30) {
+                          if (stock < STOCK_THRESHOLD_LOW) {
                             stockBadge = (
                               <span className="bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-900/30 px-2 py-1 rounded-md text-xs font-semibold inline-flex items-center gap-1">
                                 <AlertTriangle className="w-3.5 h-3.5" />
                                 {product.stock}
                               </span>
                             );
-                          } else if (stock < 100) {
+                          } else if (stock < STOCK_THRESHOLD_MEDIUM) {
                             stockBadge = (
                               <span className="bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/30 px-2 py-1 rounded-md text-xs font-semibold inline-flex items-center gap-1">
                                 <Info className="w-3.5 h-3.5" />
@@ -309,9 +321,9 @@ export const ProductList: React.FC = () => {
                               </td>
                               <td className="px-6 py-4 text-sm text-right">
                                 <span className={`font-mono ${
-                                  margin >= 30
+                                  margin >= MARGIN_THRESHOLD_GOOD
                                     ? 'text-emerald-700 dark:text-emerald-400 font-semibold'
-                                    : margin >= 15
+                                    : margin >= MARGIN_THRESHOLD_OK
                                     ? 'text-amber-700 dark:text-amber-400'
                                     : 'text-red-700 dark:text-red-400'
                                 }`}>

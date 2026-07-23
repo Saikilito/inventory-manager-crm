@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { makeApolloProductRepository } from "@modules/product/infrastructure/repositories/apollo-product.repository";
 import { makeCreateProductUseCase } from "@modules/product/application/use-cases/create-product";
 import { ProductForm } from "./ProductForm";
+import { PRODUCT_MESSAGES } from "@modules/product/domain/product.constants";
 
 import Alert from "../../components/Alert";
 
@@ -15,6 +16,7 @@ export const NewProduct: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
 
   const [createProductUseCase] = useState(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- ApolloClient type mismatch in legacy code
     const repository = makeApolloProductRepository(apolloClient as any);
     return makeCreateProductUseCase(repository);
   });
@@ -41,12 +43,13 @@ export const NewProduct: React.FC = () => {
       const result = await createProductUseCase.execute(productEntity);
 
       if (result.isFailure) {
-        setError(result.getError().message || "Error creating product");
+        setError(result.getError().message || PRODUCT_MESSAGES.ERROR_CREATING);
       } else {
         navigate("/products");
       }
-    } catch (err: any) {
-      setError(err.message || "Error creating product");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : PRODUCT_MESSAGES.ERROR_CREATING;
+      setError(message);
     } finally {
       setSubmitting(false);
     }

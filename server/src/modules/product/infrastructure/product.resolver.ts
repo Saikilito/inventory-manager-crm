@@ -1,5 +1,11 @@
 import { IContext } from '../../../config/apollo.js';
 import { IProduct } from '../../../../../shared-domain/src/product/product.entity.js';
+import {
+  calculateProfit,
+  calculateProfitMargin,
+  calculateStockValue,
+  calculatePotentialProfit,
+} from '../../../../../shared-domain/src/product/product-calculations.js';
 
 interface SetProductInput {
   name: string;
@@ -23,10 +29,10 @@ const mapToGql = (product: IProduct) => {
   const sellingPrice = Number(product.sellingPrice) || 0;
   const stock = Number(product.stock) || 0;
   
-  const profit = sellingPrice - purchasePrice;
-  const profitMargin = sellingPrice > 0 ? (profit / sellingPrice) * 100 : 0;
-  const stockValue = purchasePrice * stock;
-  const potentialProfit = profit * stock;
+  const profit = calculateProfit(sellingPrice, purchasePrice);
+  const profitMargin = calculateProfitMargin(sellingPrice, purchasePrice);
+  const stockValue = calculateStockValue(purchasePrice, stock);
+  const potentialProfit = calculatePotentialProfit(sellingPrice, purchasePrice, stock);
 
   return {
     _id: product.id,
@@ -93,14 +99,14 @@ export default {
         const purchasePrice = Number(p.purchasePrice) || 0;
         const sellingPrice = Number(p.sellingPrice) || 0;
         const stock = Number(p.stock) || 0;
-        const profit = sellingPrice - purchasePrice;
+        const profit = calculateProfit(sellingPrice, purchasePrice);
 
         totalStock += stock;
-        totalStockValue += purchasePrice * stock;
-        totalPotentialProfit += profit * stock;
+        totalStockValue += calculateStockValue(purchasePrice, stock);
+        totalPotentialProfit += calculatePotentialProfit(sellingPrice, purchasePrice, stock);
 
         if (sellingPrice > 0) {
-          totalMargin += (profit / sellingPrice) * 100;
+          totalMargin += calculateProfitMargin(sellingPrice, purchasePrice);
           productCount++;
         }
       }

@@ -1,8 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { z } from 'zod';
 import { IProduct } from '@shared-domain/product/product.entity';
+import {
+  calculateProfit,
+  calculateProfitMargin,
+  calculateStockValue,
+  calculatePotentialProfit,
+} from '@shared-domain/product/product-calculations';
 
-// Define strict validation schema using Zod
 const productFormSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   purchasePrice: z.number().min(0, 'Purchase price cannot be negative'),
@@ -39,16 +44,15 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Calculate profit in real-time
   const calculatedValues = useMemo(() => {
     const pp = Number(purchasePrice) || 0;
     const sp = Number(sellingPrice) || 0;
     const st = Number(stock) || 0;
     
-    const profit = sp - pp;
-    const margin = sp > 0 ? (profit / sp) * 100 : 0;
-    const stockValue = pp * st;
-    const potentialProfit = profit * st;
+    const profit = calculateProfit(sp, pp);
+    const margin = calculateProfitMargin(sp, pp);
+    const stockValue = calculateStockValue(pp, st);
+    const potentialProfit = calculatePotentialProfit(sp, pp, st);
 
     return {
       profit: profit.toFixed(2),
@@ -114,7 +118,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           )}
         </div>
 
-        {/* Price Section */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-semibold text-stone-700 dark:text-stone-300">
@@ -171,7 +174,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           </div>
         </div>
 
-        {/* Profit Preview */}
         <div className={`p-4 rounded-lg border ${
           calculatedValues.isProfitPositive
             ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/40'
@@ -222,7 +224,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           )}
         </div>
 
-        {/* Stock Value Preview */}
         {Number(stock) > 0 && (
           <div className="p-4 rounded-lg border bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800/40">
             <div className="flex flex-wrap gap-6 items-center justify-between">

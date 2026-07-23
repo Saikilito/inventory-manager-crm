@@ -5,20 +5,8 @@ import { doTryResult } from '@shared-domain/shared/do-try-result';
 import { DatabaseError } from '@shared-domain/shared/errors';
 import { PRODUCTS_QUERY, SINGLE_PRODUCT_QUERY } from '../graphql/queries';
 import { CREATE_PRODUCT, UPDATE_PRODUCT, DELETE_PRODUCT } from '../graphql/mutations';
-
-interface GQLProduct {
-  _id: string;
-  name: string;
-  price: number;
-  purchasePrice: number;
-  sellingPrice: number;
-  profit: number;
-  profitMargin: number;
-  stock: number;
-  stockValue: number;
-  potentialProfit: number;
-  contextId?: string;
-}
+import { GQLProduct } from '../graphql/types';
+import { PRODUCT_MESSAGES } from '@modules/product/domain/product.constants';
 
 interface GetAllProductsData {
   getAllProducts: GQLProduct[];
@@ -115,7 +103,7 @@ export function makeApolloProductRepository(
             },
           });
 
-          return data?.setProduct?._id || 'Product created successfully';
+          return data?.setProduct?._id || PRODUCT_MESSAGES.CREATED;
         },
         (err) => new DatabaseError(err.message)
       );
@@ -138,7 +126,7 @@ export function makeApolloProductRepository(
             },
           });
 
-          return data?.updateProduct?._id || 'Product updated successfully';
+          return data?.updateProduct?._id || PRODUCT_MESSAGES.UPDATED;
         },
         (err) => new DatabaseError(err.message)
       );
@@ -152,7 +140,7 @@ export function makeApolloProductRepository(
             variables: { _id: id },
           });
 
-          return data?.deleteProduct ? 'Product deleted successfully' : 'Delete failed';
+          return data?.deleteProduct ? PRODUCT_MESSAGES.DELETED : PRODUCT_MESSAGES.DELETE_FAILED;
         },
         (err) => new DatabaseError(err.message)
       );
