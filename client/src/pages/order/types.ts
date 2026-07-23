@@ -6,11 +6,25 @@ import type { GQLProduct } from '@modules/product/infrastructure/graphql/types';
 export { OrderStatus, PaymentStatus, DeliveryStatus };
 export type { GQLOrder, GQLOrderItem, GQLClient, GQLProduct };
 
-// Backward compatibility aliases
 export type Order = GQLOrder;
 export type OrderItem = GQLOrderItem;
 export type Client = GQLClient;
 export type Product = GQLProduct;
+
+export type PaymentSplit = {
+  accountId: string;
+  amount: number;
+  exchangeRate: number;
+};
+
+export interface StatusChangeOptions {
+  newStatus?: OrderStatus;
+  newPaymentStatus?: PaymentStatus;
+  newDeliveryStatus?: DeliveryStatus;
+  payments?: PaymentSplit[];
+  newContextId?: string | null;
+  cancellationObservation?: string;
+}
 
 export interface OrdersTableProps {
   orders: GQLOrder[];
@@ -26,14 +40,10 @@ export interface OrderDetailModalProps {
   isOpen: boolean;
   isUpdating: boolean;
   updateError: string | null;
+  showSuccessModal?: boolean;
   onClose: () => void;
-  onStatusChange: (
-    newStatus?: OrderStatus,
-    newPaymentStatus?: PaymentStatus,
-    newDeliveryStatus?: DeliveryStatus,
-    payments?: Array<{ accountId: string; amount: number; exchangeRate: number }>,
-    newContextId?: string | null,
-  ) => Promise<void>;
+  onCloseSuccessModal?: () => void;
+  onStatusChange: (options: StatusChangeOptions) => Promise<void>;
 }
 
 export interface OrdersPageProps {

@@ -7,6 +7,7 @@ export const CLIENT_ORDERS_QUERY = gql`
       id
       items {
         productId
+        productName
         quantity
       }
       total
@@ -16,6 +17,7 @@ export const CLIENT_ORDERS_QUERY = gql`
       status
       sellerId
       contextId
+      cancellationObservation
     }
   }
 `;
@@ -36,10 +38,17 @@ export const GET_ALL_ORDERS = gql`
       deliveryCost
       items {
         productId
+        productName
         quantity
         sellingPriceAtSale
         purchasePriceAtSale
       }
+      payments {
+        accountId
+        amount
+        exchangeRate
+      }
+      cancellationObservation
     }
   }
 `;

@@ -21,6 +21,7 @@ interface GQLOrder {
   sellerId: string;
   contextId?: string;
   deliveryCost?: number;
+  cancellationObservation?: string;
 }
 
 interface GetOrderClientData {
@@ -45,6 +46,7 @@ export function makeApolloOrderRepository(
       sellerId: gqlOrder.sellerId,
       contextId: gqlOrder.contextId,
       deliveryCost: gqlOrder.deliveryCost,
+      cancellationObservation: gqlOrder.cancellationObservation,
     });
   };
 
@@ -109,6 +111,7 @@ export function makeApolloOrderRepository(
                 sellerId: String(order.sellerId),
                 contextId: order.contextId ? String(order.contextId) : null,
                 deliveryCost: order.deliveryCost !== undefined ? Number(order.deliveryCost) : null,
+                cancellationObservation: order.cancellationObservation || undefined,
               },
             },
           });

@@ -6,12 +6,14 @@ interface OrderItemCardProps {
   order: IOrder;
   productMap: Map<string, string>;
   onStatusChange: (order: IOrder, newStatus: OrderStatus) => void;
+  onCancelRequest: (order: IOrder) => void;
 }
 
 export const OrderItemCard: React.FC<OrderItemCardProps> = ({
   order,
   productMap,
   onStatusChange,
+  onCancelRequest,
 }) => {
   const status = order.status;
 
@@ -50,7 +52,14 @@ export const OrderItemCard: React.FC<OrderItemCardProps> = ({
             <select
               className="w-full appearance-none rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950 px-3 py-2 pr-10 text-sm font-medium text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-500 dark:focus:ring-stone-400 transition-shadow cursor-pointer"
               value={status}
-              onChange={(e) => onStatusChange(order, e.target.value as OrderStatus)}
+              onChange={(e) => {
+                const newStatus = e.target.value as OrderStatus;
+                if (newStatus === OrderStatus.CANCELLED) {
+                  onCancelRequest(order);
+                } else {
+                  onStatusChange(order, newStatus);
+                }
+              }}
             >
               <option value={OrderStatus.PENDING}>PENDING</option>
               <option value={OrderStatus.COMPLETED}>COMPLETED</option>

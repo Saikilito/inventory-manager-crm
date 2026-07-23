@@ -4,6 +4,7 @@ export { OrderStatus, PaymentStatus, DeliveryStatus };
 
 export interface GQLOrderItem {
   productId: string;
+  productName: string;
   quantity: number;
   sellingPriceAtSale?: number | null;
   purchasePriceAtSale?: number | null;
@@ -30,6 +31,7 @@ export interface GQLOrder {
   deliveryCost?: number;
   customDeliveryAddress?: string;
   payments?: GQLOrderPayment[];
+  cancellationObservation?: string;
 }
 
 export interface GQLGetAllOrdersResponse {

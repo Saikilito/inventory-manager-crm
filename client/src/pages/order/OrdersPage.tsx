@@ -8,7 +8,7 @@ import { UPDATE_ORDER } from '@modules/order/infrastructure/graphql/mutations';
 import { GET_ALL_CONTEXTS, PRODUCTS_QUERY } from '@modules/product/infrastructure/graphql/queries';
 import { CLIENTS_QUERY } from '@modules/client/infrastructure/graphql/queries';
 import { OrderStatus, PaymentStatus, DeliveryStatus } from '@shared-domain/order/order.entity';
-import { DateOnlyVO, DEFAULT_TIMEZONE } from '@shared-domain/shared/value-objects/date-only.vo';
+import { DEFAULT_TIMEZONE } from '@shared-domain/shared/value-objects/date-only.vo';
 import type { GQLOrder } from '@modules/order/infrastructure/graphql/types';
 import type { GQLClient } from '@modules/client/infrastructure/graphql/types';
 import type { GQLContext } from '@modules/context/infrastructure/graphql/types';
@@ -19,18 +19,8 @@ import { ChangeContextModal } from './components/ChangeContextModal';
 import { DateNavigator, formatDisplayDateInTimezone } from '../../components/ui/DateNavigator';
 import { OrderCard } from './components/OrderCard';
 import { OrdersFilters } from './components/OrdersFilters';
-
-interface OrdersPageProps {
-  session: {
-    _id: string;
-    role: string;
-    name: string;
-  };
-}
-
-const getTodayDate = (): string => {
-  return DateOnlyVO.create().toString();
-};
+import { OrdersPageProps, StatusChangeOptions } from './types';
+import { getTodayDate, formatDate, formatTime } from './utils/date-formatters';
 
 export const OrdersPage: React.FC<OrdersPageProps> = ({ session }) => {
   const navigate = useNavigate();
@@ -42,13 +32,13 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ session }) => {
   const [selectedOrder, setSelectedOrder] = useState<GQLOrder | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   // Context Change Modal State
   const [contextChangeOrder, setContextChangeOrder] = useState<GQLOrder | null>(null);
   const [isContextModalOpen, setIsContextModalOpen] = useState(false);
   const [contextChangeError, setContextChangeError] = useState<string | null>(null);
 
-  // Fetch Orders with date filter
   const {
     data: ordersData,
     loading: ordersLoading,
@@ -58,27 +48,22 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ session }) => {
     fetchPolicy: 'cache-and-network',
   });
 
-  // Fetch Contexts for filter
   const { data: contextsData } = useQuery(GET_ALL_CONTEXTS, {
     fetchPolicy: 'cache-first',
   });
 
-  // Fetch Clients for name resolution
   const { data: clientsData } = useQuery(CLIENTS_QUERY, {
     variables: { limit: 1000 },
     fetchPolicy: 'cache-first',
   });
 
-  // Fetch Products for name resolution in modal
   const { data: productsData } = useQuery(PRODUCTS_QUERY, {
     variables: { limit: 1000 },
     fetchPolicy: 'cache-first',
   });
 
-  // Update Mutation
   const [updateOrder, { loading: isUpdating }] = useMutation(UPDATE_ORDER);
 
-  // Build context map
   const contextMap = new Map<string, string>();
   (contextsData?.getAllContexts || []).forEach((ctx: GQLContext) => {
     contextMap.set(ctx._id, ctx.name);
@@ -106,7 +91,9 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ session }) => {
 
       return true;
     })
-    .sort((a: GQLOrder, b: GQLOrder) => new Date(String(b.createdAt)).getTime() - new Date(String(a.createdAt)).getTime());
+    .sort(
+      (a: GQLOrder, b: GQLOrder) => new Date(String(b.createdAt)).getTime() - new Date(String(a.createdAt)).getTime(),
+    );
 
   const ordersByContext = new Map<string, GQLOrder[]>();
   filteredOrders.forEach((order: GQLOrder) => {
@@ -116,21 +103,6 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ session }) => {
     }
     ordersByContext.get(ctxId)!.push(order);
   });
-
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
-  const formatTime = (dateStr: string) => {
-    return new Date(dateStr).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
 
   const handleOpenModal = (order: GQLOrder) => {
     setSelectedOrder(order);
@@ -143,14 +115,11 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ session }) => {
     setSelectedOrder(null);
   };
 
-  const handleStatusChange = async (
-    newStatus?: OrderStatus,
-    newPaymentStatus?: PaymentStatus,
-    newDeliveryStatus?: DeliveryStatus,
-    _payments?: Array<{ accountId: string; amount: number; exchangeRate: number }>,
-    newContextId?: string | null,
-  ) => {
+  const handleStatusChange = async (options: StatusChangeOptions) => {
+    const { newStatus, newPaymentStatus, newDeliveryStatus, payments, newContextId, cancellationObservation } = options;
     if (!selectedOrder) return;
+
+    const previousStatus = selectedOrder.status;
 
     setUpdateError(null);
     try {
@@ -164,6 +133,8 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ session }) => {
         paymentStatus?: PaymentStatus;
         deliveryStatus?: DeliveryStatus;
         contextId?: string | null;
+        payments?: Array<{ accountId: string; amount: number; exchangeRate: number }>;
+        cancellationObservation?: string;
       } = {
         _id: selectedOrder._id,
         clientId: selectedOrder.clientId,
@@ -178,7 +149,8 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ session }) => {
       if (newStatus) input.status = newStatus;
       if (newPaymentStatus) input.paymentStatus = newPaymentStatus;
       if (newDeliveryStatus) input.deliveryStatus = newDeliveryStatus;
-      
+      if (payments && payments.length > 0) input.payments = payments;
+
       // Handle contextId change - null means remove context (set to General)
       if (newContextId !== undefined) {
         input.contextId = newContextId;
@@ -186,12 +158,28 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ session }) => {
         input.contextId = selectedOrder.contextId;
       }
 
+      if (cancellationObservation) {
+        input.cancellationObservation = cancellationObservation;
+      }
+
       await updateOrder({
         variables: { input },
       });
 
-      await refetchOrders();
-      handleCloseModal();
+      const { data: refetchedData } = await refetchOrders();
+
+      const updatedOrder = refetchedData?.getAllOrders?.find((o: GQLOrder) => o._id === selectedOrder._id);
+      if (
+        updatedOrder &&
+        previousStatus !== OrderStatus.COMPLETED &&
+        updatedOrder.status === OrderStatus.COMPLETED &&
+        newStatus !== OrderStatus.COMPLETED // User didn't explicitly set it to COMPLETED
+      ) {
+        setShowSuccessModal(true);
+        setSelectedOrder(updatedOrder);
+      } else if (updatedOrder) {
+        setSelectedOrder(updatedOrder);
+      }
     } catch (err) {
       const error = err as Error & { graphQLErrors?: Array<{ message: string }> };
       const errorMsg =
@@ -241,9 +229,7 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ session }) => {
     } catch (err) {
       const error = err as Error & { graphQLErrors?: Array<{ message: string }> };
       const errorMsg =
-        error.graphQLErrors?.[0]?.message ||
-        error.message ||
-        'Failed to update order context. Please try again.';
+        error.graphQLErrors?.[0]?.message || error.message || 'Failed to update order context. Please try again.';
       setContextChangeError(errorMsg);
       throw err;
     }
@@ -371,7 +357,12 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ session }) => {
           isOpen={isModalOpen}
           isUpdating={isUpdating}
           updateError={updateError}
+          showSuccessModal={showSuccessModal}
           onClose={handleCloseModal}
+          onCloseSuccessModal={() => {
+            setShowSuccessModal(false);
+            handleCloseModal();
+          }}
           onStatusChange={handleStatusChange}
         />
       )}

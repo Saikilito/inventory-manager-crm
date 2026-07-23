@@ -1,7 +1,8 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { IOrder } from '../../../../../shared-domain/src/order/order.entity.js';
 
-export interface IOrderDocument extends Omit<IOrder, 'id' | 'clientId' | 'sellerId' | 'contextId' | 'deliveryId' | 'items' | 'payments'>, Document {
+export interface IOrderDocument
+  extends Omit<IOrder, 'id' | 'clientId' | 'sellerId' | 'contextId' | 'deliveryId' | 'items' | 'payments'>, Document {
   _id: mongoose.Types.ObjectId;
   clientId: mongoose.Types.ObjectId;
   sellerId: mongoose.Types.ObjectId;
@@ -61,14 +62,11 @@ const orderSchema = new Schema<IOrderDocument>({
   },
   sellerId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   contextId: { type: Schema.Types.ObjectId, ref: 'Context', default: null },
-  // Reference to Delivery document (created when deliveryCost > 0)
   deliveryId: { type: Schema.Types.ObjectId, ref: 'Delivery', default: null },
-  // Delivery cost (included in total)
   deliveryCost: { type: Number, default: null },
-  // Custom delivery address (overrides client's address)
   customDeliveryAddress: { type: String, default: null },
-  // Payment records
   payments: { type: [orderPaymentSchema], default: [] },
+  cancellationObservation: { type: String, default: null },
   isTesting: { type: Boolean, default: false, index: true },
 });
 

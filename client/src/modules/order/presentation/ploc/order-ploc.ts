@@ -9,7 +9,7 @@ import { makeOrder, OrderStatus, IOrder } from '@shared-domain/order/order.entit
 export interface OrdersPloc extends Ploc<OrdersState> {
   loadClientOrders(clientId: string): Promise<void>;
   createOrder(clientId: string, items: Array<{ productId: string; quantity: number }>, total: number, sellerId: string, contextId?: string, deliveryCost?: number): Promise<void>;
-  updateOrderStatus(order: IOrder, newStatus: OrderStatus): Promise<void>;
+  updateOrderStatus(order: IOrder, newStatus: OrderStatus, cancellationObservation?: string): Promise<void>;
 }
 
 export function makeOrdersPloc(
@@ -77,7 +77,7 @@ export function makeOrdersPloc(
     }
   };
 
-  const updateOrderStatus = async (order: IOrder, newStatus: OrderStatus) => {
+  const updateOrderStatus = async (order: IOrder, newStatus: OrderStatus, cancellationObservation?: string) => {
     ploc.changeState({ kind: OrdersStateKind.LOADING });
 
     try {
@@ -90,6 +90,7 @@ export function makeOrdersPloc(
         status: newStatus,
         sellerId: String(order.sellerId),
         contextId: order.contextId ? String(order.contextId) : undefined,
+        cancellationObservation,
       });
 
       const result = await updateOrderUseCase.execute(updatedOrder);

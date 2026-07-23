@@ -50,6 +50,7 @@ const mapToDomain = (doc: IOrderDocument): IOrder => {
       amount: p.amount,
       exchangeRate: p.exchangeRate,
     })),
+    cancellationObservation: doc.cancellationObservation,
   });
 };
 
@@ -96,6 +97,7 @@ export const makeOrderMongooseRepository = (): IOrderRepository => {
           exchangeRate: p.exchangeRate,
         }));
       }
+      if (order.cancellationObservation !== undefined) data.cancellationObservation = order.cancellationObservation;
       return data;
     },
   });

@@ -1,12 +1,16 @@
-import React, { useMemo } from 'react';
-import { match } from 'ts-pattern';
+import React, { useMemo, useState } from 'react';
+import { useQuery } from '@apollo/client';
 import { OrderStatus, PaymentStatus, DeliveryStatus } from '@shared-domain/order/order.entity';
-import { OrderDetailModalProps } from '../types';
-import { X, User, FileSpreadsheet, ChevronDown } from 'lucide-react';
+import { OrderDetailModalProps, PaymentSplit, StatusChangeOptions } from '../types';
+import { X, User, FileSpreadsheet, ChevronDown, CheckCircle, XCircle } from 'lucide-react';
 import Alert from '../../../components/Alert';
 import { PaymentSplitWidget } from './PaymentSplitWidget';
+import { PaymentSummaryCard } from './PaymentSummaryCard';
 import { getFullName } from '@utils/formatters';
 import { formatDate, formatCurrency } from '@utils/formatters';
+import { GET_ACCOUNTS } from '@modules/financial/infrastructure/graphql/queries';
+import { getStatusClasses, getPaymentClasses, getDeliveryClasses } from '../utils/status-styles';
+import { CancelOrderModal } from './CancelOrderModal';
 
 export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
   order,
@@ -15,10 +19,25 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
   isOpen,
   isUpdating,
   updateError,
+  showSuccessModal = false,
   onClose,
+  onCloseSuccessModal,
   onStatusChange,
 }) => {
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [pendingStatusChange, setPendingStatusChange] = useState<{
+    newStatus?: OrderStatus;
+    newPaymentStatus?: PaymentStatus;
+    newDeliveryStatus?: DeliveryStatus;
+    payments?: PaymentSplit[];
+  } | null>(null);
+
   if (!isOpen) return null;
+
+  const { data: accountsData } = useQuery(GET_ACCOUNTS, {
+    fetchPolicy: 'cache-first',
+  });
+  const accounts = accountsData?.getAccounts || [];
 
   const clientMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -52,69 +71,94 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
     return clientAddressMap.get(clientId) || '';
   };
 
-  const getProductName = (productId: string): string => {
-    return productMap.get(productId) || `Product (${productId.substring(18)})`;
+  const getProductName = (item: { productId: string; productName?: string | null }): string => {
+    if (item.productName) return item.productName;
+    return productMap.get(item.productId) || `Product (${item.productId.substring(18)})`;
   };
 
-  const getStatusClasses = (status: OrderStatus): string => {
-    return status === OrderStatus.ACTIVE
-      ? 'bg-stone-50 dark:bg-stone-900/20 text-stone-700 dark:text-stone-400 border-stone-200 dark:border-stone-800/30 focus:ring-stone-500'
-      : 'bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900/30 focus:ring-red-500';
+  const handleStatusChange = (
+    newStatus?: OrderStatus,
+    newPaymentStatus?: PaymentStatus,
+    newDeliveryStatus?: DeliveryStatus,
+    payments?: PaymentSplit[],
+  ) => {
+    const needsObservation = newStatus === OrderStatus.CANCELLED || newPaymentStatus === PaymentStatus.REFUNDED;
+
+    if (needsObservation) {
+      setPendingStatusChange({ newStatus, newPaymentStatus, newDeliveryStatus, payments });
+      setShowCancelModal(true);
+      return;
+    }
+
+    onStatusChange({ newStatus, newPaymentStatus, newDeliveryStatus, payments });
   };
 
-  const getPaymentClasses = (status: PaymentStatus): string => {
-    return match(status)
-      .with(
-        PaymentStatus.PENDING,
-        () =>
-          'bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-900/30 focus:ring-amber-500',
-      )
-      .with(
-        PaymentStatus.PAID,
-        () =>
-          'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/30 focus:ring-emerald-500',
-      )
-      .with(
-        PaymentStatus.REFUNDED,
-        () =>
-          'bg-purple-50 dark:bg-purple-950/20 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-900/30 focus:ring-purple-500',
-      )
-      .exhaustive();
-  };
-
-  const getDeliveryClasses = (status: DeliveryStatus): string => {
-    return match(status)
-      .with(
-        DeliveryStatus.PENDING,
-        () =>
-          'bg-stone-50 dark:bg-stone-900/20 text-stone-700 dark:text-stone-400 border-stone-200 dark:border-stone-800/30 focus:ring-stone-500',
-      )
-      .with(
-        DeliveryStatus.SENT,
-        () =>
-          'bg-blue-50 dark:bg-blue-950/20 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-900/30 focus:ring-blue-500',
-      )
-      .with(
-        DeliveryStatus.COMPLETE,
-        () =>
-          'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/30 focus:ring-emerald-500',
-      )
-      .exhaustive();
+  const handleCancelOrderConfirm = (observation: string) => {
+    if (pendingStatusChange) {
+      const { newStatus, newPaymentStatus, newDeliveryStatus, payments } = pendingStatusChange;
+      onStatusChange({
+        newStatus,
+        newPaymentStatus,
+        newDeliveryStatus,
+        payments,
+        cancellationObservation: observation,
+      });
+      setPendingStatusChange(null);
+    } else {
+      onStatusChange({ newStatus: OrderStatus.CANCELLED, cancellationObservation: observation });
+    }
+    setShowCancelModal(false);
   };
 
   const itemsSubtotal = useMemo(() => {
     return order.items.reduce((sum, item) => sum + (item.sellingPriceAtSale || 0) * item.quantity, 0);
   }, [order.items]);
 
-  const effectiveDeliveryCost = order.deliveryCost !== undefined && order.deliveryCost !== null && order.deliveryCost > 0
-    ? order.deliveryCost
-    : order.total > itemsSubtotal
-      ? order.total - itemsSubtotal
-      : 0;
+  const effectiveDeliveryCost =
+    order.deliveryCost !== undefined && order.deliveryCost !== null && order.deliveryCost > 0
+      ? order.deliveryCost
+      : order.total > itemsSubtotal
+        ? order.total - itemsSubtotal
+        : 0;
 
   return (
     <div className="fixed inset-0 bg-stone-950/60 dark:bg-stone-950/80 backdrop-blur-xs flex items-center justify-center z-50 p-4 transition-all">
-      <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl w-full max-w-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl w-full max-w-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 relative">
+        {showSuccessModal && (
+          <div className="absolute inset-0 z-10 bg-white/95 dark:bg-stone-900/95 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center animate-in fade-in zoom-in-95 duration-200">
+            <button
+              onClick={() => {
+                if (onCloseSuccessModal) {
+                  onCloseSuccessModal();
+                }
+              }}
+              className="absolute top-4 right-4 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 transition-colors p-1.5 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer h-10 w-10 flex items-center justify-center"
+              aria-label="Close success modal"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/40 rounded-full flex items-center justify-center mb-5 shadow-inner">
+              <CheckCircle className="w-10 h-10 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <h3 className="text-2xl font-black text-emerald-700 dark:text-emerald-400 mb-3">¡Qué éxito!</h3>
+            <p className="text-sm font-medium text-stone-600 dark:text-stone-300 max-w-sm mb-8 leading-relaxed">
+              Ahora tu pedido se ha marcado como completado automáticamente. <br />
+              <br />
+              ¡Felices ventas, sigue cosechando éxitos! 🚀
+            </p>
+            <button
+              onClick={() => {
+                if (onCloseSuccessModal) {
+                  onCloseSuccessModal();
+                }
+              }}
+              className="px-8 py-3 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-500 transition-colors shadow-md hover:shadow-lg cursor-pointer"
+            >
+              ¡Aceptar!
+            </button>
+          </div>
+        )}
+
         <div className="flex items-center justify-between px-6 py-5 border-b border-stone-100 dark:border-stone-800">
           <div>
             <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100 font-mono">
@@ -175,11 +219,12 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
               <div className="relative">
                 <select
                   value={order.status}
-                  onChange={(e) => onStatusChange(e.target.value as OrderStatus)}
+                  onChange={(e) => handleStatusChange(e.target.value as OrderStatus)}
                   disabled={isUpdating}
                   aria-label="Change Order Status"
                   className={`appearance-none w-full h-11 pl-3 pr-10 py-1.5 rounded-xl text-xs font-semibold border focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-stone-900 transition-all cursor-pointer ${getStatusClasses(order.status)}`}
                 >
+                  <option value={OrderStatus.COMPLETED}>Completed</option>
                   <option value={OrderStatus.ACTIVE}>Active</option>
                   <option value={OrderStatus.CANCELLED}>Cancelled</option>
                 </select>
@@ -202,7 +247,7 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                   value={order.paymentStatus || 'PENDING'}
                   onChange={(e) => {
                     const val = e.target.value as PaymentStatus;
-                    onStatusChange(undefined, val);
+                    handleStatusChange(undefined, val);
                   }}
                   disabled={isUpdating || order.status === OrderStatus.CANCELLED}
                   aria-label="Change Payment Status"
@@ -229,7 +274,7 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
               <div className="relative">
                 <select
                   value={order.deliveryStatus || 'PENDING'}
-                  onChange={(e) => onStatusChange(undefined, undefined, e.target.value as DeliveryStatus)}
+                  onChange={(e) => handleStatusChange(undefined, undefined, e.target.value as DeliveryStatus)}
                   disabled={isUpdating || order.status === OrderStatus.CANCELLED}
                   aria-label="Change Delivery Status"
                   className={`appearance-none w-full h-11 pl-3 pr-10 py-1.5 rounded-xl text-xs font-semibold border focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-stone-900 transition-all cursor-pointer ${getDeliveryClasses(order.deliveryStatus || 'PENDING')}`}
@@ -249,14 +294,37 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
             </div>
           </div>
 
+          {/* Cancellation Observation - only shown when present */}
+          {order.cancellationObservation && (
+            <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 p-4 rounded-xl">
+              <div className="flex items-start gap-3">
+                <div className="h-8 w-8 rounded-lg bg-red-100 dark:bg-red-900/40 flex items-center justify-center shrink-0">
+                  <XCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-xs font-bold text-red-700 dark:text-red-400 uppercase tracking-wider mb-1">
+                    Cancellation Reason
+                  </h4>
+                  <p className="text-sm text-red-900 dark:text-red-100 leading-relaxed whitespace-pre-wrap">
+                    {order.cancellationObservation}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {order.paymentStatus === PaymentStatus.PENDING && (
             <PaymentSplitWidget
               totalUSD={order.total}
               onCancel={onClose}
               onSave={async (payments) => {
-                await onStatusChange(undefined, PaymentStatus.PAID, undefined, payments);
+                await handleStatusChange(undefined, PaymentStatus.PAID, undefined, payments);
               }}
             />
+          )}
+
+          {order.paymentStatus === PaymentStatus.PAID && order.payments && order.payments.length > 0 && (
+            <PaymentSummaryCard payments={order.payments} accounts={accounts} totalUSD={order.total} />
           )}
 
           <div className="space-y-3">
@@ -280,7 +348,7 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                       className="grid grid-cols-12 px-4 py-3 text-sm text-stone-800 dark:text-stone-200 items-center"
                     >
                       <div className="col-span-6 font-medium text-stone-900 dark:text-stone-100 truncate">
-                        {getProductName(item.productId)}
+                        {getProductName(item)}
                       </div>
                       <div className="col-span-2 text-right font-mono text-xs">{item.quantity}</div>
                       <div className="col-span-2 text-right font-mono text-xs">
@@ -320,6 +388,15 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Cancel Order Modal */}
+      <CancelOrderModal
+        isOpen={showCancelModal}
+        onClose={() => setShowCancelModal(false)}
+        onConfirm={handleCancelOrderConfirm}
+        orderShortId={order._id.substring(18).toUpperCase()}
+        isUpdating={isUpdating}
+      />
     </div>
   );
 };

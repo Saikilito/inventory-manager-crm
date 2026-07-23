@@ -4,14 +4,12 @@ import { NonEmptyString, NonEmptyStringVO } from '../shared/value-objects/non-em
 import { PositiveNumber, PositiveNumberVO } from '../shared/value-objects/positive-number.vo.js';
 import { DateTime, DateTimeVO } from '../shared/value-objects/date-time.vo.js';
 import { ValidationError } from '../shared/validation-error.js';
+import { validateCancellationObservationForStatus } from './cancellation-observation.vo.js';
 
 export const PRICE_DECIMAL_PRECISION = 2;
 export const QUANTITY_DECIMAL_PRECISION = 4;
 
 export const ORDER_DEFAULT_PRICE_FALLBACK = 0.01;
-
-/** @deprecated Use ORDER_DEFAULT_PRICE_FALLBACK for orders or PRODUCT_DEFAULT_PRICE_FALLBACK for products. */
-export const DEFAULT_PRICE_FALLBACK = ORDER_DEFAULT_PRICE_FALLBACK;
 
 export interface IOrderItem {
   productId: Id;
@@ -66,6 +64,7 @@ export interface IOrder {
   deliveryCost?: NonNegativeNumber;
   customDeliveryAddress?: NonEmptyString;
   payments?: IOrderPayment[];
+  cancellationObservation?: string; // Required when status is CANCELLED
 }
 
 export const makeOrder = (props: {
@@ -92,6 +91,7 @@ export const makeOrder = (props: {
     amount: number;
     exchangeRate: number;
   }>;
+  cancellationObservation?: string;
 }): IOrder => {
   const roundedTotal = Number(Number(props.total).toFixed(PRICE_DECIMAL_PRECISION));
   const roundedDeliveryCost =
@@ -104,6 +104,11 @@ export const makeOrder = (props: {
     const dStatus = props.deliveryStatus || DeliveryStatus.PENDING;
     if (pStatus === 'PAID' && (dStatus === 'SENT' || dStatus === 'COMPLETE')) {
       throw new ValidationError('Cannot cancel an order that is PAID and SENT/COMPLETE');
+    }
+
+    const obsValidation = validateCancellationObservationForStatus(props.cancellationObservation, props.status);
+    if (obsValidation.isFailure) {
+      throw obsValidation.getError();
     }
   }
 
@@ -132,11 +137,11 @@ export const makeOrder = (props: {
       const rawPPrice =
         item.purchasePriceAtSale !== undefined && item.purchasePriceAtSale !== null && !isNaN(item.purchasePriceAtSale)
           ? item.purchasePriceAtSale
-          : DEFAULT_PRICE_FALLBACK;
+          : ORDER_DEFAULT_PRICE_FALLBACK;
       const rawSPrice =
         item.sellingPriceAtSale !== undefined && item.sellingPriceAtSale !== null && !isNaN(item.sellingPriceAtSale)
           ? item.sellingPriceAtSale
-          : DEFAULT_PRICE_FALLBACK;
+          : ORDER_DEFAULT_PRICE_FALLBACK;
 
       const pPrice = Number(Number(rawPPrice).toFixed(PRICE_DECIMAL_PRECISION));
       const sPrice = Number(Number(rawSPrice).toFixed(PRICE_DECIMAL_PRECISION));
@@ -155,7 +160,12 @@ export const makeOrder = (props: {
     paymentStatus: props.paymentStatus || PaymentStatus.PENDING,
     deliveryStatus: props.deliveryStatus || DeliveryStatus.PENDING,
     sellerId: IdVO.create(props.sellerId),
-    contextId: props.contextId !== undefined && props.contextId !== null ? IdVO.create(props.contextId) : props.contextId === null ? null : undefined,
+    contextId:
+      props.contextId !== undefined && props.contextId !== null
+        ? IdVO.create(props.contextId)
+        : props.contextId === null
+          ? null
+          : undefined,
     deliveryId: props.deliveryId ? IdVO.create(props.deliveryId) : undefined,
     deliveryCost: roundedDeliveryCost !== undefined ? NonNegativeNumberVO.create(roundedDeliveryCost || 0) : undefined,
     customDeliveryAddress: props.customDeliveryAddress
@@ -169,5 +179,6 @@ export const makeOrder = (props: {
             exchangeRate: PositiveNumberVO.create(Number(p.exchangeRate)),
           }))
         : undefined,
+    cancellationObservation: props.cancellationObservation?.trim() || undefined,
   };
 };

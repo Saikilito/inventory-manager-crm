@@ -1,35 +1,35 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { useApolloClient, useQuery, ApolloClient, NormalizedCacheObject } from "@apollo/client";
-import Select from "react-select";
-import makeAnimated from "react-select/animated";
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useApolloClient, useQuery, ApolloClient, NormalizedCacheObject } from '@apollo/client';
+import Select from 'react-select';
+import makeAnimated from 'react-select/animated';
 
-import { usePlocState } from "@hooks/use-ploc-state";
-import { useOrdersPloc } from "@contexts/order-context";
+import { usePlocState } from '@hooks/use-ploc-state';
+import { useOrdersPloc } from '@contexts/order-context';
 
-import { makeApolloClientRepository } from "@modules/client/infrastructure/repositories/apollo-client.repository";
-import { makeGetClientUseCase } from "@modules/client/application/use-cases/get-client";
-import { makeGetClientsUseCase } from "@modules/client/application/use-cases/get-clients";
-import { makeApolloProductRepository } from "@modules/product/infrastructure/repositories/apollo-product.repository";
-import { makeGetProductsUseCase } from "@modules/product/application/use-cases/get-products";
-import { GET_ALL_CONTEXTS } from "@modules/product/infrastructure/graphql/queries";
+import { makeApolloClientRepository } from '@modules/client/infrastructure/repositories/apollo-client.repository';
+import { makeGetClientUseCase } from '@modules/client/application/use-cases/get-client';
+import { makeGetClientsUseCase } from '@modules/client/application/use-cases/get-clients';
+import { makeApolloProductRepository } from '@modules/product/infrastructure/repositories/apollo-product.repository';
+import { makeGetProductsUseCase } from '@modules/product/application/use-cases/get-products';
+import { GET_ALL_CONTEXTS } from '@modules/product/infrastructure/graphql/queries';
 
-import { IClient } from "@shared-domain/client/client.entity";
-import { IProduct } from "@shared-domain/product/product.entity";
-import { IdVO } from "@shared-domain/shared/value-objects/id.vo";
-import { PositiveNumberVO } from "@shared-domain/shared/value-objects/positive-number.vo";
-import { NonNegativeNumberVO } from "@shared-domain/shared/value-objects/non-negative-number.vo";
+import { IClient } from '@shared-domain/client/client.entity';
+import { IProduct } from '@shared-domain/product/product.entity';
+import { IdVO } from '@shared-domain/shared/value-objects/id.vo';
+import { PositiveNumberVO } from '@shared-domain/shared/value-objects/positive-number.vo';
+import { NonNegativeNumberVO } from '@shared-domain/shared/value-objects/non-negative-number.vo';
 
-import Spinkit from "../../components/Spinkit";
-import Alert from "../../components/Alert";
-import { ArrowLeft, ShoppingBag, Store, UserPlus } from "lucide-react";
-import { getFullName } from "@utils/formatters";
+import Spinkit from '../../components/Spinkit';
+import Alert from '../../components/Alert';
+import { ArrowLeft, ShoppingBag, Store, UserPlus } from 'lucide-react';
+import { getFullName } from '@utils/formatters';
 
-import ClientSummary from "./components/ClientSummary";
-import SelectedProductsTable from "./components/SelectedProductsTable";
-import OrderActionsBar from "./components/OrderActionsBar";
-import { NewClientInlineModal } from "./components/NewClientInlineModal";
-import DeliveryFeeSelector from "./components/DeliveryFeeSelector";
+import ClientSummary from './components/ClientSummary';
+import SelectedProductsTable from './components/SelectedProductsTable';
+import OrderActionsBar from './components/OrderActionsBar';
+import { NewClientInlineModal } from './components/NewClientInlineModal';
+import DeliveryFeeSelector from './components/DeliveryFeeSelector';
 
 const animatedComponents = makeAnimated();
 
@@ -53,18 +53,25 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({ session }) => 
   const [clients, setClients] = useState<IClient[]>([]);
   const [products, setProducts] = useState<IProduct[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [selectedContextId, setSelectedContextId] = useState<string>("");
+  const [selectedContextId, setSelectedContextId] = useState<string>('');
   const [isNewClientModalOpen, setIsNewClientModalOpen] = useState(false);
 
   const [selectedProducts, setSelectedProducts] = useState<Array<IProduct & { quantity: number }>>([]);
   const [deliveryFee, setDeliveryFee] = useState<number>(0);
 
-  const { data: contextsData } = useQuery(GET_ALL_CONTEXTS, { fetchPolicy: "cache-first" });
+  const { data: contextsData } = useQuery(GET_ALL_CONTEXTS, { fetchPolicy: 'cache-first' });
 
   const subtotal = selectedProducts.reduce((sum, p) => sum + Number(p.sellingPrice) * p.quantity, 0);
   const total = subtotal + deliveryFee;
 
   const currentClientId = client?.id || clientIdFromParams;
+
+  const outOfStockItems = selectedProducts
+    .filter((p) => Number(p.stock) === 0)
+    .map((p) => ({
+      name: String(p.name),
+      stock: Number(p.stock),
+    }));
 
   useEffect(() => {
     const loadData = async () => {
@@ -89,17 +96,14 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({ session }) => 
 
         const productRepo = makeApolloProductRepository(apolloClient as ApolloClient<NormalizedCacheObject>);
         const getProducts = makeGetProductsUseCase(productRepo);
-        const productsResult = await getProducts.execute(
-          PositiveNumberVO.create(100),
-          NonNegativeNumberVO.create(0),
-        );
+        const productsResult = await getProducts.execute(PositiveNumberVO.create(100), NonNegativeNumberVO.create(0));
 
         if (!productsResult.isFailure) {
           setProducts(productsResult.getValue().products);
         }
       } catch (err: unknown) {
         const error = err as Error;
-        setError(error.message || "Error initializing page");
+        setError(error.message || 'Error initializing page');
       } finally {
         setLoading(false);
       }
@@ -150,9 +154,7 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({ session }) => 
     if (checkedCount > stock) checkedCount = stock;
     if (checkedCount < 1) checkedCount = 1;
 
-    const updated = selectedProducts.map((p, idx) =>
-      idx === index ? { ...p, quantity: checkedCount } : p
-    );
+    const updated = selectedProducts.map((p, idx) => (idx === index ? { ...p, quantity: checkedCount } : p));
     setSelectedProducts(updated);
   };
 
@@ -162,7 +164,7 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({ session }) => 
 
   const handleGenerateOrder = async () => {
     if (!currentClientId) {
-      setError("Please select a client first");
+      setError('Please select a client first');
       return;
     }
 
@@ -172,10 +174,17 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({ session }) => 
     }));
 
     try {
-      await ploc.createOrder(String(currentClientId), items, total, session._id, selectedContextId || undefined, deliveryFee);
-      navigate(`/orders/${currentClientId}`);
-    } catch {
-      // Error is handled by PLOC state
+      await ploc.createOrder(
+        String(currentClientId),
+        items,
+        total,
+        session._id,
+        selectedContextId || undefined,
+        deliveryFee,
+      );
+      navigate('/orders');
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -187,11 +196,11 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({ session }) => 
     );
   }
 
-  const alertMessage = error || (state.kind === "orders:error" ? state.errorMessage : null);
+  const alertMessage = error || (state.kind === 'orders:error' ? state.errorMessage : null);
 
   const clientOptions = clients.map((c) => ({
     value: String(c.id),
-    label: `${getFullName(c)} ${c.nationalId ? `(${c.nationalId})` : ""}`,
+    label: `${getFullName(c)} ${c.nationalId ? `(${c.nationalId})` : ''}`,
   }));
 
   return (
@@ -238,21 +247,21 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({ session }) => 
                 control: ({ isFocused }) =>
                   `border !rounded-lg !bg-white dark:!bg-stone-950 !min-h-11 px-3 py-1 transition-all ${
                     isFocused
-                      ? "!border-emerald-500 !ring-2 !ring-emerald-500/20"
-                      : "!border-stone-200 dark:!border-stone-800"
+                      ? '!border-emerald-500 !ring-2 !ring-emerald-500/20'
+                      : '!border-stone-200 dark:!border-stone-800'
                   }`,
-                placeholder: () => "text-stone-400 dark:text-stone-500 text-sm",
-                singleValue: () => "text-stone-900 dark:text-stone-100",
+                placeholder: () => 'text-stone-400 dark:text-stone-500 text-sm',
+                singleValue: () => 'text-stone-900 dark:text-stone-100',
                 menu: () =>
-                  "bg-white dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded-lg shadow-lg mt-1 overflow-hidden z-50",
-                menuList: () => "p-1 space-y-0.5 max-h-60 overflow-y-auto",
+                  'bg-white dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded-lg shadow-lg mt-1 overflow-hidden z-50',
+                menuList: () => 'p-1 space-y-0.5 max-h-60 overflow-y-auto',
                 option: ({ isFocused, isSelected }) =>
                   `rounded-md px-3 py-2 text-sm transition-colors cursor-pointer ${
                     isSelected
-                      ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-semibold"
+                      ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-semibold'
                       : isFocused
-                      ? "bg-stone-100 dark:bg-stone-800 text-stone-900 dark:text-stone-100"
-                      : "text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-900"
+                        ? 'bg-stone-100 dark:bg-stone-800 text-stone-900 dark:text-stone-100'
+                        : 'text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-900'
                   }`,
               }}
             />
@@ -307,7 +316,10 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({ session }) => 
               getOptionValue={(option) => String((option as unknown as IProduct).id)}
               getOptionLabel={(option) => {
                 const prod = option as unknown as IProduct;
-                return `${prod.name} ($${Number(prod.sellingPrice).toLocaleString()})`;
+                const stock = Number(prod.stock);
+                const price = `$${Number(prod.sellingPrice).toLocaleString()}`;
+                const stockLabel = stock === 0 ? '⚠️ Sin stock' : '';
+                return `${prod.name} (${price})${stockLabel ? ` — ${stockLabel}` : ''}`;
               }}
               value={selectedProducts as unknown as Array<{ value: string; label: string }>}
               unstyled
@@ -315,30 +327,35 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({ session }) => 
                 control: ({ isFocused }) =>
                   `border !rounded-lg !bg-white dark:!bg-stone-950 !min-h-11 px-3 py-1 transition-all ${
                     isFocused
-                      ? "border-stone-900 dark:border-stone-100 ring-2 ring-stone-950/5 dark:ring-stone-100/5"
-                      : "border-stone-200 dark:border-stone-800 hover:border-stone-300 dark:hover:border-stone-700"
+                      ? 'border-stone-900 dark:border-stone-100 ring-2 ring-stone-950/5 dark:ring-stone-100/5'
+                      : 'border-stone-200 dark:border-stone-800 hover:border-stone-300 dark:hover:border-stone-700'
                   }`,
-                placeholder: () => "text-stone-400 dark:text-stone-500 text-sm",
-                noOptionsMessage: () => "text-stone-400 dark:text-stone-500 text-sm py-2",
+                placeholder: () => 'text-stone-400 dark:text-stone-500 text-sm',
+                noOptionsMessage: () => 'text-stone-400 dark:text-stone-500 text-sm py-2',
                 multiValue: () =>
-                  "bg-stone-100 dark:bg-stone-800 rounded-md m-0.5 border border-stone-200/50 dark:border-stone-700/50",
-                multiValueLabel: () => "text-stone-800 dark:text-stone-200 text-xs font-semibold px-2 py-1",
+                  'bg-stone-100 dark:bg-stone-800 rounded-md m-0.5 border border-stone-200/50 dark:border-stone-700/50',
+                multiValueLabel: () => 'text-stone-800 dark:text-stone-200 text-xs font-semibold px-2 py-1',
                 multiValueRemove: () =>
-                  "text-stone-400 hover:text-red-600 hover:bg-stone-200/50 dark:hover:bg-stone-700/50 rounded-r-md transition-colors px-1 cursor-pointer",
+                  'text-stone-400 hover:text-red-600 hover:bg-stone-200/50 dark:hover:bg-stone-700/50 rounded-r-md transition-colors px-1 cursor-pointer',
                 menu: () =>
-                  "bg-white dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded-lg shadow-lg mt-1 overflow-hidden z-50",
-                menuList: () => "p-1 space-y-0.5 max-h-60 overflow-y-auto",
-                option: ({ isFocused, isSelected }) =>
-                  `rounded-md px-3 py-2 text-sm transition-colors cursor-pointer ${
-                    isSelected
-                      ? "bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-950 font-semibold"
-                      : isFocused
-                      ? "bg-stone-100 dark:bg-stone-800 text-stone-900 dark:text-stone-100"
-                      : "text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-900"
-                  }`,
+                  'bg-white dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded-lg shadow-lg mt-1 overflow-hidden z-50',
+                menuList: () => 'p-1 space-y-0.5 max-h-60 overflow-y-auto',
+                option: ({ isFocused, isSelected, data }) => {
+                  const prod = data as unknown as IProduct;
+                  const isOutOfStock = Number(prod.stock) === 0;
+                  return `rounded-md px-3 py-2 text-sm transition-colors cursor-pointer ${
+                    isOutOfStock
+                      ? 'bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400'
+                      : isSelected
+                        ? 'bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-950 font-semibold'
+                        : isFocused
+                          ? 'bg-stone-100 dark:bg-stone-800 text-stone-900 dark:text-stone-100'
+                          : 'text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-900'
+                  }`;
+                },
               }}
               styles={{
-                input: (base) => ({ ...base, "input:focus": { boxShadow: "none" } }),
+                input: (base) => ({ ...base, 'input:focus': { boxShadow: 'none' } }),
               }}
             />
 
@@ -354,18 +371,15 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({ session }) => 
                   onRemoveProduct={handleRemoveProduct}
                 />
 
-                <DeliveryFeeSelector
-                  deliveryFee={deliveryFee}
-                  onChange={setDeliveryFee}
-                  subtotal={subtotal}
-                />
+                <DeliveryFeeSelector deliveryFee={deliveryFee} onChange={setDeliveryFee} subtotal={subtotal} />
 
                 <OrderActionsBar
                   total={total}
-                  onCancel={() => navigate("/orders")}
+                  onCancel={() => navigate('/orders')}
                   onCreateOrder={handleGenerateOrder}
                   isDisabled={selectedProducts.length === 0 || !currentClientId}
-                  isLoading={state.kind === "orders:loading"}
+                  isLoading={state.kind === 'orders:loading'}
+                  outOfStockItems={outOfStockItems}
                 />
               </div>
             )}

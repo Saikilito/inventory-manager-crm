@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Result } from '../../../../../../../shared-domain/src/shared/result.js';
 import { DatabaseError } from '../../../../../../../shared-domain/src/shared/errors.js';
-import { IOrder, makeOrder, OrderStatus } from '../../../../../../../shared-domain/src/order/order.entity.js';
+import { IOrder, makeOrder, OrderStatus, PaymentStatus, DeliveryStatus } from '../../../../../../../shared-domain/src/order/order.entity.js';
 import { IProduct, makeProduct } from '../../../../../../../shared-domain/src/product/product.entity.js';
 import { IdVO } from '../../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
 import { IOrderRepository } from '../../repositories/order.repository.js';
@@ -27,11 +27,21 @@ const productMother = {
       price: overrides.price ?? 10,
       stock: overrides.stock ?? 50,
     });
-  }
+  },
 };
 
 const orderMother = {
-  create(overrides: Partial<{ id: string; items: Array<{ productId: string; quantity: number }>; total: number; clientId: string; status: OrderStatus; sellerId: string }> = {}) {
+  create(
+    overrides: Partial<{
+      id: string;
+      items: Array<{ productId: string; quantity: number }>;
+      total: number;
+      clientId: string;
+      status: OrderStatus;
+      sellerId: string;
+      cancellationObservation: string;
+    }> = {},
+  ) {
     return makeOrder({
       id: overrides.id ?? VALID_ORDER_UUID,
       items: overrides.items ?? [{ productId: VALID_PRODUCT_UUID, quantity: 5 }],
@@ -39,8 +49,9 @@ const orderMother = {
       clientId: overrides.clientId ?? VALID_CLIENT_UUID,
       status: overrides.status ?? OrderStatus.PENDING,
       sellerId: overrides.sellerId ?? VALID_SELLER_UUID,
+      cancellationObservation: overrides.cancellationObservation,
     });
-  }
+  },
 };
 
 const makeMockProductRepository = (initialProduct: IProduct): IProductRepository => {
@@ -56,7 +67,8 @@ const makeMockProductRepository = (initialProduct: IProduct): IProductRepository
       if (!existing) return Result.fail(new DatabaseError('Product not found'));
       store.set(id, { ...existing, ...product });
       return Result.ok();
-    }
+    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock object for testing
   } as any;
 };
 
@@ -72,7 +84,7 @@ const makeMockOrderRepository = (initialOrder: IOrder): IOrderRepository => {
       let list = Array.from(store.values());
       const clientField = input?.where?.fields?.find((f: any) => f.field === 'clientId');
       if (clientField) {
-        list = list.filter(o => o.clientId === clientField.value);
+        list = list.filter((o) => o.clientId === clientField.value);
       }
       const page = input?.page ? Number(input.page) : 1;
       const limit = input?.limit ? Number(input.limit) : 10;
@@ -90,7 +102,7 @@ const makeMockOrderRepository = (initialOrder: IOrder): IOrderRepository => {
         total: order.total,
         clientId: order.clientId,
         status: order.status,
-        sellerId: order.sellerId
+        sellerId: order.sellerId,
       });
       store.set(id, saved);
       return Result.ok(saved);
@@ -100,9 +112,22 @@ const makeMockOrderRepository = (initialOrder: IOrder): IOrderRepository => {
       if (!existing) return Result.fail(new DatabaseError('Order not found'));
       store.set(id, { ...existing, ...order });
       return Result.ok();
-    }
+    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock object for testing
   } as any;
 };
+
+const makeMockClientRepository = (): any => ({
+  async getById(id: string) {
+    return Result.ok({ id, address: 'Test address' });
+  },
+});
+
+const makeMockDeliveryRepository = (): any => ({
+  async create(del: any) {
+    return Result.ok({ ...del, id: IdVO.generate() });
+  },
+});
 
 const dummyRecalculateRating = async () => Result.ok<void, any>();
 
@@ -127,36 +152,57 @@ describe('Order Use Cases (TDD)', () => {
     expect(result.getValue().length).toBe(1);
   });
 
-  it('should successfully create a new pending order (CreateOrder)', async () => {
+  it('should successfully create a new active order (CreateOrder)', async () => {
     const order = orderMother.create();
+    const product = productMother.create({ stock: 50 });
     const orderRepo = makeMockOrderRepository(order);
-    const createOrder = makeCreateOrder(orderRepo, dummyRecalculateRating as any);
+    const productRepo = makeMockProductRepository(product);
+    const clientRepo = makeMockClientRepository();
+    const deliveryRepo = makeMockDeliveryRepository();
+    const createOrder = makeCreateOrder(
+      orderRepo,
+      productRepo,
+      dummyRecalculateRating as any,
+      clientRepo,
+      deliveryRepo,
+    );
 
     const result = await createOrder({
       items: [{ productId: VALID_PRODUCT_UUID, quantity: 10 }],
       total: 100,
       clientId: VALID_CLIENT_UUID,
-      sellerId: VALID_SELLER_UUID
+      sellerId: VALID_SELLER_UUID,
     });
 
     expect(result.isFailure).toBe(false);
-    expect(result.getValue().status).toBe(OrderStatus.PENDING);
+    expect(result.getValue().status).toBe(OrderStatus.ACTIVE);
 
     const getAllRes = await orderRepo.getAll({ limit: 1 as any });
     const count = getAllRes.getValue().total;
     expect(count).toBe(2);
+
+    const updatedProd = (await productRepo.getById(VALID_PRODUCT_UUID)).getValue()!;
+    expect(updatedProd.stock).toBe(40);
   });
 
-  it('should successfully transition PENDING -> COMPLETED and deduct product stock', async () => {
-    const product = productMother.create({ stock: 50 });
-    const order = orderMother.create({ status: OrderStatus.PENDING, items: [{ productId: VALID_PRODUCT_UUID, quantity: 10 }] });
+  it('should not modify product stock during ACTIVE -> COMPLETED transition', async () => {
+    const product = productMother.create({ stock: 40 }); // Already deducted when active
+    const order = orderMother.create({
+      status: OrderStatus.ACTIVE,
+      items: [{ productId: VALID_PRODUCT_UUID, quantity: 10 }],
+    });
 
     const productRepo = makeMockProductRepository(product);
     const orderRepo = makeMockOrderRepository(order);
 
     const updateOrder = makeUpdateOrder(orderRepo, productRepo, dummyRecalculateRating as any);
 
-    const result = await updateOrder({ id: VALID_ORDER_UUID, status: OrderStatus.COMPLETED });
+    const result = await updateOrder({ 
+      id: VALID_ORDER_UUID, 
+      status: OrderStatus.COMPLETED,
+      paymentStatus: PaymentStatus.PAID,
+      deliveryStatus: DeliveryStatus.COMPLETE
+    });
     expect(result.isFailure).toBe(false);
 
     // Assert that the order is updated
@@ -164,22 +210,27 @@ describe('Order Use Cases (TDD)', () => {
     const updatedOrder = getOrderRes.getValue()!;
     expect(updatedOrder.status).toBe(OrderStatus.COMPLETED);
 
-    // Assert that the stock was successfully deducted
+    // Assert that the stock remains the same because it was already deducted when ACTIVE
     const getProductRes = await productRepo.getById(IdVO.create(VALID_PRODUCT_UUID));
     const updatedProduct = getProductRes.getValue()!;
-    expect(updatedProduct.stock).toBe(40); // 50 - 10
+    expect(updatedProduct.stock).toBe(40); // still 40
   });
 
-  it('should fail transition PENDING -> COMPLETED if there is insufficient stock', async () => {
+  it('should fail transition if changing to an active status and there is insufficient stock', async () => {
     const product = productMother.create({ stock: 5 }); // Only 5 in stock!
-    const order = orderMother.create({ status: OrderStatus.PENDING, items: [{ productId: VALID_PRODUCT_UUID, quantity: 10 }] }); // Ordering 10!
+    const order = orderMother.create({
+      status: OrderStatus.CANCELLED,
+      items: [{ productId: VALID_PRODUCT_UUID, quantity: 10 }],
+      cancellationObservation: 'Initial cancellation reason'
+    }); // Was cancelled
 
     const productRepo = makeMockProductRepository(product);
     const orderRepo = makeMockOrderRepository(order);
 
     const updateOrder = makeUpdateOrder(orderRepo, productRepo, dummyRecalculateRating as any);
 
-    const result = await updateOrder({ id: VALID_ORDER_UUID, status: OrderStatus.COMPLETED });
+    // Changing CANCELLED -> ACTIVE should attempt to deduct stock
+    const result = await updateOrder({ id: VALID_ORDER_UUID, status: OrderStatus.ACTIVE });
     expect(result.isFailure).toBe(true);
     expect(result.getError().message).toContain('Insufficient stock');
 
@@ -191,14 +242,21 @@ describe('Order Use Cases (TDD)', () => {
 
   it('should successfully transition COMPLETED -> CANCELLED and restock product stock', async () => {
     const product = productMother.create({ stock: 40 });
-    const order = orderMother.create({ status: OrderStatus.COMPLETED, items: [{ productId: VALID_PRODUCT_UUID, quantity: 10 }] });
+    const order = orderMother.create({
+      status: OrderStatus.COMPLETED,
+      items: [{ productId: VALID_PRODUCT_UUID, quantity: 10 }],
+    });
 
     const productRepo = makeMockProductRepository(product);
     const orderRepo = makeMockOrderRepository(order);
 
     const updateOrder = makeUpdateOrder(orderRepo, productRepo, dummyRecalculateRating as any);
 
-    const result = await updateOrder({ id: VALID_ORDER_UUID, status: OrderStatus.CANCELLED });
+    const result = await updateOrder({ 
+      id: VALID_ORDER_UUID, 
+      status: OrderStatus.CANCELLED,
+      cancellationObservation: 'Customer requested cancellation'
+    });
     expect(result.isFailure).toBe(false);
 
     // Assert that the order is updated
@@ -212,19 +270,26 @@ describe('Order Use Cases (TDD)', () => {
     expect(updatedProduct.stock).toBe(50); // 40 + 10
   });
 
-  it('should NOT modify product stock during PENDING -> CANCELLED transition', async () => {
-    const product = productMother.create({ stock: 50 });
-    const order = orderMother.create({ status: OrderStatus.PENDING, items: [{ productId: VALID_PRODUCT_UUID, quantity: 10 }] });
+  it('should successfully restock product stock during ACTIVE -> CANCELLED transition', async () => {
+    const product = productMother.create({ stock: 40 }); // Already deducted
+    const order = orderMother.create({
+      status: OrderStatus.ACTIVE,
+      items: [{ productId: VALID_PRODUCT_UUID, quantity: 10 }],
+    });
 
     const productRepo = makeMockProductRepository(product);
     const orderRepo = makeMockOrderRepository(order);
 
     const updateOrder = makeUpdateOrder(orderRepo, productRepo, dummyRecalculateRating as any);
 
-    const result = await updateOrder({ id: VALID_ORDER_UUID, status: OrderStatus.CANCELLED });
+    const result = await updateOrder({ 
+      id: VALID_ORDER_UUID, 
+      status: OrderStatus.CANCELLED,
+      cancellationObservation: 'Out of stock cancellation'
+    });
     expect(result.isFailure).toBe(false);
 
-    // Assert that stock remained 50 (since it was never deducted!)
+    // Assert that stock increased to 50
     const getProductRes = await productRepo.getById(IdVO.create(VALID_PRODUCT_UUID));
     const updatedProduct = getProductRes.getValue()!;
     expect(updatedProduct.stock).toBe(50);

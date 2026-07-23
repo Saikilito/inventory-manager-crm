@@ -14,6 +14,7 @@ type Order {
   deliveryCost: Float
   customDeliveryAddress: String
   payments: [OrderPayment]
+  cancellationObservation: String
 }
 
 type OrderPayment {
@@ -24,6 +25,7 @@ type OrderPayment {
 
 type OrderItem {
   productId: ID!
+  productName: String
   quantity: Int
   sellingPriceAtSale: Float
   purchasePriceAtSale: Float
@@ -60,6 +62,12 @@ input OrderItemInput {
   quantity: Int
 }
 
+input OrderPaymentInput {
+  accountId: ID!
+  amount: Float!
+  exchangeRate: Float!
+}
+
 input OrderInput {
   _id: ID
   items: [OrderItemInput]!
@@ -72,6 +80,8 @@ input OrderInput {
   sellerId: ID!
   contextId: ID
   deliveryCost: Float
+  payments: [OrderPaymentInput]
+  cancellationObservation: String
 }
 
 type Mutation {

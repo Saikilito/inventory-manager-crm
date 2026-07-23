@@ -5,6 +5,7 @@ import { useApolloClient, ApolloClient, NormalizedCacheObject } from '@apollo/cl
 import { usePlocState } from '@hooks/use-ploc-state';
 import { useOrdersPloc } from '@contexts/order-context';
 import { OrderItemCard } from './OrderItemCard';
+import { CancelOrderModal } from './components/CancelOrderModal';
 import { makeApolloProductRepository } from '@modules/product/infrastructure/repositories/apollo-product.repository';
 import { makeGetProductsUseCase } from '@modules/product/application/use-cases/get-products';
 import { PositiveNumberVO } from '@shared-domain/shared/value-objects/positive-number.vo';
@@ -29,6 +30,11 @@ export const ClientOrdersPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 6;
+
+  // Cancel modal state
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [orderToCancel, setOrderToCancel] = useState<IOrder | null>(null);
+  const isUpdating = state.kind === OrdersStateKind.LOADING;
 
   useEffect(() => {
     const fetchProductsAndOrders = async () => {
@@ -57,6 +63,19 @@ export const ClientOrdersPage: React.FC = () => {
 
   const handleStatusChange = async (order: IOrder, newStatus: OrderStatus) => {
     await ploc.updateOrderStatus(order, newStatus);
+  };
+
+  const handleCancelRequest = (order: IOrder) => {
+    setOrderToCancel(order);
+    setShowCancelModal(true);
+  };
+
+  const handleCancelConfirm = async (observation: string) => {
+    if (orderToCancel) {
+      await ploc.updateOrderStatus(orderToCancel, OrderStatus.CANCELLED, observation);
+      setShowCancelModal(false);
+      setOrderToCancel(null);
+    }
   };
 
   return (
@@ -165,6 +184,7 @@ export const ClientOrdersPage: React.FC = () => {
                       order={order}
                       productMap={productMap}
                       onStatusChange={handleStatusChange}
+                      onCancelRequest={handleCancelRequest}
                     />
                   ))}
                 </div>
@@ -183,6 +203,20 @@ export const ClientOrdersPage: React.FC = () => {
           );
         })
         .exhaustive()}
+
+      {/* Cancel Order Modal */}
+      {orderToCancel && (
+        <CancelOrderModal
+          isOpen={showCancelModal}
+          onClose={() => {
+            setShowCancelModal(false);
+            setOrderToCancel(null);
+          }}
+          onConfirm={handleCancelConfirm}
+          orderShortId={String(orderToCancel.id).substring(0, 8).toUpperCase()}
+          isUpdating={isUpdating}
+        />
+      )}
     </div>
   );
 };

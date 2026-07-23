@@ -142,7 +142,36 @@ describe("OrderDetailModal Presenter", () => {
     );
 
     const statusSelect = screen.getByRole("combobox", { name: /change order status/i });
+    fireEvent.change(statusSelect, { target: { value: OrderStatus.COMPLETED } });
+    expect(onStatusChange).toHaveBeenCalledWith(OrderStatus.COMPLETED);
+  });
+
+  it("opens CancelOrderModal when CANCELLED status is selected", async () => {
+    const onStatusChange = vi.fn();
+
+    render(
+      <MockedProvider mocks={mocks}>
+        <OrderDetailModal
+          order={mockOrder}
+          clients={mockClients}
+          products={mockProducts}
+          isOpen={true}
+          isUpdating={false}
+          updateError={null}
+          onClose={vi.fn()}
+          onStatusChange={onStatusChange}
+        />
+      </MockedProvider>
+    );
+
+    const statusSelect = screen.getByRole("combobox", { name: /change order status/i });
     fireEvent.change(statusSelect, { target: { value: OrderStatus.CANCELLED } });
-    expect(onStatusChange).toHaveBeenCalledWith(OrderStatus.CANCELLED);
+    
+    // CancelOrderModal should appear with textarea
+    expect(screen.getByPlaceholderText(/motivo de la cancelación/)).toBeInTheDocument();
+    expect(screen.getByText("Cancelar Orden")).toBeInTheDocument();
+    
+    // onStatusChange should NOT be called yet (waiting for observation)
+    expect(onStatusChange).not.toHaveBeenCalled();
   });
 });

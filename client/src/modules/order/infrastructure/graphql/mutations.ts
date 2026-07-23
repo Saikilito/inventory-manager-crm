@@ -11,3 +11,5 @@ export const UPDATE_ORDER = gql`
     updateOrder(input: $input)
   }
 `;
+
+export const UPDATE_ORDER_WITH_CANCELLATION = UPDATE_ORDER;
