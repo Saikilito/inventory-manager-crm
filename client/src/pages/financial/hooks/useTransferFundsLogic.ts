@@ -1,5 +1,40 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { IAccount } from '@shared-domain/financial/account.entity.js';
+import { SupportedCurrency } from '@shared-domain/shared/value-objects/currency.vo';
+
+const DECIMAL_PRECISION_AMOUNT = 2;
+const DECIMAL_PRECISION_EXCHANGE_RATE = 4;
+const DEFAULT_EXCHANGE_RATE = 1;
+
+const convertCurrency = (
+  amount: number,
+  fromCurrency: SupportedCurrency,
+  toCurrency: SupportedCurrency,
+  exchangeRate: number
+): number => {
+  if (fromCurrency === SupportedCurrency.VES && toCurrency === SupportedCurrency.USD) {
+    return amount / exchangeRate;
+  }
+  if (fromCurrency === SupportedCurrency.USD && toCurrency === SupportedCurrency.VES) {
+    return amount * exchangeRate;
+  }
+  return amount;
+};
+
+const calculateExchangeRate = (
+  sourceAmount: number,
+  targetAmount: number,
+  fromCurrency: SupportedCurrency,
+  toCurrency: SupportedCurrency
+): number => {
+  if (fromCurrency === SupportedCurrency.VES && toCurrency === SupportedCurrency.USD) {
+    return sourceAmount / targetAmount;
+  }
+  if (fromCurrency === SupportedCurrency.USD && toCurrency === SupportedCurrency.VES) {
+    return targetAmount / sourceAmount;
+  }
+  return 1;
+};
 
 export interface UseTransferFundsLogicProps {
   isOpen: boolean;
@@ -34,7 +69,6 @@ export const useTransferFundsLogic = ({
   const [description, setDescription] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  // Automatically clear inputs when the drawer opens or closes
   useEffect(() => {
     if (isOpen) {
       setSourceAccountId('');
@@ -55,26 +89,36 @@ export const useTransferFundsLogic = ({
     sourceAccount.currency.toString() !== targetAccount.currency.toString()
   );
 
+  const convertAndSetTargetAmount = (
+    amount: number,
+    rate: number,
+    src: IAccount | undefined,
+    tgt: IAccount | undefined
+  ) => {
+    if (!src || !tgt) return;
+    const srcCur = src.currency.toString().toUpperCase() as SupportedCurrency;
+    const tgtCur = tgt.currency.toString().toUpperCase() as SupportedCurrency;
+    const converted = convertCurrency(amount, srcCur, tgtCur, rate);
+    setTargetAmount(converted.toFixed(DECIMAL_PRECISION_AMOUNT));
+  };
+
   const updateCurrencyFields = (srcId: string, tgtId: string) => {
     const srcAcc = accounts.find((a) => a.id!.toString() === srcId);
     const tgtAcc = accounts.find((a) => a.id!.toString() === tgtId);
     if (!srcAcc || !tgtAcc) return;
 
-    const srcCur = srcAcc.currency.toString().toUpperCase();
-    const tgtCur = tgtAcc.currency.toString().toUpperCase();
+    const srcCur = srcAcc.currency.toString().toUpperCase() as SupportedCurrency;
+    const tgtCur = tgtAcc.currency.toString().toUpperCase() as SupportedCurrency;
     const isDiff = srcCur !== tgtCur;
 
     if (isDiff) {
-      const initialRate = defaultExchangeRate || 1;
+      const initialRate = defaultExchangeRate || DEFAULT_EXCHANGE_RATE;
       setExchangeRate(Number(initialRate).toString());
 
       const numAmount = parseFloat(amount);
       if (!isNaN(numAmount) && numAmount > 0) {
-        if (srcCur === 'VES' && tgtCur === 'USD') {
-          setTargetAmount((numAmount / initialRate).toFixed(2));
-        } else if (srcCur === 'USD' && tgtCur === 'VES') {
-          setTargetAmount((numAmount * initialRate).toFixed(2));
-        }
+        const converted = convertCurrency(numAmount, srcCur, tgtCur, initialRate);
+        setTargetAmount(converted.toFixed(DECIMAL_PRECISION_AMOUNT));
       }
     } else {
       setExchangeRate('');
@@ -87,7 +131,6 @@ export const useTransferFundsLogic = ({
     if (id === targetAccountId) {
       setTargetAccountId('');
     }
-    // Update rate and target amount if different currency
     updateCurrencyFields(id, targetAccountId);
   };
 
@@ -101,15 +144,7 @@ export const useTransferFundsLogic = ({
     const numAmount = parseFloat(val);
     const numRate = parseFloat(exchangeRate);
     if (!isNaN(numAmount) && !isNaN(numRate) && numAmount > 0 && numRate > 0) {
-      if (sourceAccount && targetAccount) {
-        const srcCur = sourceAccount.currency.toString().toUpperCase();
-        const tgtCur = targetAccount.currency.toString().toUpperCase();
-        if (srcCur === 'VES' && tgtCur === 'USD') {
-          setTargetAmount((numAmount / numRate).toFixed(2));
-        } else if (srcCur === 'USD' && tgtCur === 'VES') {
-          setTargetAmount((numAmount * numRate).toFixed(2));
-        }
-      }
+      convertAndSetTargetAmount(numAmount, numRate, sourceAccount, targetAccount);
     }
   };
 
@@ -118,15 +153,7 @@ export const useTransferFundsLogic = ({
     const numAmount = parseFloat(amount);
     const numRate = parseFloat(val);
     if (!isNaN(numAmount) && !isNaN(numRate) && numAmount > 0 && numRate > 0) {
-      if (sourceAccount && targetAccount) {
-        const srcCur = sourceAccount.currency.toString().toUpperCase();
-        const tgtCur = targetAccount.currency.toString().toUpperCase();
-        if (srcCur === 'VES' && tgtCur === 'USD') {
-          setTargetAmount((numAmount / numRate).toFixed(2));
-        } else if (srcCur === 'USD' && tgtCur === 'VES') {
-          setTargetAmount((numAmount * numRate).toFixed(2));
-        }
-      }
+      convertAndSetTargetAmount(numAmount, numRate, sourceAccount, targetAccount);
     }
   };
 
@@ -136,13 +163,10 @@ export const useTransferFundsLogic = ({
     const numTarget = parseFloat(val);
     if (!isNaN(numAmount) && !isNaN(numTarget) && numAmount > 0 && numTarget > 0) {
       if (sourceAccount && targetAccount) {
-        const srcCur = sourceAccount.currency.toString().toUpperCase();
-        const tgtCur = targetAccount.currency.toString().toUpperCase();
-        if (srcCur === 'VES' && tgtCur === 'USD') {
-          setExchangeRate((numAmount / numTarget).toFixed(4));
-        } else if (srcCur === 'USD' && tgtCur === 'VES') {
-          setExchangeRate((numTarget / numAmount).toFixed(4));
-        }
+        const srcCur = sourceAccount.currency.toString().toUpperCase() as SupportedCurrency;
+        const tgtCur = targetAccount.currency.toString().toUpperCase() as SupportedCurrency;
+        const rate = calculateExchangeRate(numAmount, numTarget, srcCur, tgtCur);
+        setExchangeRate(rate.toFixed(DECIMAL_PRECISION_EXCHANGE_RATE));
       }
     }
   };

@@ -163,6 +163,8 @@ describe('Time-Based Rental Reservation Engine Use Cases', () => {
     const prod = makeProduct({
       id: VALID_PRODUCT_UUID,
       name: 'Concrete Mixer',
+      purchasePrice: 100,
+      sellingPrice: 150,
       stock: 10,
     });
     productRepo.setProduct(prod);
@@ -195,6 +197,8 @@ describe('Time-Based Rental Reservation Engine Use Cases', () => {
     const prod = makeProduct({
       id: VALID_PRODUCT_UUID,
       name: 'Drill',
+      purchasePrice: 50,
+      sellingPrice: 75,
       stock: 5,
     });
     productRepo.setProduct(prod);
@@ -233,6 +237,8 @@ describe('Time-Based Rental Reservation Engine Use Cases', () => {
     const prod = makeProduct({
       id: VALID_PRODUCT_UUID,
       name: 'Drill',
+      purchasePrice: 50,
+      sellingPrice: 75,
       stock: 5,
     });
     productRepo.setProduct(prod);
@@ -267,6 +273,8 @@ describe('Time-Based Rental Reservation Engine Use Cases', () => {
     const prod = makeProduct({
       id: VALID_PRODUCT_UUID,
       name: 'Drill',
+      purchasePrice: 50,
+      sellingPrice: 75,
       stock: 5,
     });
     productRepo.setProduct(prod);
@@ -308,6 +316,8 @@ describe('Time-Based Rental Reservation Engine Use Cases', () => {
     const prod = makeProduct({
       id: VALID_PRODUCT_UUID,
       name: 'Drill',
+      purchasePrice: 50,
+      sellingPrice: 75,
       stock: 5,
     });
     productRepo.setProduct(prod);
@@ -341,6 +351,8 @@ describe('Time-Based Rental Reservation Engine Use Cases', () => {
     const prod = makeProduct({
       id: VALID_PRODUCT_UUID,
       name: 'Drill',
+      purchasePrice: 50,
+      sellingPrice: 75,
       stock: 5,
     });
     productRepo.setProduct(prod);

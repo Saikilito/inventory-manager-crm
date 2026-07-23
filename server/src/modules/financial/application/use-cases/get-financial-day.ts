@@ -5,7 +5,7 @@ import { DateOnlyVO } from '../../../../../../shared-domain/src/shared/value-obj
 import { NonEmptyStringVO } from '../../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js';
 import { IFinancialDay } from '../../../../../../shared-domain/src/financial/financial-day.entity.js';
 import { IFinancialDayRepository, IExchangeRateRepository } from '../repositories/financial.repository.js';
-import { FinancialDayField } from '../repositories/financial-day.constants.js';
+import { FinancialDayField, EXCHANGE_RATE_FALLBACK_DAYS_LIMIT } from '../repositories/financial-day.constants.js';
 
 export interface GetFinancialDayInput {
   date?: string;
@@ -35,7 +35,7 @@ export const makeGetFinancialDayByDate = (
 
     const financialDay = dayResult.getValue();
 
-    const getRateWithFallback = async (currentDateStr: string, limit = 30): Promise<number | null> => {
+    const getRateWithFallback = async (currentDateStr: string, limit = EXCHANGE_RATE_FALLBACK_DAYS_LIMIT): Promise<number | null> => {
       const rateResult = await exchangeRateRepository.getOne([
         { field: NonEmptyStringVO.create(FinancialDayField.Date), value: currentDateStr, operator: '=' }
       ]);

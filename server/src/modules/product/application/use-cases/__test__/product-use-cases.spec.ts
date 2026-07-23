@@ -21,11 +21,12 @@ const VALID_UUID = '550e8400-e29b-41d4-a716-446655440000';
 
 // Setup Mock Product Mother
 const productMother = {
-  create(overrides: Partial<{ id: string; name: string; price: number; stock: number }> = {}) {
+  create(overrides: Partial<{ id: string; name: string; purchasePrice: number; sellingPrice: number; stock: number }> = {}) {
     return makeProduct({
       id: overrides.id ?? VALID_UUID,
       name: overrides.name ?? 'Premium Saikilo Coffee',
-      price: overrides.price ?? 12.99,
+      purchasePrice: overrides.purchasePrice ?? 8.99,
+      sellingPrice: overrides.sellingPrice ?? 12.99,
       stock: overrides.stock ?? 45,
     });
   },
@@ -121,7 +122,8 @@ describe('Product Use Cases (TDD)', () => {
 
     const result = await createProduct({
       name: 'Alfajor Saikilo',
-      price: 2.5,
+      purchasePrice: 1.5,
+      sellingPrice: 2.5,
       stock: 100,
     });
 
@@ -139,7 +141,8 @@ describe('Product Use Cases (TDD)', () => {
     // Negative price should throw a ValidationError upon Value Object creation
     const resultNegPrice = await createProduct({
       name: 'Negative Price Beer',
-      price: -5.0,
+      purchasePrice: -3.0,
+      sellingPrice: -5.0,
       stock: 10,
     });
     expect(resultNegPrice.isFailure).toBe(true);
@@ -147,7 +150,8 @@ describe('Product Use Cases (TDD)', () => {
     // Negative stock should throw a ValidationError upon Value Object creation
     const resultNegStock = await createProduct({
       name: 'Negative Stock Beer',
-      price: 5.0,
+      purchasePrice: 3.0,
+      sellingPrice: 5.0,
       stock: -10,
     });
     expect(resultNegStock.isFailure).toBe(true);
@@ -159,7 +163,8 @@ describe('Product Use Cases (TDD)', () => {
 
     const result = await updateProduct({
       id: VALID_UUID,
-      price: 15.0,
+      purchasePrice: 10.0,
+      sellingPrice: 15.0,
       stock: 50,
     });
 
@@ -167,7 +172,7 @@ describe('Product Use Cases (TDD)', () => {
 
     const getRes = await repo.getById(IdVO.create(VALID_UUID));
     const updated = getRes.getValue()!;
-    expect(updated.price).toBe(15.0);
+    expect(updated.sellingPrice).toBe(15.0);
     expect(updated.stock).toBe(50);
     expect(updated.name).toBe('Premium Saikilo Coffee'); // Kept original
   });
@@ -178,7 +183,7 @@ describe('Product Use Cases (TDD)', () => {
 
     const result = await updateProduct({
       id: VALID_UUID,
-      price: -2.0, // Broken PositiveNumberVO contract
+      sellingPrice: -2.0, // Broken PositiveNumberVO contract
     });
 
     expect(result.isFailure).toBe(true);

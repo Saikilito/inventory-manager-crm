@@ -29,6 +29,50 @@ describe('mongoose-base.repository', () => {
       expect(mapWhereFieldsToMongooseQuery(fields)).toEqual({ _id: { $in: ['id1', 'id2'] } });
     });
 
+    it('should convert valid ObjectId strings to ObjectId for _id field', () => {
+      const validObjectId = '507f1f77bcf86cd799439011';
+      const fields: WhereField[] = [
+        { field: 'id' as any, value: validObjectId, operator: '=' },
+      ];
+      const result = mapWhereFieldsToMongooseQuery(fields);
+      expect(result._id).toBeInstanceOf(mongoose.Types.ObjectId);
+    });
+
+    it('should convert valid ObjectId strings to ObjectId for fields ending with Id', () => {
+      const validObjectId = '507f1f77bcf86cd799439011';
+      const fields: WhereField[] = [
+        { field: 'clientId' as any, value: validObjectId, operator: '=' },
+      ];
+      const result = mapWhereFieldsToMongooseQuery(fields);
+      expect(result.clientId).toBeInstanceOf(mongoose.Types.ObjectId);
+    });
+
+    it('should convert valid ObjectId strings to ObjectId for nested Id fields (e.g., items.productId)', () => {
+      const validObjectId1 = '507f1f77bcf86cd799439011';
+      const validObjectId2 = '507f1f77bcf86cd799439012';
+      const fields: WhereField[] = [
+        { field: 'items.productId' as any, value: [validObjectId1, validObjectId2], operator: '=' },
+      ];
+      const result = mapWhereFieldsToMongooseQuery(fields);
+      const inValues = (result as any)['items.productId'].$in;
+      expect(inValues[0]).toBeInstanceOf(mongoose.Types.ObjectId);
+      expect(inValues[1]).toBeInstanceOf(mongoose.Types.ObjectId);
+    });
+
+    it('should NOT convert non-ObjectId-like strings', () => {
+      const fields: WhereField[] = [
+        { field: 'name' as any, value: 'John', operator: '=' },
+      ];
+      expect(mapWhereFieldsToMongooseQuery(fields)).toEqual({ name: 'John' });
+    });
+
+    it('should NOT convert invalid hex strings for Id fields', () => {
+      const fields: WhereField[] = [
+        { field: 'clientId' as any, value: 'not-a-valid-id', operator: '=' },
+      ];
+      expect(mapWhereFieldsToMongooseQuery(fields)).toEqual({ clientId: 'not-a-valid-id' });
+    });
+
     it('should map ILIKE to regex with i option', () => {
       const fields: WhereField[] = [
         { field: 'name' as any, value: 'john', operator: 'ILIKE' },

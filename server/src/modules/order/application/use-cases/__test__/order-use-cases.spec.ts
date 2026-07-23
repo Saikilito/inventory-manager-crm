@@ -20,11 +20,12 @@ const VALID_CLIENT_UUID = '550e8400-e29b-41d4-a716-446655440002';
 const VALID_SELLER_UUID = '550e8400-e29b-41d4-a716-446655440003';
 
 const productMother = {
-  create(overrides: Partial<{ id: string; name: string; price: number; stock: number }> = {}) {
+  create(overrides: Partial<{ id: string; name: string; purchasePrice: number; sellingPrice: number; stock: number }> = {}) {
     return makeProduct({
       id: overrides.id ?? VALID_PRODUCT_UUID,
       name: overrides.name ?? 'Coffee Beans',
-      price: overrides.price ?? 10,
+      purchasePrice: overrides.purchasePrice ?? 8,
+      sellingPrice: overrides.sellingPrice ?? 10,
       stock: overrides.stock ?? 50,
     });
   },

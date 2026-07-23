@@ -4,6 +4,7 @@ import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js'
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { ResultComposer } from '../../../../../../shared-domain/src/shared/result-composer.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
+import { PositiveNumberVO } from '../../../../../../shared-domain/src/shared/value-objects/positive-number.vo.js';
 import {
   IOrder,
   IOrderItem,
@@ -11,6 +12,7 @@ import {
   OrderStatus,
   PaymentStatus,
   DeliveryStatus,
+  ORDER_DEFAULT_PRICE_FALLBACK,
 } from '../../../../../../shared-domain/src/order/order.entity.js';
 import { IOrderRepository } from '../repositories/order.repository.js';
 import { IProductRepository } from '../../../product/application/repositories/product.repository.js';
@@ -66,8 +68,8 @@ export const makeUpdateOrder = (
     const healedItems = await Promise.all(
       itemsToProcess.map(async (item) => {
         const orderItem = item as Partial<IOrderItem>;
-        let pPrice = orderItem.purchasePriceAtSale;
-        let sPrice = orderItem.sellingPriceAtSale;
+        let pPrice: number | undefined = orderItem.purchasePriceAtSale;
+        let sPrice: number | undefined = orderItem.sellingPriceAtSale;
 
         if (input.items) {
           const existingItem = existing.items.find((ei) => ei.productId === item.productId);
@@ -79,19 +81,19 @@ export const makeUpdateOrder = (
           const prodResult = await productRepository.getById(IdVO.create(item.productId));
           if (!prodResult.isFailure && prodResult.getValue()) {
             const prod = prodResult.getValue()!;
-            pPrice = prod.purchasePrice || 0;
-            sPrice = prod.sellingPrice || prod.price || 0;
+            pPrice = prod.purchasePrice ?? ORDER_DEFAULT_PRICE_FALLBACK;
+            sPrice = prod.sellingPrice ?? ORDER_DEFAULT_PRICE_FALLBACK;
           } else {
-            pPrice = 0;
-            sPrice = 0;
+            pPrice = ORDER_DEFAULT_PRICE_FALLBACK;
+            sPrice = ORDER_DEFAULT_PRICE_FALLBACK;
           }
         }
 
         return {
           productId: item.productId,
           quantity: item.quantity,
-          purchasePriceAtSale: pPrice,
-          sellingPriceAtSale: sPrice,
+          purchasePriceAtSale: PositiveNumberVO.create(pPrice),
+          sellingPriceAtSale: PositiveNumberVO.create(sPrice),
         };
       }),
     );

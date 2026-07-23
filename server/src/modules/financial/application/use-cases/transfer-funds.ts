@@ -11,6 +11,7 @@ import { IAccount } from "../../../../../../shared-domain/src/financial/account.
 import { ITransaction, makeTransaction, TransactionType } from "../../../../../../shared-domain/src/financial/transaction.entity.js";
 import { IFinancialDay, FinancialDayStatus, makeFinancialDay } from "../../../../../../shared-domain/src/financial/financial-day.entity.js";
 import { IAccountRepository, ITransactionRepository, IFinancialDayRepository } from "../repositories/financial.repository.js";
+import { FinancialDayField } from "../repositories/financial-day.constants.js";
 
 export interface TransferFundsInput {
   sourceAccountId: string;
@@ -42,7 +43,7 @@ export const makeTransferFunds = (
     const dateStr = DateOnlyVO.create(input.date || undefined);
 
     const dayResult = await financialDayRepository.getOne([
-      { field: NonEmptyStringVO.create("date"), value: dateStr.toString(), operator: "=" }
+      { field: NonEmptyStringVO.create(FinancialDayField.Date), value: dateStr.toString(), operator: "=" }
     ]);
 
     if (dayResult.isFailure) {

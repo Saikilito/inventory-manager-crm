@@ -4,27 +4,27 @@ import { usePlocState } from '@hooks/use-ploc-state';
 import { useFinancialPloc } from '@contexts/financial-context';
 import { FinancialStateKind } from '@modules/financial/presentation/ploc/financial-state';
 import { IAccount } from '@shared-domain/financial/account.entity.js';
+import { SupportedCurrency } from '@shared-domain/shared/value-objects/currency.vo';
+
+const DEFAULT_EXCHANGE_RATE = 1;
 
 export function useFinancialDashboardLogic() {
   const ploc = useFinancialPloc();
   const state = usePlocState(ploc);
   const navigate = useNavigate();
 
-  // Modal UI States
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [isRateModalOpen, setIsRateModalOpen] = useState(false);
   const [isTxDrawerOpen, setIsTxDrawerOpen] = useState(false);
   const [txDrawerAccount, setTxDrawerAccount] = useState<IAccount | null>(null);
   const [isTransferOpen, setIsTransferOpen] = useState(false);
 
-  // Search filter for transactions
   const [txSearchQuery, setTxSearchQuery] = useState('');
 
   useEffect(() => {
     ploc.load();
   }, [ploc]);
 
-  // Auto-select first account on load to prevent empty states
   useEffect(() => {
     if (
       state.kind === FinancialStateKind.LOADED &&
@@ -70,19 +70,18 @@ export function useFinancialDashboardLogic() {
     }
   };
 
-  // Calculations for KPI Cards
-  const activeRate = state.activeRate || 1.0;
+  const activeRate = state.activeRate || DEFAULT_EXCHANGE_RATE;
   
   const totalUSD = state.accounts
-    .filter(a => a.currency.toString() === 'USD')
+    .filter(a => a.currency.toString() === SupportedCurrency.USD)
     .reduce((sum, a) => sum + a.balance, 0);
 
   const totalVESInUSD = state.accounts
-    .filter(a => a.currency.toString() === 'VES')
+    .filter(a => a.currency.toString() === SupportedCurrency.VES)
     .reduce((sum, a) => sum + (a.balance / activeRate), 0);
 
   const totalVES = state.accounts
-    .filter(a => a.currency.toString() === 'VES')
+    .filter(a => a.currency.toString() === SupportedCurrency.VES)
     .reduce((sum, a) => sum + a.balance, 0);
 
   const combinedBalanceUSD = totalUSD + totalVESInUSD;

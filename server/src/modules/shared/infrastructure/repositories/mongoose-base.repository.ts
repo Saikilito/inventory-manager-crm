@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { match } from 'ts-pattern';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { DatabaseError } from '../../../../../../shared-domain/src/shared/errors.js';
 import { doTryResult } from '../../../../../../shared-domain/src/shared/do-try-result.js';
@@ -11,6 +12,73 @@ import {
   IShared,
 } from '../../../../../../shared-domain/src/shared/repository.js';
 
+const isLikelyObjectIdField = (fieldName: string): boolean => {
+  const normalizedField = fieldName === 'id' ? '_id' : fieldName;
+  return (
+    normalizedField === '_id' || normalizedField.endsWith('Id') || /Id$/.test(normalizedField.split('.').pop() || '')
+  );
+};
+
+const toObjectIdIfValid = (val: string): mongoose.Types.ObjectId | string => {
+  if (typeof val === 'string' && /^[a-fA-F0-9]{24}$/.test(val)) {
+    try {
+      return new mongoose.Types.ObjectId(val);
+    } catch {
+      return val;
+    }
+  }
+  return val;
+};
+
+const convertToObjectIdIfNeeded = (fieldName: string, val: unknown): unknown => {
+  if (!isLikelyObjectIdField(fieldName)) {
+    return val;
+  }
+
+  if (Array.isArray(val)) {
+    return val.map((v) => (typeof v === 'string' ? toObjectIdIfValid(v) : v));
+  }
+
+  if (typeof val === 'string') {
+    return toObjectIdIfValid(val);
+  }
+
+  return val;
+};
+
+const createFlexibleIdCondition = (
+  fieldName: string,
+  val: string | mongoose.Types.ObjectId,
+  operator: string,
+): Record<string, unknown> | null => {
+  if (operator !== '=' && operator !== '' && operator !== '!=') {
+    return null;
+  }
+
+  if (!fieldName.endsWith('Id') || fieldName.includes('.')) {
+    return null;
+  }
+
+  if (typeof val !== 'string' || !/^[a-fA-F0-9]{24}$/.test(val)) {
+    return null;
+  }
+
+  const objectId = toObjectIdIfValid(val);
+  if (objectId === val) {
+    return null;
+  }
+
+  if (operator === '!=') {
+    return {
+      $and: [{ [fieldName]: { $ne: val } }, { [fieldName]: { $ne: objectId } }],
+    };
+  }
+
+  return {
+    $or: [{ [fieldName]: val }, { [fieldName]: objectId }],
+  };
+};
+
 export const mapWhereFieldsToMongooseQuery = (fields?: WhereField[]): Record<string, unknown> => {
   if (!fields || fields.length === 0) return {};
   const query: Record<string, unknown> = {};
@@ -22,49 +90,57 @@ export const mapWhereFieldsToMongooseQuery = (fields?: WhereField[]): Record<str
 
     const conditions = fieldNames.map((name) => {
       const mongooseName = name === 'id' ? '_id' : name;
+      const convertedVal = convertToObjectIdIfNeeded(mongooseName, val);
 
-      switch (op) {
-        case '=':
-        case '':
-          if (Array.isArray(val)) {
-            return { [mongooseName]: { $in: val } };
-          }
-          return { [mongooseName]: val };
-        case '!=':
-          if (Array.isArray(val)) {
-            return { [mongooseName]: { $nin: val } };
-          }
-          return { [mongooseName]: { $ne: val } };
-        case 'NOT IN':
-          return { [mongooseName]: { $nin: Array.isArray(val) ? val : [val] } };
-        case 'ILIKE':
-          return { [mongooseName]: { $regex: String(val), $options: 'i' } };
-        case 'IS NULL':
-          return { [mongooseName]: null };
-        case 'IS NOT NULL':
-          return { [mongooseName]: { $ne: null } };
-        case '<':
-          return { [mongooseName]: { $lt: val } };
-        case '>':
-          return { [mongooseName]: { $gt: val } };
-        case '<=':
-          return { [mongooseName]: { $lte: val } };
-        case '>=':
-          return { [mongooseName]: { $gte: val } };
-        default:
-          return { [mongooseName]: val };
+      if (typeof val === 'string' && isLikelyObjectIdField(mongooseName) && !mongooseName.includes('.')) {
+        const flexibleCondition = createFlexibleIdCondition(mongooseName, val, op);
+        if (flexibleCondition) {
+          return flexibleCondition;
+        }
       }
+
+      return match(op)
+        .with('=', '', () => {
+          if (Array.isArray(convertedVal)) {
+            return { [mongooseName]: { $in: convertedVal } };
+          }
+          return { [mongooseName]: convertedVal };
+        })
+        .with('!=', () => {
+          if (Array.isArray(convertedVal)) {
+            return { [mongooseName]: { $nin: convertedVal } };
+          }
+          return { [mongooseName]: { $ne: convertedVal } };
+        })
+        .with('NOT IN', () => ({ [mongooseName]: { $nin: Array.isArray(convertedVal) ? convertedVal : [convertedVal] } }))
+        .with('ILIKE', () => ({ [mongooseName]: { $regex: String(convertedVal), $options: 'i' } }))
+        .with('IS NULL', () => ({ [mongooseName]: null }))
+        .with('IS NOT NULL', () => ({ [mongooseName]: { $ne: null } }))
+        .with('<', () => ({ [mongooseName]: { $lt: convertedVal } }))
+        .with('>', () => ({ [mongooseName]: { $gt: convertedVal } }))
+        .with('<=', () => ({ [mongooseName]: { $lte: convertedVal } }))
+        .with('>=', () => ({ [mongooseName]: { $gte: convertedVal } }))
+        .otherwise(() => ({ [mongooseName]: convertedVal }));
     });
 
     if (conditions.length === 1) {
       const condition = conditions[0];
       const key = Object.keys(condition)[0];
-      
-      if (
-        query[key] !== undefined && 
-        typeof query[key] === 'object' && 
-        typeof condition[key] === 'object' && 
-        !Array.isArray(query[key]) && 
+
+      if (key === '$or' || key === '$and') {
+        if (!query[key]) {
+          query[key] = [];
+        }
+        if (Array.isArray(condition[key])) {
+          (query[key] as unknown[]).push(...(condition[key] as unknown[]));
+        } else {
+          (query[key] as unknown[]).push(condition[key]);
+        }
+      } else if (
+        query[key] !== undefined &&
+        typeof query[key] === 'object' &&
+        typeof condition[key] === 'object' &&
+        !Array.isArray(query[key]) &&
         !Array.isArray(condition[key])
       ) {
         query[key] = { ...(query[key] as Record<string, unknown>), ...condition[key] };
@@ -137,7 +213,10 @@ export const makeMongooseBaseRepository = <T, Doc extends mongoose.Document>({
       );
     },
 
-    async getById<R = T>(id: IShared.VO.Id, relations?: IShared.VO.NonEmptyString[]): Promise<Result<R | null, DatabaseError>> {
+    async getById<R = T>(
+      id: IShared.VO.Id,
+      relations?: IShared.VO.NonEmptyString[],
+    ): Promise<Result<R | null, DatabaseError>> {
       return doTryResult(
         async () => {
           let query = model.findById(id);
@@ -181,10 +260,7 @@ export const makeMongooseBaseRepository = <T, Doc extends mongoose.Document>({
 
           query = query.skip(skip).limit(limit);
 
-          const [docs, total] = await Promise.all([
-            query.exec(),
-            model.countDocuments(filter).exec(),
-          ]);
+          const [docs, total] = await Promise.all([query.exec(), model.countDocuments(filter).exec()]);
 
           const items = docs.map((doc) => mapToDomain(doc) as unknown as R);
           const pages = Math.ceil(total / limit);
