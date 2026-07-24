@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { Result } from '../../shared/result.js';
 import { NonEmptyString, NonEmptyStringVO } from '../../shared/value-objects/non-empty-string.vo.js';
-import { ValidationError } from '../../shared/validation-error.js';
+import { ValidationError, createValidationError } from '../../shared/validation-error.js';
 
 const WIKI_LINK_REGEX = /\[\[([^\]]+)\]\]/g;
 
@@ -35,7 +35,7 @@ export const WikiLinkVO = {
 
     if (!parsed.success) {
       return Result.fail(
-        new ValidationError(`Invalid wiki link: ${parsed.error.issues.map((i) => i.message).join(', ')}`),
+        createValidationError(`Invalid wiki link: ${parsed.error.issues.map((i) => i.message).join(', ')}`),
       );
     }
 

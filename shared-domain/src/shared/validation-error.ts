@@ -1,8 +1,9 @@
-import { DomainError } from './errors.js';
+import { DomainError, createDomainError } from './errors.js';
 
-export class ValidationError extends DomainError {
-  constructor(message: string) {
-    super(message);
-    this.name = 'ValidationError';
-  }
+export interface ValidationError extends DomainError {
+  name: 'ValidationError';
 }
+
+export const createValidationError = (message: string): ValidationError => {
+  return createDomainError(message, 'ValidationError') as ValidationError;
+};

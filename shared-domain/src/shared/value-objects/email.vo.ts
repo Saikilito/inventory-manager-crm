@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { Result } from '../result.js';
 import { Opaque } from '../opaque.js';
-import { ValidationError } from '../validation-error.js';
+import { ValidationError, createValidationError } from '../validation-error.js';
 
 export type Email = Opaque<string, 'Email'>;
 
@@ -21,7 +21,7 @@ export const EmailVO = {
 
     if (emailSchema.error) {
       return Result.fail(
-        new ValidationError(
+        createValidationError(
           `Invalid email format: ${str}`,
         ),
       );

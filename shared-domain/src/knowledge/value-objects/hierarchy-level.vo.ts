@@ -1,6 +1,6 @@
 import { Result } from '../../shared/result.js';
 import { Opaque } from '../../shared/opaque.js';
-import { ValidationError } from '../../shared/validation-error.js';
+import { ValidationError, createValidationError } from '../../shared/validation-error.js';
 
 export const HierarchyLevel = Object.freeze({
   ROOT: 'ROOT',
@@ -26,7 +26,7 @@ export const HierarchyLevelVO = {
 
   createResult: (str: string): Result<HierarchyLevelType, ValidationError> => {
     if (typeof str !== 'string') {
-      return Result.fail(new ValidationError('HierarchyLevel must be a string'));
+      return Result.fail(createValidationError('HierarchyLevel must be a string'));
     }
 
     const upperStr = str.toUpperCase().trim();
@@ -35,7 +35,7 @@ export const HierarchyLevelVO = {
 
     if (!isValid) {
       return Result.fail(
-        new ValidationError(
+        createValidationError(
           `Invalid hierarchy level: ${str}. Allowed values: ${Object.values(HierarchyLevel).join(', ')}`,
         ),
       );

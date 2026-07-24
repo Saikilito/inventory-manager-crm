@@ -1,6 +1,6 @@
 import { Result } from '../result.js';
 import { Opaque } from '../opaque.js';
-import { ValidationError } from '../validation-error.js';
+import { ValidationError, createValidationError } from '../validation-error.js';
 
 export const ClientRatingTier = {
   BASIC: 'BASIC',
@@ -32,7 +32,7 @@ export const ClientRatingTierVO = {
       upperStr !== ClientRatingTier.PREMIUM
     ) {
       return Result.fail(
-        new ValidationError(
+        createValidationError(
           `Invalid client rating tier: ${str}. Allowed tiers are BASIC, CONCURRENT, PREMIUM.`,
         ),
       );

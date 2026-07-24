@@ -1,6 +1,6 @@
 import { Result } from '../result.js';
 import { Opaque } from '../opaque.js';
-import { ValidationError } from '../validation-error.js';
+import { ValidationError, createValidationError } from '../validation-error.js';
 
 export const DEFAULT_TIMEZONE = 'America/Caracas';
 export type DateOnly = Opaque<string, 'DateOnly'>;
@@ -24,13 +24,13 @@ export const DateOnlyVO = {
       if (testDate.getUTCFullYear() === y && testDate.getUTCMonth() === m - 1 && testDate.getUTCDate() === d) {
         return Result.ok(input as DateOnly);
       }
-      return Result.fail(new ValidationError(`Invalid calendar date: ${input}`));
+      return Result.fail(createValidationError(`Invalid calendar date: ${input}`));
     }
 
     const date = input instanceof Date ? input : new Date(input ?? Date.now());
 
     if (isNaN(date.getTime())) {
-      return Result.fail(new ValidationError('Invalid date input'));
+      return Result.fail(createValidationError('Invalid date input'));
     }
 
     try {
@@ -45,7 +45,7 @@ export const DateOnlyVO = {
       const partMap = Object.fromEntries(parts.map(p => [p.type, p.value]));
       return Result.ok(`${partMap.year}-${partMap.month}-${partMap.day}` as DateOnly);
     } catch (e: unknown) {
-      return Result.fail(new ValidationError(`Failed to format date for timezone ${tz}`));
+      return Result.fail(createValidationError(`Failed to format date for timezone ${tz}`));
     }
   }
 };

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { Result } from '../result.js';
 import { Opaque } from '../opaque.js';
-import { ValidationError } from '../validation-error.js';
+import { ValidationError, createValidationError } from '../validation-error.js';
 import { DeliveryStatus } from '../../delivery/delivery.entity.js';
 
 export type DeliveryStatusType = Opaque<DeliveryStatus, 'DeliveryStatusType'>;
@@ -27,7 +27,7 @@ export const DeliveryStatusVO = {
         DeliveryStatus.CANCELLED,
       ]).safeParse(normalized).error
     ) {
-      return Result.fail(new ValidationError(`Unsupported delivery status: ${value}`));
+      return Result.fail(createValidationError(`Unsupported delivery status: ${value}`));
     }
 
     return Result.ok(normalized as DeliveryStatusType);

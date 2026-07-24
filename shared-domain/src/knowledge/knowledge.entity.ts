@@ -1,7 +1,7 @@
 import { Id, IdVO } from '../shared/value-objects/id.vo.js';
 import { NonEmptyString, NonEmptyStringVO } from '../shared/value-objects/non-empty-string.vo.js';
 import { DateTime, DateTimeVO } from '../shared/value-objects/date-time.vo.js';
-import { ValidationError } from '../shared/validation-error.js';
+import { ValidationError, createValidationError } from '../shared/validation-error.js';
 import { Result } from '../shared/result.js';
 import {
   KnowledgeCategory,
@@ -67,10 +67,6 @@ export interface MakeKnowledgeProps {
   updatedAt?: string;
 }
 
-export const KNOWN_HIERARCHY_LEVELS: readonly HierarchyLevel[] = HierarchyLevelVO.getAll();
-export const KNOWN_KNOWLEDGE_CATEGORIES: readonly KnowledgeCategory[] = KnowledgeCategoryVO.getAll();
-export const KNOWN_KNOWLEDGE_STATUSES: readonly KnowledgeStatus[] = KnowledgeStatusVO.getAll();
-
 const validateTags = (tags: string[]): string[] => {
   const cleaned: string[] = [];
 
@@ -86,17 +82,17 @@ const validateTags = (tags: string[]): string[] => {
 export const makeKnowledge = (props: MakeKnowledgeProps): IKnowledge => {
   const categoryResult = KnowledgeCategoryVO.createResult(props.category);
   if (categoryResult.isFailure) {
-    throw new ValidationError(categoryResult.getError().message);
+    throw createValidationError(categoryResult.getError().message);
   }
 
   const hierarchyResult = HierarchyLevelVO.createResult(props.hierarchyLevel);
   if (hierarchyResult.isFailure) {
-    throw new ValidationError(hierarchyResult.getError().message);
+    throw createValidationError(hierarchyResult.getError().message);
   }
 
   const statusResult = KnowledgeStatusVO.createResult(props.status ?? KnowledgeStatus.DRAFT);
   if (statusResult.isFailure) {
-    throw new ValidationError(statusResult.getError().message);
+    throw createValidationError(statusResult.getError().message);
   }
 
   const title = NonEmptyStringVO.create(props.title);
@@ -132,6 +128,6 @@ export const makeKnowledgeResult = (props: MakeKnowledgeProps): Result<IKnowledg
     return Result.ok(makeKnowledge(props));
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    return Result.fail(new ValidationError(message));
+    return Result.fail(createValidationError(message));
   }
 };

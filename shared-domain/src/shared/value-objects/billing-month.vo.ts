@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { Result } from '../result.js';
 import { Opaque } from '../opaque.js';
-import { ValidationError } from '../validation-error.js';
+import { ValidationError, createValidationError } from '../validation-error.js';
 
 export type BillingMonth = Opaque<string, 'BillingMonth'>;
 
@@ -18,7 +18,7 @@ export const BillingMonthVO = {
 
   createResult: (value: string): Result<BillingMonth, ValidationError> => {
     if (z.string().regex(/^\d{4}-\d{2}$/).safeParse(value).error) {
-      return Result.fail(new ValidationError('Billing month must be in YYYY-MM format'));
+      return Result.fail(createValidationError('Billing month must be in YYYY-MM format'));
     }
 
     return Result.ok(value as BillingMonth);

@@ -1,6 +1,6 @@
 import { Result } from '../result.js';
 import { Opaque } from '../opaque.js';
-import { ValidationError } from '../validation-error.js';
+import { ValidationError, createValidationError } from '../validation-error.js';
 import { getErrorMessage } from '../error-utils.js';
 import { DEFAULT_TIMEZONE } from './date-only.vo.js';
 
@@ -25,7 +25,7 @@ export const DateTimeVO = {
       : new Date(input ?? Date.now());
 
     if (isNaN(date.getTime())) {
-      return Result.fail(new ValidationError('Invalid date input'));
+      return Result.fail(createValidationError('Invalid date input'));
     }
 
     try {
@@ -60,7 +60,7 @@ export const DateTimeVO = {
       const fullString = `${formattedDate}${offsetStr}`;
       return Result.ok(fullString as DateTime);
     } catch (e: unknown) {
-      return Result.fail(new ValidationError(`Failed to format date for timezone ${tz}: ${getErrorMessage(e)}`));
+      return Result.fail(createValidationError(`Failed to format date for timezone ${tz}: ${getErrorMessage(e)}`));
     }
   },
 

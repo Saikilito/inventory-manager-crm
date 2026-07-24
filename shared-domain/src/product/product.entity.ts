@@ -4,7 +4,7 @@ import { NonNegativeNumber, NonNegativeNumberVO } from '../shared/value-objects/
 import { PositiveNumber, PositiveNumberVO } from '../shared/value-objects/positive-number.vo.js';
 import { UnitOfMeasure } from '../shared/value-objects/unit-of-measure.vo.js';
 import { PackagingType } from '../shared/value-objects/packaging-type.vo.js';
-import { ValidationError } from '../shared/validation-error.js';
+import { ValidationError, createValidationError } from '../shared/validation-error.js';
 
 export const PRICE_DECIMAL_PRECISION = 2;
 export const QUANTITY_DECIMAL_PRECISION = 4;
@@ -34,7 +34,7 @@ export const makeProduct = (props: {
   name: string;
   purchasePrice: number;
   sellingPrice: number;
-  stock: number; // Supports fractional quantities
+  stock: number;
   unitOfMeasure?: string;
   contextId?: string;
   customAttributes?: Record<string, string | number | boolean | string[]>;
@@ -49,10 +49,10 @@ export const makeProduct = (props: {
 
   if (isServer) {
     if (props.sellingPrice === undefined) {
-      throw new ValidationError('Selling price is required');
+      throw createValidationError('Selling price is required');
     }
     if (props.purchasePrice === undefined) {
-      throw new ValidationError('Purchase price is required');
+      throw createValidationError('Purchase price is required');
     }
   }
 

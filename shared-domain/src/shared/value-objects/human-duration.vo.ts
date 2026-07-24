@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { Result } from '../result.js';
 import { Opaque } from '../opaque.js';
-import { ValidationError } from '../validation-error.js';
+import { ValidationError, createValidationError } from '../validation-error.js';
 import { match } from 'ts-pattern';
 
 export type HumanDuration = Opaque<number, 'HumanDuration'>;
@@ -28,14 +28,14 @@ export const HumanDurationVO = {
 
   createResult: (durationStr: string): Result<HumanDuration, ValidationError> => {
     if (typeof durationStr !== 'string') {
-      return Result.fail(new ValidationError('Duration must be a string'));
+      return Result.fail(createValidationError('Duration must be a string'));
     }
 
     const trimmed = durationStr.trim().toLowerCase();
 
     if (!z.string().regex(DURATION_REGEX).safeParse(trimmed).success) {
       return Result.fail(
-        new ValidationError(
+        createValidationError(
           `Invalid duration format: "${durationStr}". Expected format is like "15m", "2h", "30s", "1d"`
         )
       );
@@ -43,7 +43,7 @@ export const HumanDurationVO = {
 
     const matchResult = trimmed.match(DURATION_REGEX);
     if (!matchResult) {
-      return Result.fail(new ValidationError('Failed to parse duration'));
+      return Result.fail(createValidationError('Failed to parse duration'));
     }
 
     const [, valueStr, unitStr] = matchResult;

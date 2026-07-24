@@ -1,6 +1,6 @@
 import { Result } from '../../shared/result.js';
 import { Opaque } from '../../shared/opaque.js';
-import { ValidationError } from '../../shared/validation-error.js';
+import { ValidationError, createValidationError } from '../../shared/validation-error.js';
 
 export const KnowledgeStatus = Object.freeze({
   DRAFT: 'DRAFT',
@@ -25,7 +25,7 @@ export const KnowledgeStatusVO = {
 
   createResult: (str: string): Result<KnowledgeStatusType, ValidationError> => {
     if (typeof str !== 'string') {
-      return Result.fail(new ValidationError('KnowledgeStatus must be a string'));
+      return Result.fail(createValidationError('KnowledgeStatus must be a string'));
     }
 
     const upperStr = str.toUpperCase().trim();
@@ -34,7 +34,7 @@ export const KnowledgeStatusVO = {
 
     if (!isValid) {
       return Result.fail(
-        new ValidationError(
+        createValidationError(
           `Invalid knowledge status: ${str}. Allowed values: ${Object.values(KnowledgeStatus).join(', ')}`,
         ),
       );

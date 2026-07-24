@@ -1,6 +1,6 @@
 import { Result } from '../../shared/result.js';
 import { Opaque } from '../../shared/opaque.js';
-import { ValidationError } from '../../shared/validation-error.js';
+import { ValidationError, createValidationError } from '../../shared/validation-error.js';
 
 export const KnowledgeCategory = Object.freeze({
   SALES: 'SALES',
@@ -26,7 +26,7 @@ export const KnowledgeCategoryVO = {
 
   createResult: (str: string): Result<KnowledgeCategoryType, ValidationError> => {
     if (typeof str !== 'string') {
-      return Result.fail(new ValidationError('KnowledgeCategory must be a string'));
+      return Result.fail(createValidationError('KnowledgeCategory must be a string'));
     }
 
     const upperStr = str.toUpperCase().trim();
@@ -35,7 +35,7 @@ export const KnowledgeCategoryVO = {
 
     if (!isValid) {
       return Result.fail(
-        new ValidationError(
+        createValidationError(
           `Invalid knowledge category: ${str}. Allowed values: ${Object.values(KnowledgeCategory).join(', ')}`,
         ),
       );

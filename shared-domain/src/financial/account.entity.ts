@@ -4,7 +4,7 @@ import { Currency, CurrencyVO } from '../shared/value-objects/currency.vo.js';
 import { DateTime, DateTimeVO } from '../shared/value-objects/date-time.vo.js';
 import { PositiveNumber, PositiveNumberVO } from '../shared/value-objects/positive-number.vo.js';
 import { Result } from '../shared/result.js';
-import { ValidationError } from '../shared/validation-error.js';
+import { ValidationError, createValidationError } from '../shared/validation-error.js';
 
 export interface IAccount {
   id?: Id;
@@ -76,7 +76,7 @@ export const makeAccount = (props: {
 
       if (!exchangeRate) {
         return Result.fail(
-          new ValidationError('Exchange rate required for multi-currency transfers')
+          createValidationError('Exchange rate required for multi-currency transfers')
         );
       }
 

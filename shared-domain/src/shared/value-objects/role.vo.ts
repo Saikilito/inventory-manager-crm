@@ -1,6 +1,6 @@
 import { Result } from '../result.js';
 import { Opaque } from '../opaque.js';
-import { ValidationError } from '../validation-error.js';
+import { ValidationError, createValidationError } from '../validation-error.js';
 
 export const UserRole = {
   ADMIN: 'ADMIN',
@@ -27,7 +27,7 @@ export const RoleVO = {
 
     if (upperStr !== UserRole.ADMIN && upperStr !== UserRole.SELLER) {
       return Result.fail(
-        new ValidationError(
+        createValidationError(
           `Invalid role: ${str}. Allowed roles are ADMIN, SELLER.`,
         ),
       );

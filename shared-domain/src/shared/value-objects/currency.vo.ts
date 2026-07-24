@@ -1,6 +1,6 @@
 import { Result } from '../result.js';
 import { Opaque } from '../opaque.js';
-import { ValidationError } from '../validation-error.js';
+import { ValidationError, createValidationError } from '../validation-error.js';
 
 export const SupportedCurrency = {
   USD: 'USD',
@@ -22,11 +22,11 @@ export const CurrencyVO = {
 
   createResult: (value: string): Result<Currency, ValidationError> => {
     if (!value || typeof value !== 'string') {
-      return Result.fail(new ValidationError('Currency code must be a non-empty string'));
+      return Result.fail(createValidationError('Currency code must be a non-empty string'));
     }
     const normalized = value.trim().toUpperCase();
     if (normalized !== SupportedCurrency.USD && normalized !== SupportedCurrency.VES) {
-      return Result.fail(new ValidationError(`Unsupported currency: ${normalized}`));
+      return Result.fail(createValidationError(`Unsupported currency: ${normalized}`));
     }
     return Result.ok(normalized as Currency);
   },

@@ -3,7 +3,7 @@ import { NonEmptyString, NonEmptyStringVO } from '../shared/value-objects/non-em
 import { NonNegativeNumber, NonNegativeNumberVO } from '../shared/value-objects/non-negative-number.vo.js';
 import { DateTime, DateTimeVO } from '../shared/value-objects/date-time.vo.js';
 import { Result } from '../shared/result.js';
-import { ValidationError } from '../shared/validation-error.js';
+import { ValidationError, createValidationError } from '../shared/validation-error.js';
 import { getErrorMessage } from '../shared/error-utils.js';
 
 export const DeliveryStatus = {
@@ -36,10 +36,9 @@ export const makeDelivery = (props: {
   notes?: string;
   deliveryCost?: number;
 }): Result<IDelivery, ValidationError> => {
-  // Validate status
   const statusStr = props.status.toUpperCase();
   if (!(Object.values(DeliveryStatus) as readonly string[]).includes(statusStr)) {
-    return Result.fail(new ValidationError(`Invalid delivery status: ${props.status}`));
+    return Result.fail(createValidationError(`Invalid delivery status: ${props.status}`));
   }
 
   try {
@@ -57,6 +56,6 @@ export const makeDelivery = (props: {
     };
     return Result.ok(delivery);
   } catch (err: unknown) {
-    return Result.fail(new ValidationError(getErrorMessage(err)));
+    return Result.fail(createValidationError(getErrorMessage(err)));
   }
 };

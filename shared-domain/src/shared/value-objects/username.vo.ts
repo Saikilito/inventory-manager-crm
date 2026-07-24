@@ -1,6 +1,6 @@
 import { Result } from '../result.js';
 import { Opaque } from '../opaque.js';
-import { ValidationError } from '../validation-error.js';
+import { ValidationError, createValidationError } from '../validation-error.js';
 import { NonEmptyStringVO } from './non-empty-string.vo.js';
 
 export type Username = Opaque<string, 'Username'>;
@@ -24,7 +24,7 @@ export const UsernameVO = {
 
     const value = nonEmptyResult.getValue() as string;
     if (/\s/.test(value)) {
-      return Result.fail(new ValidationError('Username cannot contain spaces'));
+      return Result.fail(createValidationError('Username cannot contain spaces'));
     }
 
     return Result.ok(value as Username);

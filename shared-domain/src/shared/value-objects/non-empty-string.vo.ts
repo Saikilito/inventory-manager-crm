@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { Result } from '../result.js';
 import { Opaque } from '../opaque.js';
-import { ValidationError } from '../validation-error.js';
+import { ValidationError, createValidationError } from '../validation-error.js';
 
 export type NonEmptyString = Opaque<string, 'NonEmptyString'>;
 
@@ -18,12 +18,12 @@ export const NonEmptyStringVO = {
 
   createResult: (str: string): Result<NonEmptyString, ValidationError> => {
     if (typeof str !== 'string') {
-      return Result.fail(new ValidationError('Input must be a string'));
+      return Result.fail(createValidationError('Input must be a string'));
     }
     const clearStr = str.trim();
 
     if (z.string().nonempty().safeParse(clearStr).error) {
-      return Result.fail(new ValidationError('Empty String is not allowed'));
+      return Result.fail(createValidationError('Empty String is not allowed'));
     }
 
     return Result.ok(clearStr as NonEmptyString);

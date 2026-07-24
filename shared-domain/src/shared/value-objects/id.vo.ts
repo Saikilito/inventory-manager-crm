@@ -1,7 +1,7 @@
 import { validate, v4 as uuid, NIL as NIL_UUID } from 'uuid';
 import { Result } from '../result.js';
 import { Opaque } from '../opaque.js';
-import { ValidationError } from '../validation-error.js';
+import { ValidationError, createValidationError } from '../validation-error.js';
 
 export type Id = Opaque<string, 'Id'>;
 
@@ -25,7 +25,7 @@ export const IdVO = {
     const isObjectId = /^[0-9a-fA-F]{24}$/.test(str);
 
     if (!isUuid && !isObjectId) {
-      return Result.fail(new ValidationError('UUID is not valid'));
+      return Result.fail(createValidationError('UUID is not valid'));
     }
 
     return Result.ok(str as Id);
