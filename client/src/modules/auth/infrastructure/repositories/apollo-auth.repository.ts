@@ -2,7 +2,7 @@ import { ApolloClient, NormalizedCacheObject } from '@apollo/client';
 import { AuthRepository } from '@modules/auth/domain/auth.repository';
 import { IUser, makeUser } from '@shared-domain/user/user.entity';
 import { doTryResult } from '@shared-domain/shared/do-try-result';
-import { DatabaseError } from '@shared-domain/shared/errors';
+import { createDatabaseError } from '@shared-domain/shared/errors';
 import { CURRENT_USER, GET_USERS } from '../graphql/queries';
 import { CREATE_USER, AUTH_USER, UPDATE_USER } from '../graphql/mutations';
 
@@ -25,10 +25,7 @@ interface AuthUserData {
   };
 }
 
-export function makeApolloAuthRepository(
-  apolloClient: ApolloClient<NormalizedCacheObject>
-): AuthRepository {
-  
+export function makeApolloAuthRepository(apolloClient: ApolloClient<NormalizedCacheObject>): AuthRepository {
   const mapGQLToDomain = (gqlUser: GQLUser): IUser => {
     const result = makeUser({
       id: gqlUser._id,
@@ -55,7 +52,7 @@ export function makeApolloAuthRepository(
 
           const { data } = await apolloClient.query<GetUserData>({
             query: CURRENT_USER,
-            fetchPolicy: 'network-only', // Ensure fresh token-checked session
+            fetchPolicy: 'network-only',
           });
 
           if (!data || !data.getUser) {
@@ -64,7 +61,7 @@ export function makeApolloAuthRepository(
 
           return mapGQLToDomain(data.getUser);
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message),
       );
     },
 
@@ -84,11 +81,10 @@ export function makeApolloAuthRepository(
             throw new Error('Could not obtain authentication token');
           }
 
-          // Save token in localStorage
           localStorage.setItem('Token', token);
           return token;
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message),
       );
     },
 
@@ -112,7 +108,7 @@ export function makeApolloAuthRepository(
 
           return 'User created successfully';
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message),
       );
     },
 
@@ -120,10 +116,9 @@ export function makeApolloAuthRepository(
       return doTryResult(
         async (): Promise<void> => {
           localStorage.removeItem('Token');
-          // Clear Apollo cache store
           await apolloClient.clearStore();
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message),
       );
     },
 
@@ -141,7 +136,7 @@ export function makeApolloAuthRepository(
 
           return data.getUsers.map(mapGQLToDomain);
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message),
       );
     },
 
@@ -164,7 +159,7 @@ export function makeApolloAuthRepository(
             throw new Error('Error updating user in database');
           }
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message),
       );
     },
   };

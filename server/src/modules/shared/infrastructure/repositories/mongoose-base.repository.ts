@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { match } from 'ts-pattern';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
-import { DatabaseError } from '../../../../../../shared-domain/src/shared/errors.js';
+import { createDatabaseError, DatabaseError } from '../../../../../../shared-domain/src/shared/errors.js';
 import { doTryResult } from '../../../../../../shared-domain/src/shared/do-try-result.js';
 import {
   BaseRepository,
@@ -112,7 +112,9 @@ export const mapWhereFieldsToMongooseQuery = (fields?: WhereField[]): Record<str
           }
           return { [mongooseName]: { $ne: convertedVal } };
         })
-        .with('NOT IN', () => ({ [mongooseName]: { $nin: Array.isArray(convertedVal) ? convertedVal : [convertedVal] } }))
+        .with('NOT IN', () => ({
+          [mongooseName]: { $nin: Array.isArray(convertedVal) ? convertedVal : [convertedVal] },
+        }))
         .with('ILIKE', () => ({ [mongooseName]: { $regex: String(convertedVal), $options: 'i' } }))
         .with('IS NULL', () => ({ [mongooseName]: null }))
         .with('IS NOT NULL', () => ({ [mongooseName]: { $ne: null } }))
@@ -195,7 +197,7 @@ export const makeMongooseBaseRepository = <T, Doc extends mongoose.Document>({
             return domainEntities[0];
           }
         },
-        (err) => new DatabaseError(err.message),
+        (err) => createDatabaseError(err.message),
       );
     },
 
@@ -209,7 +211,7 @@ export const makeMongooseBaseRepository = <T, Doc extends mongoose.Document>({
           }
           return mapToDomain(doc) as unknown as R;
         },
-        (err) => new DatabaseError(err.message),
+        (err) => createDatabaseError(err.message),
       );
     },
 
@@ -231,7 +233,7 @@ export const makeMongooseBaseRepository = <T, Doc extends mongoose.Document>({
           }
           return mapToDomain(doc) as unknown as R;
         },
-        (err) => new DatabaseError(err.message),
+        (err) => createDatabaseError(err.message),
       );
     },
 
@@ -273,7 +275,7 @@ export const makeMongooseBaseRepository = <T, Doc extends mongoose.Document>({
             pages,
           };
         },
-        (err) => new DatabaseError(err.message),
+        (err) => createDatabaseError(err.message),
       );
     },
 
@@ -295,7 +297,7 @@ export const makeMongooseBaseRepository = <T, Doc extends mongoose.Document>({
             throw new Error('Document not found for update');
           }
         },
-        (err) => new DatabaseError(err.message),
+        (err) => createDatabaseError(err.message),
       );
     },
 
@@ -322,7 +324,7 @@ export const makeMongooseBaseRepository = <T, Doc extends mongoose.Document>({
           const res = await model.updateOne(filter, { $set: updateData }).exec();
           return res.modifiedCount > 0;
         },
-        (err) => new DatabaseError(err.message),
+        (err) => createDatabaseError(err.message),
       );
     },
 
@@ -331,7 +333,7 @@ export const makeMongooseBaseRepository = <T, Doc extends mongoose.Document>({
         async () => {
           await model.deleteMany({ _id: { $in: ids } }).exec();
         },
-        (err) => new DatabaseError(err.message),
+        (err) => createDatabaseError(err.message),
       );
     },
   };

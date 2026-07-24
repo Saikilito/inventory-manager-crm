@@ -1,5 +1,5 @@
 import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
-import { DomainError } from '../../../../../../shared-domain/src/shared/errors.js';
+import { createDomainError, DomainError } from '../../../../../../shared-domain/src/shared/errors.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { PositiveNumberVO } from '../../../../../../shared-domain/src/shared/value-objects/positive-number.vo.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
@@ -71,7 +71,7 @@ export const makeGetAgents = (agentRepository: IAgentRepository): GetAgents => {
 
       return Result.ok<IAgent[], DomainError>(agents);
     } catch (error) {
-      return Result.fail(new DomainError(error instanceof Error ? error.message : 'Failed to retrieve agents'));
+      return Result.fail(createDomainError(error instanceof Error ? error.message : 'Failed to retrieve agents'));
     }
   };
 };

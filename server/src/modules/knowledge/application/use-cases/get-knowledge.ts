@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
-import { DomainError, NotFoundError } from '../../../../../../shared-domain/src/shared/errors.js';
+import { createNotFoundError, DomainError } from '../../../../../../shared-domain/src/shared/errors.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
 import { zodIdString } from '../../../../../../shared-domain/src/shared/zod-schemas.js';
@@ -27,7 +27,7 @@ export const makeGetKnowledge = (knowledgeRepository: IKnowledgeRepository): Get
     if (result.isFailure) return Result.fail(result.getError());
 
     const knowledge = result.getValue();
-    if (!knowledge) return Result.fail(new NotFoundError(`Knowledge not found: ${id}`));
+    if (!knowledge) return Result.fail(createNotFoundError(`Knowledge not found: ${id}`));
 
     return Result.ok(knowledge);
   };

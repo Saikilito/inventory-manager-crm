@@ -1,20 +1,17 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 import {
   IChatSessionRepository,
   IChatSession,
   makeChatSession,
   ChatSessionStatus,
-} from "../../application/repositories/chat-session.repository.js";
-import {
-  ChatSessionModel,
-  IChatSessionDocument,
-} from "../chat-session.model.js";
-import { makeMongooseBaseRepository } from "../../../shared/infrastructure/repositories/mongoose-base.repository.js";
-import { Result } from "../../../../../../shared-domain/src/shared/result.js";
-import { DatabaseError } from "../../../../../../shared-domain/src/shared/errors.js";
-import { doTryResult } from "../../../../../../shared-domain/src/shared/do-try-result.js";
-import { NonEmptyString } from "../../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js";
-import { Id } from "../../../../../../shared-domain/src/shared/value-objects/id.vo.js";
+} from '../../application/repositories/chat-session.repository.js';
+import { ChatSessionModel, IChatSessionDocument } from '../chat-session.model.js';
+import { makeMongooseBaseRepository } from '../../../shared/infrastructure/repositories/mongoose-base.repository.js';
+import { Result } from '../../../../../../shared-domain/src/shared/result.js';
+import { createDatabaseError, DatabaseError } from '../../../../../../shared-domain/src/shared/errors.js';
+import { doTryResult } from '../../../../../../shared-domain/src/shared/do-try-result.js';
+import { NonEmptyString } from '../../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js';
+import { Id } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
 
 const mapToDomain = (doc: IChatSessionDocument): IChatSession => {
   return makeChatSession({
@@ -69,22 +66,16 @@ export const makeChatSessionMongooseRepository = (): IChatSessionRepository => {
       }
       if (session.assignedUserId !== undefined) {
         data.assignedUserId = session.assignedUserId
-          ? (new mongoose.Types.ObjectId(
-              session.assignedUserId.toString()
-            ) as IChatSessionDocument["assignedUserId"])
+          ? (new mongoose.Types.ObjectId(session.assignedUserId.toString()) as IChatSessionDocument['assignedUserId'])
           : null;
       }
       if (session.assignedAgentId !== undefined) {
         data.assignedAgentId = session.assignedAgentId
-          ? (new mongoose.Types.ObjectId(
-              session.assignedAgentId.toString()
-            ) as IChatSessionDocument["assignedAgentId"])
+          ? (new mongoose.Types.ObjectId(session.assignedAgentId.toString()) as IChatSessionDocument['assignedAgentId'])
           : null;
       }
       if (session.contactName !== undefined) {
-        data.contactName = session.contactName
-          ? session.contactName.toString()
-          : null;
+        data.contactName = session.contactName ? session.contactName.toString() : null;
       }
       if (session.extractedData !== undefined) {
         data.extractedData = session.extractedData
@@ -98,20 +89,18 @@ export const makeChatSessionMongooseRepository = (): IChatSessionRepository => {
                   }
                 : null,
               cart: session.extractedData.cart
-                ? session.extractedData.cart.map((item: NonNullable<NonNullable<IChatSession["extractedData"]>["cart"]>[number]) => ({
-                    productId: item.productId
-                      ? (new mongoose.Types.ObjectId(
-                          item.productId.toString()
-                        ) as NonNullable<
-                          NonNullable<
-                            IChatSessionDocument["extractedData"]
-                          >["cart"]
-                        >[number]["productId"])
-                      : null,
-                    productName: item.productName ?? null,
-                    quantity: item.quantity ?? null,
-                    price: item.price ?? null,
-                  }))
+                ? session.extractedData.cart.map(
+                    (item: NonNullable<NonNullable<IChatSession['extractedData']>['cart']>[number]) => ({
+                      productId: item.productId
+                        ? (new mongoose.Types.ObjectId(item.productId.toString()) as NonNullable<
+                            NonNullable<IChatSessionDocument['extractedData']>['cart']
+                          >[number]['productId'])
+                        : null,
+                      productName: item.productName ?? null,
+                      quantity: item.quantity ?? null,
+                      price: item.price ?? null,
+                    }),
+                  )
                 : [],
             }
           : null;
@@ -131,7 +120,7 @@ export const makeChatSessionMongooseRepository = (): IChatSessionRepository => {
     updateStatus: async (
       whatsappId: NonEmptyString,
       status: ChatSessionStatus,
-      updatedBy: Id
+      updatedBy: Id,
     ): Promise<Result<void, DatabaseError>> => {
       return doTryResult(
         async () => {
@@ -143,17 +132,17 @@ export const makeChatSessionMongooseRepository = (): IChatSessionRepository => {
                 updatedBy: updatedBy.toString(),
               },
             },
-            { new: true }
+            { new: true },
           ).exec();
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message),
       );
     },
 
     updateDrift: async (
       whatsappId: NonEmptyString,
       driftCount: number,
-      updatedBy: Id
+      updatedBy: Id,
     ): Promise<Result<void, DatabaseError>> => {
       return doTryResult(
         async () => {
@@ -165,17 +154,14 @@ export const makeChatSessionMongooseRepository = (): IChatSessionRepository => {
                 updatedBy: updatedBy.toString(),
               },
             },
-            { new: true }
+            { new: true },
           ).exec();
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message),
       );
     },
 
-    getOrCreate: async (
-      whatsappId: NonEmptyString,
-      createdBy: Id
-    ): Promise<Result<IChatSession, DatabaseError>> => {
+    getOrCreate: async (whatsappId: NonEmptyString, createdBy: Id): Promise<Result<IChatSession, DatabaseError>> => {
       return doTryResult(
         async () => {
           let doc = await ChatSessionModel.findOne({
@@ -197,7 +183,7 @@ export const makeChatSessionMongooseRepository = (): IChatSessionRepository => {
 
           return mapToDomain(doc);
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message),
       );
     },
   };

@@ -1,5 +1,5 @@
 import { UseCase } from "../../../../../../shared-domain/src/shared/use-case.js";
-import { DomainError } from "../../../../../../shared-domain/src/shared/errors.js";
+import { createDomainError, DomainError } from "../../../../../../shared-domain/src/shared/errors.js";
 import { Result } from "../../../../../../shared-domain/src/shared/result.js";
 import { DateTimeVO } from "../../../../../../shared-domain/src/shared/value-objects/date-time.vo.js";
 import { WhatsAppConstants } from "../../infrastructure/services/whatsapp-constants.js";
@@ -22,7 +22,7 @@ export const makeCheckWorkingHours = (): CheckWorkingHours => {
     const regex = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):/;
     const match = dateTime.match(regex);
     if (!match) {
-      return Result.fail(new DomainError("Failed to parse formatted datetime"));
+      return Result.fail(createDomainError("Failed to parse formatted datetime"));
     }
 
     const hour = parseInt(match[4], 10);

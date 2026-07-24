@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
-import { DomainError, NotFoundError } from '../../../../../../shared-domain/src/shared/errors.js';
-import { ValidationError } from '../../../../../../shared-domain/src/shared/validation-error.js';
+import { createNotFoundError, DomainError } from '../../../../../../shared-domain/src/shared/errors.js';
+import { createValidationError } from '../../../../../../shared-domain/src/shared/validation-error.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { ResultComposer } from '../../../../../../shared-domain/src/shared/result-composer.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
@@ -21,7 +21,7 @@ export const makeDeleteKnowledge = (knowledgeRepository: IKnowledgeRepository): 
   return async (input: DeleteKnowledgeInput) => {
     const parsed = deleteKnowledgeInputSchema.safeParse(input);
     if (!parsed.success) {
-      return Result.fail(new ValidationError(parsed.error.issues.map((i) => i.message).join(', ')));
+      return Result.fail(createValidationError(parsed.error.issues.map((i) => i.message).join(', ')));
     }
 
     const composerResult = await ResultComposer.start()
@@ -31,7 +31,7 @@ export const makeDeleteKnowledge = (knowledgeRepository: IKnowledgeRepository): 
       .useResult('validateExisting', ({ existing }) => {
         const k = existing as IKnowledge | null;
         if (!k) {
-          return Result.fail(new NotFoundError(`Knowledge not found: ${parsed.data.id}`));
+          return Result.fail(createNotFoundError(`Knowledge not found: ${parsed.data.id}`));
         }
         return Result.ok(k);
       })

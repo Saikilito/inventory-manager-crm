@@ -1,6 +1,6 @@
-import { DomainError } from "../../../../../../shared-domain/src/shared/errors.js";
+import { createDomainError, DomainError } from "../../../../../../shared-domain/src/shared/errors.js";
 import { Result } from "../../../../../../shared-domain/src/shared/result.js";
-import { ValidationError } from "../../../../../../shared-domain/src/shared/validation-error.js";
+import { createValidationError } from "../../../../../../shared-domain/src/shared/validation-error.js";
 import { IdVO } from "../../../../../../shared-domain/src/shared/value-objects/id.vo.js";
 import { NonEmptyStringVO } from "../../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js";
 import { WhatsappIdVO } from "../../../../../../shared-domain/src/shared/value-objects/whatsapp-id.vo.js";

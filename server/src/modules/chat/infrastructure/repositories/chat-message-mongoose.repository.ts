@@ -8,7 +8,7 @@ import {
 import { ChatThreadStatus } from "../../application/repositories/chat-thread-status.js";
 import { ChatThreadModel, IChatThreadDocument } from "../chat-thread.model.js";
 import { Result } from "../../../../../../shared-domain/src/shared/result.js";
-import { DatabaseError } from "../../../../../../shared-domain/src/shared/errors.js";
+import { createDatabaseError, DatabaseError } from "../../../../../../shared-domain/src/shared/errors.js";
 import { doTryResult } from "../../../../../../shared-domain/src/shared/do-try-result.js";
 import { IdVO } from "../../../../../../shared-domain/src/shared/value-objects/id.vo.js";
 import { NonEmptyString, NonEmptyStringVO } from "../../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js";

@@ -1,5 +1,5 @@
 import { UseCase } from "../../../../../../shared-domain/src/shared/use-case.js";
-import { DomainError, NotFoundError } from "../../../../../../shared-domain/src/shared/errors.js";
+import { createNotFoundError, createDomainError, DomainError } from "../../../../../../shared-domain/src/shared/errors.js";
 import { Result } from "../../../../../../shared-domain/src/shared/result.js";
 import { IdVO } from "../../../../../../shared-domain/src/shared/value-objects/id.vo.js";
 import { NonEmptyStringVO } from "../../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js";
@@ -37,14 +37,14 @@ export const makeHandoverToHuman = (dependencies: {
     const session = sessionRes.getValue();
     if (!session) {
       return Result.fail(
-        new NotFoundError(
+        createNotFoundError(
           `Chat session not found for WhatsApp ID: ${whatsappIdStr}`
         )
       );
     }
 
     if (!session.id) {
-      return Result.fail(new DomainError("Chat session lacks an ID"));
+      return Result.fail(createDomainError("Chat session lacks an ID"));
     }
 
     const systemActorId = IdVO.generateNil();
@@ -74,7 +74,7 @@ export const makeHandoverToHuman = (dependencies: {
 
     if (gatewayRes.isFailure) {
       return Result.fail(
-        new DomainError(
+        createDomainError(
           `WhatsApp alert dispatch failed: ${gatewayRes.getError().message}`
         )
       );

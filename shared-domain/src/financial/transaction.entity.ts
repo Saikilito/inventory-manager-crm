@@ -7,14 +7,14 @@ import { DateOnly, DateOnlyVO } from '../shared/value-objects/date-only.vo.js';
 import { TransactionSource, isTransactionSource } from './transaction-source.vo.js';
 
 import { Result } from '../shared/result.js';
-import { ValidationError } from '../shared/validation-error.js';
+import { ValidationError, createValidationError } from '../shared/validation-error.js';
 
 export const TransactionType = {
-  CREDIT: 'CREDIT', // Balance increases
-  DEBIT: 'DEBIT',   // Balance decreases
+  CREDIT: 'CREDIT',
+  DEBIT: 'DEBIT',
 } as const;
 
-export type TransactionType = typeof TransactionType[keyof typeof TransactionType];
+export type TransactionType = (typeof TransactionType)[keyof typeof TransactionType];
 
 export interface ITransaction {
   id?: Id;
@@ -77,9 +77,12 @@ export const makeTransactionResult = (props: {
   if (financialDayIdResult.isFailure) return Result.fail(financialDayIdResult.getError());
 
   const sourceReferenceIdResult = props.sourceReferenceId ? IdVO.createResult(props.sourceReferenceId) : undefined;
-  if (sourceReferenceIdResult && sourceReferenceIdResult.isFailure) return Result.fail(sourceReferenceIdResult.getError());
+  if (sourceReferenceIdResult && sourceReferenceIdResult.isFailure)
+    return Result.fail(sourceReferenceIdResult.getError());
 
-  const createdAtResult = props.createdAt ? DateTimeVO.createResult(props.createdAt) : DateTimeVO.createResult(new Date());
+  const createdAtResult = props.createdAt
+    ? DateTimeVO.createResult(props.createdAt)
+    : DateTimeVO.createResult(new Date());
   if (createdAtResult.isFailure) return Result.fail(createdAtResult.getError());
 
   return Result.ok({

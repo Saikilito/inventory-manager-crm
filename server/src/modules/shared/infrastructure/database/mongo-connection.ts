@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
-import { DatabaseError } from '../../../../../../shared-domain/src/shared/errors.js';
+import { createDatabaseError, DatabaseError } from '../../../../../../shared-domain/src/shared/errors.js';
 import { DatabaseConnection, DatabaseType, MongoConfigSchema } from './types.js';
 
 export const makeMongoConnection = (config: unknown): DatabaseConnection => {
@@ -32,7 +32,6 @@ export const makeMongoConnection = (config: unknown): DatabaseConnection => {
       isConnectedState = true;
       console.warn('Connected to MongoDB successfully via Factory! 🔥');
 
-      // ObjectId workaround
       (mongoose.Types.ObjectId.prototype as unknown as { valueOf: () => string }).valueOf = function () {
         return this.toString();
       };
@@ -40,7 +39,7 @@ export const makeMongoConnection = (config: unknown): DatabaseConnection => {
       return Result.ok();
     } catch (err: unknown) {
       console.error('Error connecting to MongoDB:', err);
-      return Result.fail(new DatabaseError(err instanceof Error ? err.message : 'Unknown MongoDB connection error'));
+      return Result.fail(createDatabaseError(err instanceof Error ? err.message : 'Unknown MongoDB connection error'));
     }
   };
 
@@ -55,7 +54,7 @@ export const makeMongoConnection = (config: unknown): DatabaseConnection => {
       console.warn('MongoDB connection closed successfully via Factory 🔌');
       return Result.ok();
     } catch (err: unknown) {
-      return Result.fail(new DatabaseError(err instanceof Error ? err.message : 'Error disconnecting MongoDB'));
+      return Result.fail(createDatabaseError(err instanceof Error ? err.message : 'Error disconnecting MongoDB'));
     }
   };
 
@@ -65,6 +64,6 @@ export const makeMongoConnection = (config: unknown): DatabaseConnection => {
     type: DatabaseType.MONGO,
     connect,
     disconnect,
-    isConnected
+    isConnected,
   };
 };

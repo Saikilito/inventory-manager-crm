@@ -1,7 +1,11 @@
 import { z } from 'zod';
 import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
-import { DomainError, NotFoundError } from '../../../../../../shared-domain/src/shared/errors.js';
-import { ValidationError } from '../../../../../../shared-domain/src/shared/validation-error.js';
+import {
+  createDomainError,
+  createNotFoundError,
+  DomainError,
+} from '../../../../../../shared-domain/src/shared/errors.js';
+import { createValidationError } from '../../../../../../shared-domain/src/shared/validation-error.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
 import { NonEmptyStringVO } from '../../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js';
@@ -44,7 +48,7 @@ export const makeEnrichKnowledge = (deps: {
   return async (input) => {
     const parsed = enrichKnowledgeInputSchema.safeParse(input);
     if (!parsed.success) {
-      return Result.fail(new ValidationError(parsed.error.issues.map((i) => i.message).join(', ')));
+      return Result.fail(createValidationError(parsed.error.issues.map((i) => i.message).join(', ')));
     }
 
     const existingResult = await deps.knowledgeRepository.getById(IdVO.create(parsed.data.id));
@@ -54,11 +58,13 @@ export const makeEnrichKnowledge = (deps: {
 
     const existing = existingResult.getValue();
     if (!existing) {
-      return Result.fail(new NotFoundError(`Knowledge not found: ${parsed.data.id}`));
+      return Result.fail(createNotFoundError(`Knowledge not found: ${parsed.data.id}`));
     }
 
     if (existing.status === KnowledgeStatus.ACTIVE) {
-      return Result.fail(new DomainError('CANNOT_ENRICH_ACTIVE: Cannot enrich ACTIVE entries. Only DRAFT entries can be enriched.'));
+      return Result.fail(
+        createDomainError('CANNOT_ENRICH_ACTIVE: Cannot enrich ACTIVE entries. Only DRAFT entries can be enriched.'),
+      );
     }
 
     const linksWithUrl = existing.wikiLinks.filter((link: IWikiLink) => link.url);
@@ -79,9 +85,7 @@ export const makeEnrichKnowledge = (deps: {
       if (result.status === 'rejected') continue;
       const link = linksWithUrl[index];
       if (!link) continue;
-      enrichedSections.push(
-        `[[${link.title.toString()}]] (auto-enriched): ${result.value.summary}`,
-      );
+      enrichedSections.push(`[[${link.title.toString()}]] (auto-enriched): ${result.value.summary}`);
     }
 
     if (enrichedSections.length === 0) {
@@ -113,7 +117,7 @@ export const makeEnrichKnowledge = (deps: {
 
     const refreshed = refreshedResult.getValue();
     if (!refreshed) {
-      return Result.fail(new NotFoundError(`Knowledge not found after enrich: ${parsed.data.id}`));
+      return Result.fail(createNotFoundError(`Knowledge not found after enrich: ${parsed.data.id}`));
     }
 
     return Result.ok(refreshed);

@@ -2,7 +2,7 @@ import { ApolloClient, NormalizedCacheObject } from '@apollo/client';
 import { ProductRepository, GetAllProductsResult } from '@modules/product/domain/product.repository';
 import { makeProduct, IProduct } from '@shared-domain/product/product.entity';
 import { doTryResult } from '@shared-domain/shared/do-try-result';
-import { DatabaseError } from '@shared-domain/shared/errors';
+import { createDatabaseError, DatabaseError } from '@shared-domain/shared/errors';
 import { PRODUCTS_QUERY, SINGLE_PRODUCT_QUERY } from '../graphql/queries';
 import { CREATE_PRODUCT, UPDATE_PRODUCT, DELETE_PRODUCT } from '../graphql/mutations';
 import { GQLProduct } from '../graphql/types';
@@ -56,7 +56,7 @@ export function makeApolloProductRepository(
             totalProducts: data.totalProducts,
           };
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message)
       );
     },
 
@@ -83,7 +83,7 @@ export function makeApolloProductRepository(
             contextId: gqlProd.contextId,
           });
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message)
       );
     },
 
@@ -105,7 +105,7 @@ export function makeApolloProductRepository(
 
           return data?.setProduct?._id || PRODUCT_MESSAGES.CREATED;
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message)
       );
     },
 
@@ -128,7 +128,7 @@ export function makeApolloProductRepository(
 
           return data?.updateProduct?._id || PRODUCT_MESSAGES.UPDATED;
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message)
       );
     },
 
@@ -142,7 +142,7 @@ export function makeApolloProductRepository(
 
           return data?.deleteProduct ? PRODUCT_MESSAGES.DELETED : PRODUCT_MESSAGES.DELETE_FAILED;
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message)
       );
     },
   };

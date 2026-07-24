@@ -1,8 +1,14 @@
 import { ApolloClient, NormalizedCacheObject } from '@apollo/client';
 import { FixedExpenseRepository, FixedExpenseChecklistItem } from '../../domain/fixed-expense.repository.js';
-import { IFixedExpense, IFixedExpensePayment, makeFixedExpense, makeFixedExpensePayment } from '@shared-domain/expense/fixed-expense.entity.js';
+import {
+  IFixedExpense,
+  IFixedExpensePayment,
+  makeFixedExpense,
+  makeFixedExpensePayment,
+} from '@shared-domain/expense/fixed-expense.entity.js';
 import { doTryResult } from '@shared-domain/shared/do-try-result.js';
-import { DatabaseError } from '@shared-domain/shared/errors.js';
+import { createDatabaseError } from '@shared-domain/shared/errors.js';
+
 import {
   GET_FIXED_EXPENSE_TEMPLATES,
   GET_FIXED_EXPENSE_CHECKLIST,
@@ -38,7 +44,7 @@ interface GQLChecklistItem {
 }
 
 export function makeApolloFixedExpenseRepository(
-  apolloClient: ApolloClient<NormalizedCacheObject>
+  apolloClient: ApolloClient<NormalizedCacheObject>,
 ): FixedExpenseRepository {
   const mapTemplateGQLToDomain = (gqlFE: GQLFixedExpense): IFixedExpense => {
     return makeFixedExpense({
@@ -75,7 +81,7 @@ export function makeApolloFixedExpenseRepository(
 
           return (data.getFixedExpenseTemplates || []).map(mapTemplateGQLToDomain);
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message),
       );
     },
 
@@ -93,7 +99,7 @@ export function makeApolloFixedExpenseRepository(
             payment: item.payment ? mapPaymentGQLToDomain(item.payment) : null,
           }));
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message),
       );
     },
 
@@ -119,7 +125,7 @@ export function makeApolloFixedExpenseRepository(
 
           return mapTemplateGQLToDomain(data.createFixedExpenseTemplate);
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message),
       );
     },
 
@@ -146,7 +152,7 @@ export function makeApolloFixedExpenseRepository(
 
           return mapTemplateGQLToDomain(data.updateFixedExpenseTemplate);
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message),
       );
     },
 
@@ -160,7 +166,7 @@ export function makeApolloFixedExpenseRepository(
 
           return data?.deleteFixedExpenseTemplate ?? false;
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message),
       );
     },
 
@@ -185,7 +191,7 @@ export function makeApolloFixedExpenseRepository(
 
           return mapPaymentGQLToDomain(data.payFixedExpense);
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message),
       );
     },
 
@@ -204,7 +210,7 @@ export function makeApolloFixedExpenseRepository(
 
           return data?.unpayFixedExpense ?? false;
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message),
       );
     },
   };

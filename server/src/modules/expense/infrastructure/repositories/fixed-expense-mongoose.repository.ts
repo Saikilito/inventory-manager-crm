@@ -1,11 +1,24 @@
 import mongoose from 'mongoose';
-import { IFixedExpenseRepository, IFixedExpensePaymentRepository } from '../../application/repositories/fixed-expense.repository.js';
-import { IFixedExpense, IFixedExpensePayment, makeFixedExpense, makeFixedExpensePayment } from '../../../../../../shared-domain/src/expense/fixed-expense.entity.js';
-import { FixedExpenseModel, FixedExpensePaymentModel, IFixedExpenseDocument, IFixedExpensePaymentDocument } from '../fixed-expense.model.js';
+import {
+  IFixedExpenseRepository,
+  IFixedExpensePaymentRepository,
+} from '../../application/repositories/fixed-expense.repository.js';
+import {
+  IFixedExpense,
+  IFixedExpensePayment,
+  makeFixedExpense,
+  makeFixedExpensePayment,
+} from '../../../../../../shared-domain/src/expense/fixed-expense.entity.js';
+import {
+  FixedExpenseModel,
+  FixedExpensePaymentModel,
+  IFixedExpenseDocument,
+  IFixedExpensePaymentDocument,
+} from '../fixed-expense.model.js';
 import { makeMongooseBaseRepository } from '../../../shared/infrastructure/repositories/mongoose-base.repository.js';
 import { Id } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
-import { DatabaseError } from '../../../../../../shared-domain/src/shared/errors.js';
+import { createDatabaseError, DatabaseError } from '../../../../../../shared-domain/src/shared/errors.js';
 import { doTryResult } from '../../../../../../shared-domain/src/shared/do-try-result.js';
 
 const mapToDomain = (doc: IFixedExpenseDocument): IFixedExpense => {
@@ -61,12 +74,12 @@ export const makeFixedExpenseMongooseRepository = (): IFixedExpenseRepository =>
         async () => {
           await FixedExpenseModel.updateMany(
             { contextId: new mongoose.Types.ObjectId(contextId.toString()) },
-            { $set: { contextId: null } }
+            { $set: { contextId: null } },
           ).exec();
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message),
       );
-    }
+    },
   };
 };
 
@@ -86,7 +99,9 @@ const mapToDomainPayment = (doc: IFixedExpensePaymentDocument): IFixedExpensePay
 const mapToDocumentDataPayment = (payment: Partial<IFixedExpensePayment>) => {
   const data: Record<string, unknown> = {};
   if (payment.fixedExpenseId !== undefined) {
-    data.fixedExpenseId = payment.fixedExpenseId ? new mongoose.Types.ObjectId(payment.fixedExpenseId.toString()) : null;
+    data.fixedExpenseId = payment.fixedExpenseId
+      ? new mongoose.Types.ObjectId(payment.fixedExpenseId.toString())
+      : null;
   }
   if (payment.billingMonth !== undefined) {
     data.billingMonth = payment.billingMonth;
@@ -101,7 +116,9 @@ const mapToDocumentDataPayment = (payment: Partial<IFixedExpensePayment>) => {
     data.paidAt = payment.paidAt;
   }
   if (payment.generatedExpenseId !== undefined) {
-    data.generatedExpenseId = payment.generatedExpenseId ? new mongoose.Types.ObjectId(payment.generatedExpenseId.toString()) : null;
+    data.generatedExpenseId = payment.generatedExpenseId
+      ? new mongoose.Types.ObjectId(payment.generatedExpenseId.toString())
+      : null;
   }
   if (payment.contextId !== undefined) {
     data.contextId = payment.contextId ? new mongoose.Types.ObjectId(payment.contextId.toString()) : null;
@@ -118,7 +135,10 @@ export const makeFixedExpensePaymentMongooseRepository = (): IFixedExpensePaymen
 
   return {
     ...baseRepo,
-    async getByMonthAndExpense(fixedExpenseId: Id, billingMonth: string): Promise<Result<IFixedExpensePayment | null, DatabaseError>> {
+    async getByMonthAndExpense(
+      fixedExpenseId: Id,
+      billingMonth: string,
+    ): Promise<Result<IFixedExpensePayment | null, DatabaseError>> {
       return doTryResult(
         async () => {
           const doc = await FixedExpensePaymentModel.findOne({
@@ -130,8 +150,8 @@ export const makeFixedExpensePaymentMongooseRepository = (): IFixedExpensePaymen
           }
           return mapToDomainPayment(doc);
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message),
       );
-    }
+    },
   };
 };

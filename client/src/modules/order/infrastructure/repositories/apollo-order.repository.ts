@@ -2,7 +2,7 @@ import { ApolloClient, NormalizedCacheObject } from '@apollo/client';
 import { OrderRepository } from '@modules/order/domain/order.repository';
 import { IOrder, makeOrder, OrderStatus } from '@shared-domain/order/order.entity';
 import { doTryResult } from '@shared-domain/shared/do-try-result';
-import { DatabaseError } from '@shared-domain/shared/errors';
+import { createDatabaseError, DatabaseError } from '@shared-domain/shared/errors';
 import { CLIENT_ORDERS_QUERY } from '../graphql/queries';
 import { CREATE_ORDER, UPDATE_ORDER } from '../graphql/mutations';
 
@@ -62,7 +62,7 @@ export function makeApolloOrderRepository(
 
           return (data?.getOrderClient || []).map(mapGQLToDomain);
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message)
       );
     },
 
@@ -89,7 +89,7 @@ export function makeApolloOrderRepository(
 
           return data?.setOrder ?? true;
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message)
       );
     },
 
@@ -118,7 +118,7 @@ export function makeApolloOrderRepository(
 
           return data?.updateOrder ?? true;
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message)
       );
     },
   };

@@ -1,7 +1,7 @@
 import { ApolloClient, NormalizedCacheObject } from '@apollo/client';
 import { DashboardRepository, ITopClient, ITopSeller } from '@modules/dashboard/domain/dashboard.repository';
 import { doTryResult } from '@shared-domain/shared/do-try-result';
-import { DatabaseError } from '@shared-domain/shared/errors';
+import { createDatabaseError } from '@shared-domain/shared/errors';
 import { TOP_CLIENTS, TOP_SELLERS } from '../graphql/queries';
 
 interface GQLTopClient {
@@ -27,9 +27,7 @@ interface GetTopSellersData {
   topSellers: GQLTopSeller[];
 }
 
-export function makeApolloDashboardRepository(
-  apolloClient: ApolloClient<NormalizedCacheObject>
-): DashboardRepository {
+export function makeApolloDashboardRepository(apolloClient: ApolloClient<NormalizedCacheObject>): DashboardRepository {
   return {
     getTopClients: async () => {
       return doTryResult(
@@ -42,16 +40,14 @@ export function makeApolloDashboardRepository(
           return (data?.topClients || []).map((tc) => {
             // Server returns client as a list, grab first item
             const clientInfo = tc.client?.[0];
-            const name = clientInfo 
-              ? `${clientInfo.firstName} ${clientInfo.lastName}` 
-              : 'Unknown Client';
+            const name = clientInfo ? `${clientInfo.firstName} ${clientInfo.lastName}` : 'Unknown Client';
             return {
               total: tc.total || 0,
               clientName: name,
             };
           });
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message),
       );
     },
 
@@ -72,7 +68,7 @@ export function makeApolloDashboardRepository(
             };
           });
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message),
       );
     },
   };

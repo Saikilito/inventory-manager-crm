@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { UseCase } from "../../../../../../shared-domain/src/shared/use-case.js";
-import { DomainError, NotFoundError } from "../../../../../../shared-domain/src/shared/errors.js";
-import { ValidationError } from "../../../../../../shared-domain/src/shared/validation-error.js";
+import { createNotFoundError, createDomainError, DomainError } from "../../../../../../shared-domain/src/shared/errors.js";
+import { createValidationError } from "../../../../../../shared-domain/src/shared/validation-error.js";
 import { Result } from "../../../../../../shared-domain/src/shared/result.js";
 import { IdVO } from "../../../../../../shared-domain/src/shared/value-objects/id.vo.js";
 import { NonEmptyStringVO } from "../../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js";
@@ -30,7 +30,7 @@ export const makeAssignAgentToSession = (dependencies: {
   return async (input: AssignAgentToSessionInput) => {
     const parseResult = AssignAgentToSessionInputSchema.safeParse(input);
     if (!parseResult.success) {
-      return Result.fail(new ValidationError(parseResult.error.message));
+      return Result.fail(createValidationError(parseResult.error.message));
     }
 
     try {
@@ -49,7 +49,7 @@ export const makeAssignAgentToSession = (dependencies: {
 
       const session = sessionRes.getValue();
       if (!session) {
-        return Result.fail(new NotFoundError(`Chat session not found for whatsappId ${input.whatsappId}`));
+        return Result.fail(createNotFoundError(`Chat session not found for whatsappId ${input.whatsappId}`));
       }
 
       let agentIdVO = null;
@@ -61,12 +61,12 @@ export const makeAssignAgentToSession = (dependencies: {
         }
         const agent = agentRes.getValue();
         if (!agent) {
-          return Result.fail(new NotFoundError(`Agent with ID ${input.agentId} not found`));
+          return Result.fail(createNotFoundError(`Agent with ID ${input.agentId} not found`));
         }
 
         if (agent.role !== "SALES") {
           return Result.fail(
-            new ValidationError("Only agents with role SALES can be assigned to live chat sessions")
+            createValidationError("Only agents with role SALES can be assigned to live chat sessions")
           );
         }
       }
@@ -92,7 +92,7 @@ export const makeAssignAgentToSession = (dependencies: {
 
       const updatedSession = updatedSessionRes.getValue();
       if (!updatedSession) {
-        return Result.fail(new NotFoundError(`Failed to reload chat session`));
+        return Result.fail(createNotFoundError(`Failed to reload chat session`));
       }
 
       const eventPayload = {
@@ -115,7 +115,7 @@ export const makeAssignAgentToSession = (dependencies: {
       return Result.ok<IChatSession, DomainError>(updatedSession);
     } catch (error) {
       return Result.fail(
-        new DomainError(
+        createDomainError(
           error instanceof Error ? error.message : "Failed to assign agent to session"
         )
       );

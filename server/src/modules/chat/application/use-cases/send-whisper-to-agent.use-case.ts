@@ -1,22 +1,22 @@
-import { z } from "zod";
-import { UseCase } from "../../../../../../shared-domain/src/shared/use-case.js";
-import { DomainError } from "../../../../../../shared-domain/src/shared/errors.js";
-import { ValidationError } from "../../../../../../shared-domain/src/shared/validation-error.js";
-import { Result } from "../../../../../../shared-domain/src/shared/result.js";
-import { IdVO } from "../../../../../../shared-domain/src/shared/value-objects/id.vo.js";
-import { NonEmptyStringVO } from "../../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js";
-import { WhatsappIdVO } from "../../../../../../shared-domain/src/shared/value-objects/whatsapp-id.vo.js";
-import { IChatMessageRepository, IChatMessage, ChatMessageSender } from "../repositories/chat-message.repository.js";
-import { IChatSessionRepository } from "../repositories/chat-session.repository.js";
-import { ILlmAdapter } from "./process-incoming-message.use-case.js";
+import { z } from 'zod';
+import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
+import { createDomainError, DomainError } from '../../../../../../shared-domain/src/shared/errors.js';
+import { createValidationError } from '../../../../../../shared-domain/src/shared/validation-error.js';
+import { Result } from '../../../../../../shared-domain/src/shared/result.js';
+import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
+import { NonEmptyStringVO } from '../../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js';
+import { WhatsappIdVO } from '../../../../../../shared-domain/src/shared/value-objects/whatsapp-id.vo.js';
+import { IChatMessageRepository, IChatMessage, ChatMessageSender } from '../repositories/chat-message.repository.js';
+import { IChatSessionRepository } from '../repositories/chat-session.repository.js';
+import { ILlmAdapter } from './process-incoming-message.use-case.js';
 
 export interface IPubSub {
   publish(triggerName: string, payload: unknown): Promise<void>;
 }
 
 export const SendWhisperToAgentInputSchema = z.object({
-  whatsappId: z.string().refine((v) => !WhatsappIdVO.createResult(v).isFailure, "Invalid whatsappId format"),
-  text: z.string().min(1, "Text must not be empty"),
+  whatsappId: z.string().refine((v) => !WhatsappIdVO.createResult(v).isFailure, 'Invalid whatsappId format'),
+  text: z.string().min(1, 'Text must not be empty'),
 });
 
 export type SendWhisperToAgentInput = z.infer<typeof SendWhisperToAgentInputSchema>;
@@ -32,7 +32,7 @@ export const makeSendWhisperToAgent = (dependencies: {
   return async (input: SendWhisperToAgentInput) => {
     const parseResult = SendWhisperToAgentInputSchema.safeParse(input);
     if (!parseResult.success) {
-      return Result.fail(new ValidationError(parseResult.error.message));
+      return Result.fail(createValidationError(parseResult.error.message));
     }
 
     try {
@@ -46,7 +46,7 @@ export const makeSendWhisperToAgent = (dependencies: {
           sender: ChatMessageSender.CRM_OPERATOR,
           isPrivate: true,
         },
-        systemActorId
+        systemActorId,
       );
 
       if (operatorMsgRes.isFailure) {
@@ -76,16 +76,13 @@ export const makeSendWhisperToAgent = (dependencies: {
 
       const historyMessages = privateLogs.slice(0, -1);
       const history = historyMessages.map((m) => ({
-        role: m.sender === ChatMessageSender.CRM_OPERATOR ? "user" : "model",
+        role: m.sender === ChatMessageSender.CRM_OPERATOR ? 'user' : 'model',
         text: m.text.toString(),
       }));
 
-      const llmRes = await dependencies.llmAdapter.generateResponse(
-        input.whatsappId,
-        input.text,
-        history,
-        { isFromCrm: true }
-      );
+      const llmRes = await dependencies.llmAdapter.generateResponse(input.whatsappId, input.text, history, {
+        isFromCrm: true,
+      });
 
       if (llmRes.isFailure) {
         return Result.fail(llmRes.getError());
@@ -100,7 +97,7 @@ export const makeSendWhisperToAgent = (dependencies: {
           sender: ChatMessageSender.BOT,
           isPrivate: true,
         },
-        systemActorId
+        systemActorId,
       );
 
       if (botMsgRes.isFailure) {
@@ -122,11 +119,7 @@ export const makeSendWhisperToAgent = (dependencies: {
 
       return Result.ok<IChatMessage, DomainError>(savedBotMsg);
     } catch (error) {
-      return Result.fail(
-        new DomainError(
-          error instanceof Error ? error.message : "Failed to send whisper to agent"
-        )
-      );
+      return Result.fail(createDomainError(error instanceof Error ? error.message : 'Failed to send whisper to agent'));
     }
   };
 };

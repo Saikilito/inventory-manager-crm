@@ -1,5 +1,5 @@
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
-import { DatabaseError } from '../../../../../../shared-domain/src/shared/errors.js';
+import { createDatabaseError, DatabaseError } from '../../../../../../shared-domain/src/shared/errors.js';
 import { DatabaseConfig, DatabaseConnection } from './types.js';
 import { makeDatabaseConnection } from './database.factory.js';
 
@@ -19,7 +19,7 @@ export const initDatabase = async (configs: DatabaseConfig[]): Promise<Result<vo
 
       activeConnections.push(conn);
     } catch (err: unknown) {
-      const dbErr = err instanceof DatabaseError ? err : new DatabaseError(err instanceof Error ? err.message : 'Database initialization failed');
+      const dbErr = err instanceof DatabaseError ? err : createDatabaseError(err instanceof Error ? err.message : 'Database initialization failed');
       console.error(`[DB Facade] Failure encountered during initialization. Initiating atomic rollback...`, dbErr);
 
       for (let i = activeConnections.length - 1; i >= 0; i--) {
@@ -50,7 +50,7 @@ export const closeDB = async (): Promise<Result<void, DatabaseError>> => {
         lastFailure = res;
       }
     } catch (err: unknown) {
-      lastFailure = Result.fail(new DatabaseError(err instanceof Error ? err.message : 'Error closing database during shutdown'));
+      lastFailure = Result.fail(createDatabaseError(err instanceof Error ? err.message : 'Error closing database during shutdown'));
     }
   }
 

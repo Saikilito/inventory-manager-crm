@@ -1,13 +1,16 @@
 import { z } from 'zod';
 import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
-import { DomainError, NotFoundError } from '../../../../../../shared-domain/src/shared/errors.js';
-import { ValidationError } from '../../../../../../shared-domain/src/shared/validation-error.js';
+import { createNotFoundError, DomainError } from '../../../../../../shared-domain/src/shared/errors.js';
+import { createValidationError } from '../../../../../../shared-domain/src/shared/validation-error.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
 import { zodIdString } from '../../../../../../shared-domain/src/shared/zod-schemas.js';
 import { validateInput } from '../../../../../../shared-domain/src/shared/validate-input.js';
 import { IKnowledge } from '../../../../../../shared-domain/src/knowledge/knowledge.entity.js';
-import { KnowledgeStatus, KnowledgeStatusVO } from '../../../../../../shared-domain/src/knowledge/value-objects/knowledge-status.vo.js';
+import {
+  KnowledgeStatus,
+  KnowledgeStatusVO,
+} from '../../../../../../shared-domain/src/knowledge/value-objects/knowledge-status.vo.js';
 import { IKnowledgeRepository } from '../repositories/knowledge.repository.js';
 
 export const approveKnowledgeInputSchema = z.object({
@@ -30,12 +33,12 @@ export const makeApproveKnowledge = (knowledgeRepository: IKnowledgeRepository):
     if (existingResult.isFailure) return Result.fail(existingResult.getError());
 
     const existing = existingResult.getValue();
-    if (!existing) return Result.fail(new NotFoundError(`Knowledge not found: ${id}`));
+    if (!existing) return Result.fail(createNotFoundError(`Knowledge not found: ${id}`));
 
     if (existing.status === KnowledgeStatus.ACTIVE) return Result.ok(existing);
 
     if (existing.status === KnowledgeStatus.REJECTED) {
-      return Result.fail(new ValidationError('Cannot approve a REJECTED entry. Re-create it instead.'));
+      return Result.fail(createValidationError('Cannot approve a REJECTED entry. Re-create it instead.'));
     }
 
     const updateResult = await knowledgeRepository.updateStatus(
@@ -49,7 +52,7 @@ export const makeApproveKnowledge = (knowledgeRepository: IKnowledgeRepository):
     if (refreshedResult.isFailure) return Result.fail(refreshedResult.getError());
 
     const refreshed = refreshedResult.getValue();
-    if (!refreshed) return Result.fail(new NotFoundError(`Knowledge not found after approve: ${id}`));
+    if (!refreshed) return Result.fail(createNotFoundError(`Knowledge not found after approve: ${id}`));
 
     return Result.ok(refreshed);
   };

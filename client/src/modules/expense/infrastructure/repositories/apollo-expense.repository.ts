@@ -2,7 +2,7 @@ import { ApolloClient, NormalizedCacheObject } from '@apollo/client';
 import { ExpenseRepository, GetExpensesResult } from '../../domain/expense.repository.js';
 import { IExpense, makeExpense } from '@shared-domain/expense/expense.entity.js';
 import { doTryResult } from '@shared-domain/shared/do-try-result.js';
-import { DatabaseError } from '@shared-domain/shared/errors.js';
+import { createDatabaseError } from '@shared-domain/shared/errors.js';
 import { GET_ALL_EXPENSES, GET_SINGLE_EXPENSE } from '../graphql/queries.js';
 import { CREATE_EXPENSE, UPDATE_EXPENSE, DELETE_EXPENSE } from '../graphql/mutations.js';
 
@@ -30,9 +30,7 @@ interface GetExpenseData {
   getExpense: GQLExpense;
 }
 
-export function makeApolloExpenseRepository(
-  apolloClient: ApolloClient<NormalizedCacheObject>
-): ExpenseRepository {
+export function makeApolloExpenseRepository(apolloClient: ApolloClient<NormalizedCacheObject>): ExpenseRepository {
   const mapGQLToDomain = (gqlExpense: GQLExpense): IExpense => {
     return makeExpense({
       id: gqlExpense.id || gqlExpense._id,
@@ -67,7 +65,7 @@ export function makeApolloExpenseRepository(
             total: data.getAllExpenses?.total || 0,
           };
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message),
       );
     },
 
@@ -86,7 +84,7 @@ export function makeApolloExpenseRepository(
 
           return mapGQLToDomain(data.getExpense);
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message),
       );
     },
 
@@ -109,7 +107,7 @@ export function makeApolloExpenseRepository(
 
           return !!data?.createExpense;
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message),
       );
     },
 
@@ -133,7 +131,7 @@ export function makeApolloExpenseRepository(
 
           return !!data?.updateExpense;
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message),
       );
     },
 
@@ -147,7 +145,7 @@ export function makeApolloExpenseRepository(
 
           return data?.deleteExpense ?? false;
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message),
       );
     },
   };

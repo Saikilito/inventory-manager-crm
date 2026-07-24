@@ -1,5 +1,5 @@
 import { UseCase } from "../../../../../../shared-domain/src/shared/use-case.js";
-import { DomainError } from "../../../../../../shared-domain/src/shared/errors.js";
+import { createDomainError, DomainError } from "../../../../../../shared-domain/src/shared/errors.js";
 import { Result } from "../../../../../../shared-domain/src/shared/result.js";
 import { PositiveNumberVO } from "../../../../../../shared-domain/src/shared/value-objects/positive-number.vo.js";
 import { IChatSessionRepository, IChatSession } from "../repositories/chat-session.repository.js";
@@ -29,13 +29,13 @@ export const makeGetChatSessions = (
       });
 
       if (res.isFailure) {
-        return Result.fail(new DomainError(res.getError().message));
+        return Result.fail(createDomainError(res.getError().message));
       }
 
       return Result.ok<IChatSession[], DomainError>(res.getValue().items);
     } catch (error) {
       return Result.fail(
-        new DomainError(
+        createDomainError(
           error instanceof Error ? error.message : "Failed to retrieve chat sessions",
         ),
       );

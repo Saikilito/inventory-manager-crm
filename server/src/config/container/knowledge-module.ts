@@ -55,7 +55,7 @@ export const buildKnowledgeModule = (deps: {
     deleteKnowledge: makeDeleteKnowledge(knowledgeRepository),
     getKnowledge: makeGetKnowledge(knowledgeRepository),
     getKnowledgeList: makeGetKnowledgeList(knowledgeRepository),
-    searchKnowledge: makeSearchKnowledge({ knowledgeRepository, cognitiveRouter }),
+    searchKnowledge: makeSearchKnowledge({ cognitiveRouter }),
     getPendingKnowledge: makeGetPendingKnowledge(knowledgeRepository),
     getKnowledgeGraph: makeGetKnowledgeGraph(knowledgeRepository),
     approveKnowledge: makeApproveKnowledge(knowledgeRepository),

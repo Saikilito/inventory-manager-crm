@@ -2,7 +2,7 @@ import { z } from "zod";
 import { UseCase } from "../../../../../../shared-domain/src/shared/use-case.js";
 import { DomainError } from "../../../../../../shared-domain/src/shared/errors.js";
 import { Result } from "../../../../../../shared-domain/src/shared/result.js";
-import { ValidationError } from "../../../../../../shared-domain/src/shared/validation-error.js";
+import { createValidationError } from "../../../../../../shared-domain/src/shared/validation-error.js";
 import { IdVO } from "../../../../../../shared-domain/src/shared/value-objects/id.vo.js";
 import { DateTimeVO } from "../../../../../../shared-domain/src/shared/value-objects/date-time.vo.js";
 import {
@@ -39,7 +39,7 @@ export const makeLogUnsatisfiedDemand = (
     const parseResult = logUnsatisfiedDemandInputSchema.safeParse(input);
     if (!parseResult.success) {
       return Result.fail(
-        new ValidationError(
+        createValidationError(
           `Invalid unsatisfied demand input: ${parseResult.error.message}`
         )
       );
@@ -74,7 +74,7 @@ export const makeLogUnsatisfiedDemand = (
       return Result.ok<void, DomainError>();
     } catch (error: unknown) {
       return Result.fail(
-        new ValidationError(
+        createValidationError(
           error instanceof Error ? error.message : String(error)
         )
       );

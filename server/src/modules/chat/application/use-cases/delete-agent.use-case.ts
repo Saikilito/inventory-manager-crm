@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { UseCase } from "../../../../../../shared-domain/src/shared/use-case.js";
-import { DomainError, NotFoundError } from "../../../../../../shared-domain/src/shared/errors.js";
-import { ValidationError } from "../../../../../../shared-domain/src/shared/validation-error.js";
+import { createNotFoundError, createDomainError, DomainError } from "../../../../../../shared-domain/src/shared/errors.js";
+import { createValidationError } from "../../../../../../shared-domain/src/shared/validation-error.js";
 import { Result } from "../../../../../../shared-domain/src/shared/result.js";
 import { IdVO } from "../../../../../../shared-domain/src/shared/value-objects/id.vo.js";
 import { IAgentRepository } from "../repositories/agent.repository.js";
@@ -20,7 +20,7 @@ export const makeDeleteAgent = (
   return async (input: DeleteAgentInput) => {
     const parseResult = DeleteAgentInputSchema.safeParse(input);
     if (!parseResult.success) {
-      return Result.fail(new ValidationError(parseResult.error.message));
+      return Result.fail(createValidationError(parseResult.error.message));
     }
 
     try {
@@ -33,7 +33,7 @@ export const makeDeleteAgent = (
 
       const existingAgent = existingRes.getValue();
       if (!existingAgent) {
-        return Result.fail(new NotFoundError(`Agent with ID ${input.id} not found`));
+        return Result.fail(createNotFoundError(`Agent with ID ${input.id} not found`));
       }
 
       const systemActorId = IdVO.generateNil();
@@ -46,7 +46,7 @@ export const makeDeleteAgent = (
       return Result.ok<void, DomainError>();
     } catch (error) {
       return Result.fail(
-        new DomainError(
+        createDomainError(
           error instanceof Error ? error.message : "Failed to delete agent"
         )
       );

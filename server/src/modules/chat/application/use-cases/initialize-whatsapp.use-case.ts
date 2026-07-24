@@ -1,5 +1,5 @@
 import { UseCase } from "../../../../../../shared-domain/src/shared/use-case.js";
-import { DomainError } from "../../../../../../shared-domain/src/shared/errors.js";
+import { createDomainError, DomainError } from "../../../../../../shared-domain/src/shared/errors.js";
 import { Result } from "../../../../../../shared-domain/src/shared/result.js";
 import { IWhatsAppGateway } from "../../infrastructure/services/baileys.gateway.js";
 import { ProcessIncomingMessage } from "./process-incoming-message.use-case.js";
@@ -18,7 +18,7 @@ export const makeInitializeWhatsApp = (dependencies: {
 
       if (initResult.isFailure) {
         return Result.fail(
-          new DomainError(
+          createDomainError(
             `Failed to initialize WhatsApp gateway: ${initResult.getError().message}`
           )
         );
@@ -28,7 +28,7 @@ export const makeInitializeWhatsApp = (dependencies: {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       return Result.fail(
-        new DomainError(`InitializeWhatsApp failed: ${message}`)
+        createDomainError(`InitializeWhatsApp failed: ${message}`)
       );
     }
   };

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { UseCase } from "../../../../../../shared-domain/src/shared/use-case.js";
-import { DomainError } from "../../../../../../shared-domain/src/shared/errors.js";
-import { ValidationError } from "../../../../../../shared-domain/src/shared/validation-error.js";
+import { createDomainError, DomainError } from "../../../../../../shared-domain/src/shared/errors.js";
+import { createValidationError } from "../../../../../../shared-domain/src/shared/validation-error.js";
 import { Result } from "../../../../../../shared-domain/src/shared/result.js";
 import { IdVO } from "../../../../../../shared-domain/src/shared/value-objects/id.vo.js";
 import {
@@ -31,7 +31,7 @@ export const makeCreateAgent = (
   return async (input: CreateAgentInput) => {
     const parseResult = CreateAgentInputSchema.safeParse(input);
     if (!parseResult.success) {
-      return Result.fail(new ValidationError(parseResult.error.message));
+      return Result.fail(createValidationError(parseResult.error.message));
     }
 
     try {
@@ -53,7 +53,7 @@ export const makeCreateAgent = (
       return Result.ok<IAgent, DomainError>(createRes.getValue());
     } catch (error) {
       return Result.fail(
-        new DomainError(
+        createDomainError(
           error instanceof Error ? error.message : "Failed to create agent"
         )
       );

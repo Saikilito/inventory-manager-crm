@@ -1,5 +1,5 @@
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
-import { DatabaseError } from '../../../../../../shared-domain/src/shared/errors.js';
+import { createDatabaseError, DatabaseError } from '../../../../../../shared-domain/src/shared/errors.js';
 import { DatabaseConnection, DatabaseType, PostgresConfigSchema } from './types.js';
 
 export const makePostgresConnection = (config: unknown): DatabaseConnection => {
@@ -18,7 +18,7 @@ export const makePostgresConnection = (config: unknown): DatabaseConnection => {
       console.warn('Connected to Postgres stub successfully! 🔥');
       return Result.ok();
     } catch (err: unknown) {
-      return Result.fail(new DatabaseError(err instanceof Error ? err.message : 'Postgres stub connection error'));
+      return Result.fail(createDatabaseError(err instanceof Error ? err.message : 'Postgres stub connection error'));
     }
   };
 
@@ -32,7 +32,7 @@ export const makePostgresConnection = (config: unknown): DatabaseConnection => {
       isConnectedState = false;
       return Result.ok();
     } catch (err: unknown) {
-      return Result.fail(new DatabaseError(err instanceof Error ? err.message : 'Postgres stub disconnection error'));
+      return Result.fail(createDatabaseError(err instanceof Error ? err.message : 'Postgres stub disconnection error'));
     }
   };
 
@@ -42,6 +42,6 @@ export const makePostgresConnection = (config: unknown): DatabaseConnection => {
     type: DatabaseType.POSTGRES,
     connect,
     disconnect,
-    isConnected
+    isConnected,
   };
 };

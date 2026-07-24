@@ -1,9 +1,13 @@
 import { z } from 'zod';
 import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
 import { DomainError } from '../../../../../../shared-domain/src/shared/errors.js';
-import { ValidationError } from '../../../../../../shared-domain/src/shared/validation-error.js';
+import { createValidationError } from '../../../../../../shared-domain/src/shared/validation-error.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
-import { KnowledgeStatus, KnowledgeStatusType, KnowledgeStatusVO } from '../../../../../../shared-domain/src/knowledge/value-objects/knowledge-status.vo.js';
+import {
+  KnowledgeStatus,
+  KnowledgeStatusType,
+  KnowledgeStatusVO,
+} from '../../../../../../shared-domain/src/knowledge/value-objects/knowledge-status.vo.js';
 import { IKnowledge } from '../../../../../../shared-domain/src/knowledge/knowledge.entity.js';
 import { IKnowledgeRepository } from '../repositories/knowledge.repository.js';
 import { IKnowledgeEdge, IKnowledgeGraph, IKnowledgeNode } from '../services/knowledge-graph.types.js';
@@ -22,14 +26,12 @@ const stripParentheses = (value: string): string => value.replace(/\([^)]*\)/g, 
 
 const buildTitleKey = (title: string): string => stripParentheses(title).toLowerCase();
 
-export const makeGetKnowledgeGraph = (
-  knowledgeRepository: IKnowledgeRepository,
-): GetKnowledgeGraph => {
+export const makeGetKnowledgeGraph = (knowledgeRepository: IKnowledgeRepository): GetKnowledgeGraph => {
   return async (input) => {
     if (input !== undefined) {
       const parsed = getKnowledgeGraphInputSchema.safeParse(input);
       if (!parsed.success) {
-        return Result.fail(new ValidationError(parsed.error.issues.map((i) => i.message).join(', ')));
+        return Result.fail(createValidationError(parsed.error.issues.map((i) => i.message).join(', ')));
       }
     }
 

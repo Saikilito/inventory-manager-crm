@@ -1,10 +1,10 @@
-import { z } from "zod";
-import { UseCase } from "../../../../../../shared-domain/src/shared/use-case.js";
-import { DomainError, NotFoundError } from "../../../../../../shared-domain/src/shared/errors.js";
-import { ValidationError } from "../../../../../../shared-domain/src/shared/validation-error.js";
-import { Result } from "../../../../../../shared-domain/src/shared/result.js";
-import { IdVO } from "../../../../../../shared-domain/src/shared/value-objects/id.vo.js";
-import { NonEmptyStringVO } from "../../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js";
+import { z } from 'zod';
+import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
+import { createNotFoundError, createDomainError, DomainError } from '../../../../../../shared-domain/src/shared/errors.js';
+import { createValidationError } from '../../../../../../shared-domain/src/shared/validation-error.js';
+import { Result } from '../../../../../../shared-domain/src/shared/result.js';
+import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
+import { NonEmptyStringVO } from '../../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js';
 import {
   IAgentRepository,
   IAgent,
@@ -12,12 +12,12 @@ import {
   AgentStatus,
   AgentRole,
   AgentTool,
-} from "../repositories/agent.repository.js";
+} from '../repositories/agent.repository.js';
 
 export const UpdateAgentInputSchema = z.object({
-  id: z.string().min(1, "Agent ID is required"),
-  name: z.string().min(1, "Name must not be empty").optional(),
-  systemPrompt: z.string().min(1, "System prompt must not be empty").optional(),
+  id: z.string().min(1, 'Agent ID is required'),
+  name: z.string().min(1, 'Name must not be empty').optional(),
+  systemPrompt: z.string().min(1, 'System prompt must not be empty').optional(),
   status: z.nativeEnum(AgentStatus).optional(),
   role: z.nativeEnum(AgentRole).optional(),
   enabledTools: z.array(z.nativeEnum(AgentTool)).optional(),
@@ -27,13 +27,11 @@ export type UpdateAgentInput = z.infer<typeof UpdateAgentInputSchema>;
 
 export type UpdateAgent = UseCase<UpdateAgentInput, IAgent, DomainError>;
 
-export const makeUpdateAgent = (
-  agentRepository: IAgentRepository
-): UpdateAgent => {
+export const makeUpdateAgent = (agentRepository: IAgentRepository): UpdateAgent => {
   return async (input: UpdateAgentInput) => {
     const parseResult = UpdateAgentInputSchema.safeParse(input);
     if (!parseResult.success) {
-      return Result.fail(new ValidationError(parseResult.error.message));
+      return Result.fail(createValidationError(parseResult.error.message));
     }
 
     try {
@@ -46,7 +44,7 @@ export const makeUpdateAgent = (
 
       const existingAgent = existingRes.getValue();
       if (!existingAgent) {
-        return Result.fail(new NotFoundError(`Agent with ID ${input.id} not found`));
+        return Result.fail(createNotFoundError(`Agent with ID ${input.id} not found`));
       }
 
       const updateData: Partial<IAgent> = {};
@@ -80,16 +78,12 @@ export const makeUpdateAgent = (
 
       const updatedAgent = updatedRes.getValue();
       if (!updatedAgent) {
-        return Result.fail(new NotFoundError(`Agent with ID ${input.id} not found after update`));
+        return Result.fail(createNotFoundError(`Agent with ID ${input.id} not found after update`));
       }
 
       return Result.ok<IAgent, DomainError>(updatedAgent);
     } catch (error) {
-      return Result.fail(
-        new DomainError(
-          error instanceof Error ? error.message : "Failed to update agent"
-        )
-      );
+      return Result.fail(createDomainError(error instanceof Error ? error.message : 'Failed to update agent'));
     }
   };
 };

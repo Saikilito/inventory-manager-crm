@@ -1,25 +1,14 @@
-import { ApolloClient, NormalizedCacheObject } from "@apollo/client";
-import {
-  ClientRepository,
-  GetAllClientsResult,
-} from "@modules/client/domain/client.repository";
-import {
-  IClient,
-  makeClient,
-  ClientRatingTier,
-} from "@shared-domain/client/client.entity";
-import { doTryResult } from "@shared-domain/shared/do-try-result";
-import { DatabaseError } from "@shared-domain/shared/errors";
-import { CLIENTS_QUERY, SINGLE_CLIENT_QUERY } from "../graphql/queries";
-import {
-  CREATE_CLIENT,
-  UPDATE_CLIENT,
-  DELETE_CLIENT,
-} from "../graphql/mutations";
+import { ApolloClient, NormalizedCacheObject } from '@apollo/client';
+import { ClientRepository, GetAllClientsResult } from '@modules/client/domain/client.repository';
+import { IClient, makeClient, ClientRatingTier } from '@shared-domain/client/client.entity';
+import { doTryResult } from '@shared-domain/shared/do-try-result';
+import { createDatabaseError } from '@shared-domain/shared/errors';
+import { CLIENTS_QUERY, SINGLE_CLIENT_QUERY } from '../graphql/queries';
+import { CREATE_CLIENT, UPDATE_CLIENT, DELETE_CLIENT } from '../graphql/mutations';
 
 const LegacyClientType = {
-  BASIC: "BASICO",
-  PREMIUM: "PREMIUM",
+  BASIC: 'BASICO',
+  PREMIUM: 'PREMIUM',
 } as const;
 
 interface GQLClient {
@@ -43,9 +32,7 @@ interface GetClientData {
   getClient: GQLClient;
 }
 
-export function makeApolloClientRepository(
-  apolloClient: ApolloClient<NormalizedCacheObject>,
-): ClientRepository {
+export function makeApolloClientRepository(apolloClient: ApolloClient<NormalizedCacheObject>): ClientRepository {
   const mapGQLToDomain = (gqlClient: GQLClient): IClient => {
     let typeCoerced = gqlClient.type;
     if (typeCoerced === LegacyClientType.BASIC) {
@@ -76,7 +63,7 @@ export function makeApolloClientRepository(
               offset: offset,
               sellerId: sellerId,
             },
-            fetchPolicy: "no-cache",
+            fetchPolicy: 'no-cache',
           });
 
           return {
@@ -84,7 +71,7 @@ export function makeApolloClientRepository(
             totalClients: data.totalClients || 0,
           };
         },
-        (err) => new DatabaseError(err.message),
+        (err) => createDatabaseError(err.message),
       );
     },
 
@@ -94,7 +81,7 @@ export function makeApolloClientRepository(
           const { data } = await apolloClient.query<GetClientData>({
             query: SINGLE_CLIENT_QUERY,
             variables: { id: id },
-            fetchPolicy: "no-cache",
+            fetchPolicy: 'no-cache',
           });
 
           if (!data || !data.getClient) {
@@ -103,7 +90,7 @@ export function makeApolloClientRepository(
 
           return mapGQLToDomain(data.getClient);
         },
-        (err) => new DatabaseError(err.message),
+        (err) => createDatabaseError(err.message),
       );
     },
 
@@ -126,49 +113,45 @@ export function makeApolloClientRepository(
 
           return data?.setClient ?? true;
         },
-        (err) => new DatabaseError(err.message),
+        (err) => createDatabaseError(err.message),
       );
     },
 
     update: async (client) => {
       return doTryResult(
         async (): Promise<boolean> => {
-          const { data } = await apolloClient.mutate<{ updateClient: boolean }>(
-            {
-              mutation: UPDATE_CLIENT,
-              variables: {
-                input: {
-                  _id: String(client.id),
-                  firstName: String(client.firstName),
-                  lastName: String(client.lastName),
-                  address: String(client.address),
-                  whatsapp: String(client.whatsapp),
-                  nationalId: String(client.nationalId),
-                  sellerId: String(client.sellerId),
-                },
+          const { data } = await apolloClient.mutate<{ updateClient: boolean }>({
+            mutation: UPDATE_CLIENT,
+            variables: {
+              input: {
+                _id: String(client.id),
+                firstName: String(client.firstName),
+                lastName: String(client.lastName),
+                address: String(client.address),
+                whatsapp: String(client.whatsapp),
+                nationalId: String(client.nationalId),
+                sellerId: String(client.sellerId),
               },
             },
-          );
+          });
 
           return data?.updateClient ?? true;
         },
-        (err) => new DatabaseError(err.message),
+        (err) => createDatabaseError(err.message),
       );
     },
 
     delete: async (id) => {
       return doTryResult(
         async (): Promise<boolean> => {
-          const { data } = await apolloClient.mutate<{ deleteClient: boolean }>(
-            {
-              mutation: DELETE_CLIENT,
-              variables: { _id: String(id) },
-            },
-          );
+          const { data } = await apolloClient.mutate<{ deleteClient: boolean }>({
+            mutation: DELETE_CLIENT,
+            variables: { _id: String(id) },
+          });
 
           return data?.deleteClient ?? true;
         },
-        (err) => new DatabaseError(err.message),
+        (err) => createDatabaseError(err.message),
       );
     },
   };

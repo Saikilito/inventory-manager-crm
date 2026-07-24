@@ -1,13 +1,16 @@
 import { z } from 'zod';
 import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
 import { DomainError } from '../../../../../../shared-domain/src/shared/errors.js';
-import { ValidationError } from '../../../../../../shared-domain/src/shared/validation-error.js';
+import { createValidationError } from '../../../../../../shared-domain/src/shared/validation-error.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { ResultComposer } from '../../../../../../shared-domain/src/shared/result-composer.js';
 import { PositiveNumberVO } from '../../../../../../shared-domain/src/shared/value-objects/positive-number.vo.js';
 import { NonEmptyStringVO } from '../../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js';
 import { KnowledgeCategoryVO } from '../../../../../../shared-domain/src/knowledge/value-objects/knowledge-category.vo.js';
-import { KnowledgeStatus, KnowledgeStatusVO } from '../../../../../../shared-domain/src/knowledge/value-objects/knowledge-status.vo.js';
+import {
+  KnowledgeStatus,
+  KnowledgeStatusVO,
+} from '../../../../../../shared-domain/src/knowledge/value-objects/knowledge-status.vo.js';
 import { IKnowledge } from '../../../../../../shared-domain/src/knowledge/knowledge.entity.js';
 import type { KnowledgeCategoryType } from '../../../../../../shared-domain/src/knowledge/value-objects/knowledge-category.vo.js';
 import type { KnowledgeStatusType } from '../../../../../../shared-domain/src/knowledge/value-objects/knowledge-status.vo.js';
@@ -37,14 +40,14 @@ export const makeGetKnowledgeList = (knowledgeRepository: IKnowledgeRepository):
   return async (input: GetKnowledgeListInput) => {
     const parsed = getKnowledgeListInputSchema.safeParse(input);
     if (!parsed.success) {
-      return Result.fail(new ValidationError(parsed.error.issues.map((i) => i.message).join(', ')));
+      return Result.fail(createValidationError(parsed.error.issues.map((i) => i.message).join(', ')));
     }
 
     let validatedCategory: KnowledgeCategoryType | undefined;
     if (parsed.data.category) {
       const categoryResult = KnowledgeCategoryVO.createResult(parsed.data.category);
       if (categoryResult.isFailure) {
-        return Result.fail(new ValidationError(categoryResult.getError().message));
+        return Result.fail(createValidationError(categoryResult.getError().message));
       }
       validatedCategory = categoryResult.getValue();
     }
@@ -67,9 +70,7 @@ export const makeGetKnowledgeList = (knowledgeRepository: IKnowledgeRepository):
           limit,
           where: {
             fields: [
-              ...(validatedCategory
-                ? [{ field: NonEmptyStringVO.create('category'), value: validatedCategory }]
-                : []),
+              ...(validatedCategory ? [{ field: NonEmptyStringVO.create('category'), value: validatedCategory }] : []),
               ...(isActive ? [{ field: NonEmptyStringVO.create('isActive'), value: true }] : []),
               ...(validatedStatus
                 ? [{ field: NonEmptyStringVO.create('status'), value: validatedStatus.toString() }]
