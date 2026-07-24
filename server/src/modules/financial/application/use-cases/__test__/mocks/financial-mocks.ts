@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- Mock repositories require flexible typing for test isolation */
 import { Result } from '../../../../../../../../shared-domain/src/shared/result.js';
-import { DatabaseError } from '../../../../../../../../shared-domain/src/shared/errors.js';
+import { createDatabaseError } from '../../../../../../../../shared-domain/src/shared/errors.js';
 import { IAccount } from '../../../../../../../../shared-domain/src/financial/account.entity.js';
 import { ITransaction } from '../../../../../../../../shared-domain/src/financial/transaction.entity.js';
 import { IExchangeRate } from '../../../../../../../../shared-domain/src/financial/exchange-rate.entity.js';
@@ -22,7 +22,7 @@ export const makeMockAccountRepository = () => {
     async getAll() { return Result.ok({ items: Array.from(store.values()), total: store.size }); },
     async updateById(id: any, account: any) {
       const existing = store.get(id.toString());
-      if (!existing) return Result.fail(new DatabaseError('Account not found'));
+      if (!existing) return Result.fail(createDatabaseError('Account not found'));
       store.set(id.toString(), { ...existing, ...account });
       return Result.ok();
     }
@@ -40,7 +40,26 @@ export const makeMockTransactionRepository = () => {
       store.set(id.toString(), saved);
       return Result.ok(saved);
     },
-    async deleteByIds(ids: any[]) {
+    async getAll(input?: any) {
+      let items = Array.from(store.values());
+      // Handle both array-style where clause and object-style input
+      if (Array.isArray(input)) {
+        const dateFilter = input.find((f: any) => f.field === 'date');
+        if (dateFilter) {
+          items = items.filter(item => item.date && item.date.toString().startsWith(dateFilter.value.toString()));
+        }
+        // Return array directly for backward compatibility with reconcile use case
+        return Result.ok(items);
+      }
+      if (input?.where?.fields) {
+        const dateFilter = input.where.fields.find((f: any) => f.field.toString() === 'date');
+        if (dateFilter) {
+          items = items.filter(item => item.date && item.date.toString().startsWith(dateFilter.value.toString()));
+        }
+      }
+      return Result.ok({ items, total: items.length, page: 1, limit: 100, pages: 1 });
+    },
+    async deleteByIds(ids: any[], _deletedBy?: any) {
       for (const id of ids) {
         store.delete(id.toString());
       }
@@ -68,7 +87,7 @@ export const makeMockExchangeRateRepository = () => {
     },
     async updateById(id: any, rate: any) {
       const existing = Array.from(store.values()).find(r => r.id!.toString() === id.toString());
-      if (!existing) return Result.fail(new DatabaseError('Rate not found'));
+      if (!existing) return Result.fail(createDatabaseError('Rate not found'));
       store.set(existing.date.toString(), { ...existing, ...rate });
       return Result.ok();
     }
@@ -98,7 +117,7 @@ export const makeMockFinancialDayRepository = () => {
     },
     async updateById(id: any, day: any) {
       const existing = Array.from(store.values()).find(d => d.id!.toString() === id.toString());
-      if (!existing) return Result.fail(new DatabaseError('Financial day not found'));
+      if (!existing) return Result.fail(createDatabaseError('Financial day not found'));
       store.set(existing.date.toString(), { ...existing, ...day });
       return Result.ok();
     },
@@ -147,10 +166,104 @@ export const makeMockDeliveryRepository = () => {
       }
       return Result.ok({ items, total: items.length });
     },
-    async deleteByIds(ids: any[]) {
+    async deleteByIds(ids: any[], _deletedBy?: any) {
       for (const id of ids) {
         store.delete(id.toString());
       }
+      return Result.ok();
+    }
+  };
+};
+
+export const makeMockOrderRepository = () => {
+  const store = new Map<string, any>();
+  return {
+    getStore() { return store; },
+    async getById(id: any) { return Result.ok(store.get(id.toString()) || null); },
+    async create(order: any) {
+      const id = order.id || IdVO.generate();
+      const saved = { ...order, id };
+      store.set(id.toString(), saved);
+      return Result.ok(saved);
+    },
+    async getAll(input?: any) {
+      let items = Array.from(store.values());
+      // Handle array-style where clause: [{ field: 'paymentStatus', value: 'PAID', operator: '=' }]
+      if (Array.isArray(input)) {
+        const paymentStatusFilter = input.find((f: any) => f.field === 'paymentStatus');
+        if (paymentStatusFilter) {
+          items = items.filter(item => item.paymentStatus === paymentStatusFilter.value);
+        }
+        const dateFilter = input.find((f: any) => f.field === 'date' || f.field === 'createdAt');
+        if (dateFilter) {
+          items = items.filter(item => {
+            const itemDate = item.date || item.createdAt;
+            return itemDate && itemDate.toString().startsWith(dateFilter.value.toString());
+          });
+        }
+        // Return array directly for backward compatibility with reconcile use case
+        return Result.ok(items);
+      }
+      // Handle object-style input
+      if (input?.where?.fields) {
+        const paymentStatusFilter = input.where.fields.find((f: any) => f.field.toString() === 'paymentStatus');
+        if (paymentStatusFilter) {
+          items = items.filter(item => item.paymentStatus === paymentStatusFilter.value.toString());
+        }
+      }
+      return Result.ok({ items, total: items.length, page: 1, limit: 100, pages: 1 });
+    },
+    async updateById(id: any, order: any, _updatedBy?: any) {
+      const existing = store.get(id.toString());
+      if (!existing) return Result.fail(createDatabaseError('Order not found'));
+      store.set(id.toString(), { ...existing, ...order });
+      return Result.ok();
+    }
+  };
+};
+
+export const makeMockExpenseRepository = () => {
+  const store = new Map<string, any>();
+  return {
+    getStore() { return store; },
+    async getById(id: any) { return Result.ok(store.get(id.toString()) || null); },
+    async create(expense: any) {
+      const id = expense.id || IdVO.generate();
+      const saved = { ...expense, id };
+      store.set(id.toString(), saved);
+      return Result.ok(saved);
+    },
+    async getAll(input?: any) {
+      let items = Array.from(store.values());
+      // Handle array-style where clause: [{ field: 'status', value: 'PAID', operator: '=' }]
+      if (Array.isArray(input)) {
+        const statusFilter = input.find((f: any) => f.field === 'status');
+        if (statusFilter) {
+          items = items.filter(item => item.status === statusFilter.value);
+        }
+        const dateFilter = input.find((f: any) => f.field === 'date' || f.field === 'createdAt');
+        if (dateFilter) {
+          items = items.filter(item => {
+            const itemDate = item.date || item.createdAt;
+            return itemDate && itemDate.toString().startsWith(dateFilter.value.toString());
+          });
+        }
+        // Return array directly for backward compatibility with reconcile use case
+        return Result.ok(items);
+      }
+      // Handle object-style input
+      if (input?.where?.fields) {
+        const statusFilter = input.where.fields.find((f: any) => f.field.toString() === 'status');
+        if (statusFilter) {
+          items = items.filter(item => item.status === statusFilter.value.toString());
+        }
+      }
+      return Result.ok({ items, total: items.length, page: 1, limit: 100, pages: 1 });
+    },
+    async updateById(id: any, expense: any, _updatedBy?: any) {
+      const existing = store.get(id.toString());
+      if (!existing) return Result.fail(createDatabaseError('Expense not found'));
+      store.set(id.toString(), { ...existing, ...expense });
       return Result.ok();
     }
   };

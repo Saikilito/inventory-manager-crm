@@ -1,10 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- Mock repositories in tests require flexible typing for test isolation */
 import { describe, it, expect } from 'vitest';
 import { Result } from '../../../../../../../shared-domain/src/shared/result.js';
-import { ValidationError } from '../../../../../../../shared-domain/src/shared/validation-error.js';
-import { IAccount } from '../../../../../../../shared-domain/src/financial/account.entity.js';
-import { ITransaction } from '../../../../../../../shared-domain/src/financial/transaction.entity.js';
-import { IFinancialDay, FinancialDayStatus } from '../../../../../../../shared-domain/src/financial/financial-day.entity.js';
+import { FinancialDayStatus } from '../../../../../../../shared-domain/src/financial/financial-day.entity.js';
 import { IdVO } from '../../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
 import { NonEmptyStringVO } from '../../../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js';
 import { SupportedCurrency } from '../../../../../../../shared-domain/src/shared/value-objects/currency.vo.js';
@@ -23,6 +20,8 @@ import {
   makeMockExchangeRateRepository,
   makeMockFinancialDayRepository,
   makeMockDeliveryRepository,
+  makeMockOrderRepository,
+  makeMockExpenseRepository,
 } from './mocks/financial-mocks.js';
 
 describe('Financial Use Cases', () => {
@@ -38,11 +37,20 @@ describe('Financial Use Cases', () => {
 
   it('should open and close financial days with correct snapshot balances', async () => {
     const accountRepo = makeMockAccountRepository();
+    const transactionRepo = makeMockTransactionRepository();
     const financialDayRepo = makeMockFinancialDayRepository();
+    const orderRepo = makeMockOrderRepository();
+    const expenseRepo = makeMockExpenseRepository();
 
     const createAccount = makeCreateAccount(accountRepo as any);
     const openFinancialDay = makeOpenFinancialDay(financialDayRepo as any, accountRepo as any);
-    const closeFinancialDay = makeCloseFinancialDay(financialDayRepo as any, accountRepo as any);
+    const closeFinancialDay = makeCloseFinancialDay(
+      financialDayRepo as any,
+      accountRepo as any,
+      transactionRepo as any,
+      orderRepo as any,
+      expenseRepo as any,
+    );
 
     // Create accounts
     await createAccount({ name: 'Account 1', currency: SupportedCurrency.USD, balance: 50 });
@@ -63,7 +71,7 @@ describe('Financial Use Cases', () => {
 
     const closeRes = await closeFinancialDay({ date: '2026-07-07' });
     expect(closeRes.isFailure).toBe(false);
-    const closedDay = closeRes.getValue();
+    const closedDay = closeRes.getValue().financialDay;
     expect(closedDay.status).toBe(FinancialDayStatus.CLOSED);
     expect(closedDay.closingBalances.find(b => b.balance === 120)).toBeDefined();
   });
@@ -72,6 +80,8 @@ describe('Financial Use Cases', () => {
     const accountRepo = makeMockAccountRepository();
     const transactionRepo = makeMockTransactionRepository();
     const financialDayRepo = makeMockFinancialDayRepository();
+    const orderRepo = makeMockOrderRepository();
+    const expenseRepo = makeMockExpenseRepository();
 
     const createAccount = makeCreateAccount(accountRepo as any);
     const createTransaction = makeCreateTransaction(transactionRepo as any, accountRepo as any, financialDayRepo as any);
@@ -97,7 +107,13 @@ describe('Financial Use Cases', () => {
     expect(dayCheck.getValue()).toBeDefined();
 
     // Set up a closed financial day (it's already open, so we just close it)
-    const closeFinancialDay = makeCloseFinancialDay(financialDayRepo as any, accountRepo as any);
+    const closeFinancialDay = makeCloseFinancialDay(
+      financialDayRepo as any,
+      accountRepo as any,
+      transactionRepo as any,
+      orderRepo as any,
+      expenseRepo as any,
+    );
     await closeFinancialDay({ date: '2026-07-07' });
 
     // Try transaction on closed day
@@ -176,6 +192,8 @@ describe('Financial Use Cases', () => {
     const transactionRepo = makeMockTransactionRepository();
     const financialDayRepo = makeMockFinancialDayRepository();
     const deliveryRepo = makeMockDeliveryRepository();
+    const orderRepo = makeMockOrderRepository();
+    const expenseRepo = makeMockExpenseRepository();
 
     const createAccount = makeCreateAccount(accountRepo as any);
     const openFinancialDay = makeOpenFinancialDay(financialDayRepo as any, accountRepo as any);
@@ -194,7 +212,7 @@ describe('Financial Use Cases', () => {
       amount: 100,
       description: 'Credit Tx',
       date: '2026-07-07',
-      referenceId,
+      sourceReferenceId: referenceId,
     })).getValue();
 
     // Setup an associated delivery
@@ -246,7 +264,13 @@ describe('Financial Use Cases', () => {
     expect(delCheck.getValue()).toBeNull();
 
     // Verify day-closure guard
-    const closeFinancialDay = makeCloseFinancialDay(financialDayRepo as any, accountRepo as any);
+    const closeFinancialDay = makeCloseFinancialDay(
+      financialDayRepo as any,
+      accountRepo as any,
+      transactionRepo as any,
+      orderRepo as any,
+      expenseRepo as any,
+    );
     await closeFinancialDay({ date: '2026-07-07' });
 
     // Try to delete a transaction on a closed day (create a mock transaction linked to closed day)

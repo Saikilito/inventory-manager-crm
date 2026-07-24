@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { IAccountRepository, ITransactionRepository, IExchangeRateRepository, IFinancialDayRepository } from '../../application/repositories/financial.repository.js';
 import { IAccount, makeAccount } from '../../../../../../shared-domain/src/financial/account.entity.js';
-import { ITransaction, makeTransaction } from '../../../../../../shared-domain/src/financial/transaction.entity.js';
+import { ITransaction, makeTransactionResult } from '../../../../../../shared-domain/src/financial/transaction.entity.js';
 import { IExchangeRate, makeExchangeRate } from '../../../../../../shared-domain/src/financial/exchange-rate.entity.js';
 import { IFinancialDay, IFinancialDayBalance, makeFinancialDay } from '../../../../../../shared-domain/src/financial/financial-day.entity.js';
 import { AccountModel, TransactionModel, ExchangeRateModel, FinancialDayModel, IAccountDocument, ITransactionDocument, IExchangeRateDocument, IFinancialDayDocument } from '../financial.model.js';
@@ -37,7 +37,7 @@ export const makeAccountMongooseRepository = (): IAccountRepository => {
 };
 
 const mapTransactionToDomain = (doc: ITransactionDocument): ITransaction => {
-  return makeTransaction({
+  const txResult = makeTransactionResult({
     id: doc._id.toString(),
     accountId: doc.accountId.toString(),
     type: doc.type,
@@ -46,9 +46,12 @@ const mapTransactionToDomain = (doc: ITransactionDocument): ITransaction => {
     description: doc.description,
     date: doc.date,
     financialDayId: doc.financialDayId.toString(),
-    referenceId: doc.referenceId ? doc.referenceId.toString() : undefined,
+    source: doc.source,
+    sourceReferenceId: doc.sourceReferenceId ? doc.sourceReferenceId.toString() : undefined,
     createdAt: doc.createdAt,
   });
+  if (txResult.isFailure) throw new Error(txResult.getError().message);
+  return txResult.getValue();
 };
 
 const mapTransactionToDocumentData = (tx: ITransaction) => {
@@ -60,10 +63,11 @@ const mapTransactionToDocumentData = (tx: ITransaction) => {
   if (tx.description !== undefined) data.description = tx.description.toString();
   if (tx.date !== undefined) data.date = tx.date.toString();
   if (tx.financialDayId !== undefined) data.financialDayId = new mongoose.Types.ObjectId(tx.financialDayId.toString());
-  if (tx.referenceId !== undefined) {
-    const refStr = tx.referenceId ? tx.referenceId.toString() : '';
+  if (tx.source !== undefined) data.source = tx.source;
+  if (tx.sourceReferenceId !== undefined) {
+    const refStr = tx.sourceReferenceId ? tx.sourceReferenceId.toString() : '';
     const isObjectId = /^[0-9a-fA-F]{24}$/.test(refStr);
-    data.referenceId = tx.referenceId
+    data.sourceReferenceId = tx.sourceReferenceId
       ? (isObjectId ? new mongoose.Types.ObjectId(refStr) : refStr)
       : undefined;
   }
@@ -71,7 +75,7 @@ const mapTransactionToDocumentData = (tx: ITransaction) => {
   return data;
 };
 
-export const makeTransactionMongooseRepository = (): ITransactionRepository => {
+export const makeTransactionResultMongooseRepository = (): ITransactionRepository => {
   return makeMongooseBaseRepository<ITransaction, ITransactionDocument>({
     model: TransactionModel,
     mapToDomain: mapTransactionToDomain,

@@ -1,6 +1,6 @@
 import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
-import { DomainError } from '../../../../../../shared-domain/src/shared/errors.js';
-import { ValidationError } from '../../../../../../shared-domain/src/shared/validation-error.js';
+import { DomainError, ReconciliationError } from '../../../../../../shared-domain/src/shared/errors.js';
+import { createValidationError } from '../../../../../../shared-domain/src/shared/validation-error.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
 import { DateOnlyVO } from '../../../../../../shared-domain/src/shared/value-objects/date-only.vo.js';
@@ -8,20 +8,41 @@ import { NonEmptyStringVO } from '../../../../../../shared-domain/src/shared/val
 import { PositiveNumberVO } from '../../../../../../shared-domain/src/shared/value-objects/positive-number.vo.js';
 import { IAccount } from '../../../../../../shared-domain/src/financial/account.entity.js';
 import { IFinancialDay, makeFinancialDay, FinancialDayStatus } from '../../../../../../shared-domain/src/financial/financial-day.entity.js';
-import { IFinancialDayRepository, IAccountRepository } from '../repositories/financial.repository.js';
+import { IReconciliationReport } from '../../../../../../shared-domain/src/financial/reconciliation-report.vo.js';
+import { ReconciliationStatus } from '../../../../../../shared-domain/src/financial/reconciliation-status.vo.js';
+import { IFinancialDayRepository, IAccountRepository, ITransactionRepository } from '../repositories/financial.repository.js';
+import { IOrderRepository } from '../../../order/application/repositories/order.repository.js';
+import { IExpenseRepository } from '../../../expense/application/repositories/expense.repository.js';
 import { FinancialDayField } from '../repositories/financial-day.constants.js';
 import { MongoQueryConstants } from '../../../chat/infrastructure/services/gemini.constants.js';
+import { makeReconcileFinancialDayUseCase } from './reconcile-financial-day.js';
 
 export interface CloseFinancialDayInput {
   date?: string;
+  blockOnDiscrepancy?: boolean;
 }
 
-export type CloseFinancialDay = UseCase<CloseFinancialDayInput, IFinancialDay, DomainError>;
+export interface CloseFinancialDayOutput {
+  financialDay: IFinancialDay;
+  reconciliationReport?: IReconciliationReport;
+}
+
+export type CloseFinancialDay = UseCase<CloseFinancialDayInput, CloseFinancialDayOutput, DomainError>;
 
 export const makeCloseFinancialDay = (
   financialDayRepository: IFinancialDayRepository,
   accountRepository: IAccountRepository,
+  transactionRepository: ITransactionRepository,
+  orderRepository: IOrderRepository,
+  expenseRepository: IExpenseRepository,
 ): CloseFinancialDay => {
+  const reconcileFinancialDay = makeReconcileFinancialDayUseCase(
+    transactionRepository,
+    financialDayRepository,
+    orderRepository,
+    expenseRepository,
+  );
+
   return async (input: CloseFinancialDayInput) => {
     const dateStr = DateOnlyVO.create(input.date);
 
@@ -35,11 +56,29 @@ export const makeCloseFinancialDay = (
 
     const financialDay = existingResult.getValue();
     if (!financialDay) {
-      return Result.fail(new ValidationError(`Financial day not found for date ${dateStr}`));
+      return Result.fail(createValidationError(`Financial day not found for date ${dateStr}`));
     }
 
     if (financialDay.status === FinancialDayStatus.CLOSED) {
-      return Result.fail(new ValidationError(`Financial day for date ${dateStr} is already closed`));
+      return Result.fail(createValidationError(`Financial day for date ${dateStr} is already closed`));
+    }
+
+    // Run reconciliation before closing
+    const reconciliationResult = await reconcileFinancialDay({ date: dateStr.toString() });
+    
+    let reconciliationReport: IReconciliationReport | undefined;
+    if (!reconciliationResult.isFailure) {
+      reconciliationReport = reconciliationResult.getValue();
+      
+      // Block closing if discrepancies exist and blockOnDiscrepancy is true
+      if (input.blockOnDiscrepancy && reconciliationReport) {
+        const hasDiscrepancies = reconciliationReport.status !== ReconciliationStatus.MATCHED;
+        if (hasDiscrepancies) {
+          return Result.fail(createReconciliationError(
+            `Cannot close financial day: ${reconciliationReport.discrepancies.length} discrepancies found`
+          ));
+        }
+      }
     }
 
     const accountsResult = await accountRepository.getAll({
@@ -71,6 +110,9 @@ export const makeCloseFinancialDay = (
       return Result.fail(updateResult.getError());
     }
 
-    return Result.ok<IFinancialDay, DomainError>(updatedDay);
+    return Result.ok<CloseFinancialDayOutput, DomainError>({
+      financialDay: updatedDay,
+      reconciliationReport,
+    });
   };
 };

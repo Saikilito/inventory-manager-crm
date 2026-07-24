@@ -1,62 +1,62 @@
-import { describe, it, expect } from 'vitest';
-import { makeTransaction, TransactionType } from '../transaction.entity.js';
-import { IdVO } from '../../shared/value-objects/id.vo.js';
+import { describe, expect, it } from 'vitest';
+import { makeTransactionResult, TransactionType } from '../transaction.entity.js';
 
 describe('Transaction Entity', () => {
-  const validProps = {
-    accountId: IdVO.generate().toString(),
-    type: TransactionType.CREDIT,
-    amount: 100,
+  // Pre-generate valid IDs
+  const validAccountId = crypto.randomUUID();
+  const validFinancialDayId = crypto.randomUUID();
+
+  const baseProps = {
+    accountId: validAccountId,
+    amount: 100.5,
     currency: 'USD',
     description: 'Test transaction',
-    date: '2026-07-09',
-    financialDayId: IdVO.generate().toString(),
-    referenceId: IdVO.generate().toString(),
+    date: '2026-06-30',
+    financialDayId: validFinancialDayId,
+    source: 'MANUAL'
   };
 
-  describe('makeTransaction', () => {
-    it('creates a valid CREDIT transaction', () => {
-      const tx = makeTransaction({ ...validProps, type: TransactionType.CREDIT });
+  describe('makeTransactionResult', () => {
+    it('should create a valid credit transaction', () => {
+      const txResult = makeTransactionResult({ ...baseProps, type: TransactionType.CREDIT });
+      expect(txResult.isSuccess).toBe(true);
+      const tx = txResult.getValue();
       expect(tx.type).toBe(TransactionType.CREDIT);
-      expect(tx.amount).toBe(100);
-      expect(tx.currency.toString()).toBe('USD');
+      expect(tx.amount).toBe(100.5);
+      expect(tx.currency).toBe('USD');
+      expect(tx.source).toBe('MANUAL');
     });
 
-    it('creates a valid DEBIT transaction', () => {
-      const tx = makeTransaction({ ...validProps, type: TransactionType.DEBIT });
+    it('should create a valid debit transaction', () => {
+      const txResult = makeTransactionResult({ ...baseProps, type: TransactionType.DEBIT });
+      expect(txResult.isSuccess).toBe(true);
+      const tx = txResult.getValue();
       expect(tx.type).toBe(TransactionType.DEBIT);
     });
 
-    it('normalizes type to uppercase', () => {
-      const tx = makeTransaction({ ...validProps, type: 'credit' });
+    it('should normalize transaction type to uppercase', () => {
+      const txResult = makeTransactionResult({ ...baseProps, type: 'credit' });
+      expect(txResult.isSuccess).toBe(true);
+      const tx = txResult.getValue();
       expect(tx.type).toBe(TransactionType.CREDIT);
     });
 
-    it('throws on invalid transaction type', () => {
-      expect(() =>
-        makeTransaction({ ...validProps, type: 'INVALID_TYPE' })
-      ).toThrow();
+    it('should fail for unsupported transaction type', () => {
+      const result = makeTransactionResult({ ...baseProps, type: 'INVALID_TYPE' });
+      expect(result.isFailure).toBe(true);
     });
 
-    it('throws on negative or zero amount', () => {
-      expect(() =>
-        makeTransaction({ ...validProps, amount: 0 })
-      ).toThrow();
-      expect(() =>
-        makeTransaction({ ...validProps, amount: -100 })
-      ).toThrow();
+    it('should fail for non-positive amount', () => {
+      expect(makeTransactionResult({ ...baseProps, amount: 0 }).isFailure).toBe(true);
+      expect(makeTransactionResult({ ...baseProps, amount: -100 }).isFailure).toBe(true);
     });
 
-    it('throws on empty description', () => {
-      expect(() =>
-        makeTransaction({ ...validProps, description: '' })
-      ).toThrow();
+    it('should fail for empty description', () => {
+      expect(makeTransactionResult({ ...baseProps, description: '' }).isFailure).toBe(true);
     });
 
-    it('throws on invalid accountId', () => {
-      expect(() =>
-        makeTransaction({ ...validProps, accountId: 'not-a-uuid' })
-      ).toThrow();
+    it('should fail for invalid UUIDs', () => {
+      expect(makeTransactionResult({ ...baseProps, accountId: 'not-a-uuid' }).isFailure).toBe(true);
     });
   });
 });

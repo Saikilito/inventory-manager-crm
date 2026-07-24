@@ -1,6 +1,6 @@
 import { UseCase } from "../../../../../../shared-domain/src/shared/use-case.js";
-import { DomainError, NotFoundError } from "../../../../../../shared-domain/src/shared/errors.js";
-import { ValidationError } from "../../../../../../shared-domain/src/shared/validation-error.js";
+import { DomainError, createNotFoundError } from "../../../../../../shared-domain/src/shared/errors.js";
+import { createValidationError } from "../../../../../../shared-domain/src/shared/validation-error.js";
 import { Result } from "../../../../../../shared-domain/src/shared/result.js";
 import { ResultComposer } from "../../../../../../shared-domain/src/shared/result-composer.js";
 import { IdVO } from "../../../../../../shared-domain/src/shared/value-objects/id.vo.js";
@@ -8,7 +8,8 @@ import { DateOnlyVO } from "../../../../../../shared-domain/src/shared/value-obj
 import { NonEmptyStringVO } from "../../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js";
 import { PositiveNumberVO } from "../../../../../../shared-domain/src/shared/value-objects/positive-number.vo.js";
 import { IAccount } from "../../../../../../shared-domain/src/financial/account.entity.js";
-import { ITransaction, makeTransaction, TransactionType } from "../../../../../../shared-domain/src/financial/transaction.entity.js";
+import { ITransaction, makeTransactionResult, TransactionType } from "../../../../../../shared-domain/src/financial/transaction.entity.js";
+import { TransactionSource } from "../../../../../../shared-domain/src/financial/transaction-source.vo.js";
 import { IFinancialDay, FinancialDayStatus, makeFinancialDay } from "../../../../../../shared-domain/src/financial/financial-day.entity.js";
 import { IAccountRepository, ITransactionRepository, IFinancialDayRepository } from "../repositories/financial.repository.js";
 import { FinancialDayField } from "../repositories/financial-day.constants.js";
@@ -53,13 +54,13 @@ export const makeTransferFunds = (
     const financialDay = dayResult.getValue();
     if (!financialDay) {
       return Result.fail(
-        new ValidationError(`No financial day open for date ${dateStr}. Open a financial day first.`)
+        createValidationError(`No financial day open for date ${dateStr}. Open a financial day first.`)
       );
     }
 
     if (!financialDay.isOpen()) {
       return Result.fail(
-        new ValidationError(`Financial day for date ${dateStr} is closed`)
+        createValidationError(`Financial day for date ${dateStr} is closed`)
       );
     }
 
@@ -78,19 +79,19 @@ export const makeTransferFunds = (
     };
 
     if (!source) {
-      return Result.fail(new NotFoundError("Source account not found"));
+      return Result.fail(createNotFoundError("Source account not found"));
     }
 
     if (!target) {
-      return Result.fail(new NotFoundError("Target account not found"));
+      return Result.fail(createNotFoundError("Target account not found"));
     }
 
     if (source.isSame(target)) {
-      return Result.fail(new ValidationError("Cannot transfer funds to the same account"));
+      return Result.fail(createValidationError("Cannot transfer funds to the same account"));
     }
 
     if (!source.canDebit(amount)) {
-      return Result.fail(new ValidationError("Insufficient funds in source account"));
+      return Result.fail(createValidationError("Insufficient funds in source account"));
     }
 
     const creditResult = source.calculateCreditFor(target, amount, exchangeRate);
@@ -103,11 +104,8 @@ export const makeTransferFunds = (
     const defaultSourceDescription = `Transfer to ${target.name.toString()}`;
     const defaultTargetDescription = `Transfer from ${source.name.toString()}`;
 
-    let sourceTx: ITransaction;
-    let targetTx: ITransaction;
-
-    try {
-      sourceTx = makeTransaction({
+    
+      const sourceTxResult = makeTransactionResult({
         accountId: source.id!.toString(),
         type: TransactionType.DEBIT,
         amount,
@@ -115,10 +113,11 @@ export const makeTransferFunds = (
         description: input.description || defaultSourceDescription,
         date: dateStr.toString(),
         financialDayId: financialDay.id!.toString(),
-        referenceId: transferId.toString(),
+        sourceReferenceId: transferId.toString(),
+        source: TransactionSource.TRANSFER,
       });
 
-      targetTx = makeTransaction({
+      const targetTxResult = makeTransactionResult({
         accountId: target.id!.toString(),
         type: TransactionType.CREDIT,
         amount: creditAmount,
@@ -126,13 +125,16 @@ export const makeTransferFunds = (
         description: input.description || defaultTargetDescription,
         date: dateStr.toString(),
         financialDayId: financialDay.id!.toString(),
-        referenceId: transferId.toString(),
+        sourceReferenceId: transferId.toString(),
+        source: TransactionSource.TRANSFER,
       });
-    } catch (e: unknown) {
-      return Result.fail(
-        new ValidationError(e instanceof Error ? e.message : "Invalid transaction properties"),
-      );
-    }
+
+      if (sourceTxResult.isFailure) return Result.fail(sourceTxResult.getError());
+      if (targetTxResult.isFailure) return Result.fail(targetTxResult.getError());
+      
+      const sourceTx = sourceTxResult.getValue();
+      const targetTx = targetTxResult.getValue();
+    
 
     const updatedSource = source.debit(amount);
     const updatedTarget = target.credit(creditAmount);

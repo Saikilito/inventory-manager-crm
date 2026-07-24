@@ -1,6 +1,6 @@
 import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
-import { DomainError, NotFoundError } from '../../../../../../shared-domain/src/shared/errors.js';
-import { ValidationError } from '../../../../../../shared-domain/src/shared/validation-error.js';
+import { DomainError, createNotFoundError } from '../../../../../../shared-domain/src/shared/errors.js';
+import { createValidationError } from '../../../../../../shared-domain/src/shared/validation-error.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { Id, IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
 import { NonEmptyStringVO } from '../../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js';
@@ -32,7 +32,7 @@ export const makeDeleteTransaction = (
 
     const transaction = txResult.getValue() as ITransaction | null;
     if (!transaction) {
-      return Result.fail(new NotFoundError('Transaction not found'));
+      return Result.fail(createNotFoundError('Transaction not found'));
     }
 
     const dayId = IdVO.create(transaction.financialDayId.toString());
@@ -43,11 +43,11 @@ export const makeDeleteTransaction = (
 
     const financialDay = dayResult.getValue() as IFinancialDay | null;
     if (!financialDay) {
-      return Result.fail(new NotFoundError('Financial day not found'));
+      return Result.fail(createNotFoundError('Financial day not found'));
     }
 
     if (financialDay.status !== FinancialDayStatus.OPEN) {
-      return Result.fail(new ValidationError('Day is closed'));
+      return Result.fail(createValidationError('Day is closed'));
     }
 
     const accId = IdVO.create(transaction.accountId.toString());
@@ -58,7 +58,7 @@ export const makeDeleteTransaction = (
 
     const account = accountResult.getValue() as IAccount | null;
     if (!account) {
-      return Result.fail(new NotFoundError('Account not found'));
+      return Result.fail(createNotFoundError('Account not found'));
     }
 
     let newBalance = account.balance;
@@ -81,8 +81,8 @@ export const makeDeleteTransaction = (
       return Result.fail(updateAccResult.getError());
     }
 
-    if (transaction.referenceId) {
-      const refIdStr = transaction.referenceId.toString();
+    if (transaction.sourceReferenceId) {
+      const refIdStr = transaction.sourceReferenceId.toString();
       const deliveryIdsToDelete: Id[] = [];
 
       const deliveriesResult = await deliveryRepository.getAll({

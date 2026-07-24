@@ -4,6 +4,7 @@ import { NonEmptyStringVO } from '../../../../../shared-domain/src/shared/value-
 import { IAccount } from '../../../../../shared-domain/src/financial/account.entity.js';
 import { ITransaction } from '../../../../../shared-domain/src/financial/transaction.entity.js';
 import { IFinancialDay, IFinancialDayBalance } from '../../../../../shared-domain/src/financial/financial-day.entity.js';
+import { IReconciliationReport } from '../../../../../shared-domain/src/financial/reconciliation-report.vo.js';
 import { MongoQueryConstants } from '../../chat/infrastructure/services/gemini.constants.js';
 
 const mapAccountToGql = (account: IAccount) => ({
@@ -22,7 +23,8 @@ const mapTransactionToGql = (tx: ITransaction) => ({
   description: tx.description.toString(),
   date: tx.date.toString(),
   financialDayId: tx.financialDayId.toString(),
-  referenceId: tx.referenceId ? tx.referenceId.toString() : null,
+  source: tx.source,
+  sourceReferenceId: tx.sourceReferenceId ? tx.sourceReferenceId.toString() : null,
   createdAt: tx.createdAt.toString(),
 });
 
@@ -40,6 +42,27 @@ const mapFinancialDayToGql = (fd: IFinancialDay) => ({
   })),
   openedAt: fd.openedAt.toString(),
   closedAt: fd.closedAt ? fd.closedAt.toString() : null,
+});
+
+const mapReconciliationReportToGql = (report: IReconciliationReport) => ({
+  id: report.id?.toString(),
+  date: report.date.toString(),
+  status: report.status,
+  matchedCount: report.matchedCount,
+  discrepancies: report.discrepancies.map((d) => ({
+    type: d.type,
+    source: d.source,
+    referenceId: d.referenceId.toString(),
+    expectedAmount: d.expectedAmount ? Number(d.expectedAmount) : null,
+    actualAmount: d.actualAmount ? Number(d.actualAmount) : null,
+    description: d.description.toString(),
+  })),
+  openingBalance: Number(report.openingBalance),
+  closingBalance: Number(report.closingBalance),
+  totalCredits: Number(report.totalCredits),
+  totalDebits: Number(report.totalDebits),
+  financialDayId: report.financialDayId.toString(),
+  createdAt: report.createdAt.toString(),
 });
 
 export default {
@@ -105,13 +128,14 @@ export default {
 
     createTransaction: async (
       _parent: unknown,
-      { accountId, type, amount, description, date, referenceId }: {
+      { accountId, type, amount, description, date, source, sourceReferenceId }: {
         accountId: string;
         type: string;
         amount: number;
         description: string;
         date?: string;
-        referenceId?: string;
+        source?: string;
+        sourceReferenceId?: string;
       },
       { container }: IContext,
     ) => {
@@ -121,7 +145,8 @@ export default {
         amount,
         description,
         date,
-        referenceId,
+        source,
+        sourceReferenceId,
       });
       if (result.isFailure) {
         throw result.getError();
@@ -172,14 +197,30 @@ export default {
 
     closeFinancialDay: async (
       _parent: unknown,
-      { date }: { date?: string },
+      { date, blockOnDiscrepancy }: { date?: string; blockOnDiscrepancy?: boolean },
       { container }: IContext,
     ) => {
-      const result = await container.financial.closeFinancialDay({ date });
+      const result = await container.financial.closeFinancialDay({ date, blockOnDiscrepancy });
       if (result.isFailure) {
         throw result.getError();
       }
-      return mapFinancialDayToGql(result.getValue());
+      const val = result.getValue();
+      return {
+        financialDay: mapFinancialDayToGql(val.financialDay),
+        reconciliationReport: val.reconciliationReport ? mapReconciliationReportToGql(val.reconciliationReport) : null,
+      };
+    },
+
+    reconcileFinancialDay: async (
+      _parent: unknown,
+      { date }: { date: string },
+      { container }: IContext,
+    ) => {
+      const result = await container.financial.reconcileFinancialDay({ date });
+      if (result.isFailure) {
+        throw result.getError();
+      }
+      return mapReconciliationReportToGql(result.getValue());
     },
 
     transferFunds: async (

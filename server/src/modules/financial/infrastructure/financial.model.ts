@@ -9,11 +9,11 @@ export interface IAccountDocument extends Omit<IAccount, "id">, Document {
   isTesting: boolean;
 }
 
-export interface ITransactionDocument extends Omit<ITransaction, "id" | "accountId" | "financialDayId" | "referenceId">, Document {
+export interface ITransactionDocument extends Omit<ITransaction, "id" | "accountId" | "financialDayId" | "sourceReferenceId">, Document {
   _id: mongoose.Types.ObjectId;
   accountId: mongoose.Types.ObjectId;
   financialDayId: mongoose.Types.ObjectId;
-  referenceId?: mongoose.Types.ObjectId | string;
+  sourceReferenceId?: mongoose.Types.ObjectId | string;
   isTesting: boolean;
 }
 
@@ -46,12 +46,14 @@ const transactionSchema = new Schema<ITransactionDocument>({
   description: { type: String, required: true },
   date: { type: String, required: true },
   financialDayId: { type: Schema.Types.ObjectId, ref: "FinancialDay", required: true },
-  referenceId: { type: Schema.Types.Mixed, default: null },
+  source: { type: String, required: true },
+  sourceReferenceId: { type: Schema.Types.Mixed, default: null },
   createdAt: { type: String, required: true },
   isTesting: { type: Boolean, default: false, index: true },
 });
 
 transactionSchema.index({ accountId: 1, date: -1 });
+transactionSchema.index({ source: 1, sourceReferenceId: 1, accountId: 1 }, { unique: true, sparse: true });
 
 const exchangeRateSchema = new Schema<IExchangeRateDocument>({
   date: { type: String, required: true, unique: true },

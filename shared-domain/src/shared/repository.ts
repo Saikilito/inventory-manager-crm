@@ -1,8 +1,5 @@
 import { Result } from './result.js';
 import { DatabaseError } from './errors.js';
-import { Id } from './value-objects/id.vo.js';
-import { PositiveNumber } from './value-objects/positive-number.vo.js';
-import { NonEmptyString } from './value-objects/non-empty-string.vo.js';
 
 export namespace IShared {
   export type IOmitBase = 'id' | 'createdAt' | 'updatedAt' | 'deletedAt' | 'createdBy' | 'updatedBy' | 'deletedBy';

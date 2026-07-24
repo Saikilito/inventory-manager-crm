@@ -1,13 +1,14 @@
 import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
-import { DomainError, NotFoundError } from '../../../../../../shared-domain/src/shared/errors.js';
-import { ValidationError } from '../../../../../../shared-domain/src/shared/validation-error.js';
+import { DomainError, createNotFoundError } from '../../../../../../shared-domain/src/shared/errors.js';
+import { createValidationError } from '../../../../../../shared-domain/src/shared/validation-error.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { ResultComposer } from '../../../../../../shared-domain/src/shared/result-composer.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
 import { DateOnlyVO } from '../../../../../../shared-domain/src/shared/value-objects/date-only.vo.js';
-import { ITransaction, makeTransaction, TransactionType } from '../../../../../../shared-domain/src/financial/transaction.entity.js';
-import { IFinancialDay, FinancialDayStatus } from '../../../../../../shared-domain/src/financial/financial-day.entity.js';
+import { ITransaction, makeTransactionResult, TransactionType } from '../../../../../../shared-domain/src/financial/transaction.entity.js';
+import { FinancialDayStatus } from '../../../../../../shared-domain/src/financial/financial-day.entity.js';
 import { IAccount, makeAccount } from '../../../../../../shared-domain/src/financial/account.entity.js';
+import { TransactionSource } from '../../../../../../shared-domain/src/financial/transaction-source.vo.js';
 import { IAccountRepository, ITransactionRepository, IFinancialDayRepository } from '../repositories/financial.repository.js';
 import { makeFindOrOpenFinancialDay } from '../services/find-or-open-financial-day.js';
 
@@ -17,7 +18,8 @@ export interface CreateTransactionInput {
   amount: number;
   description: string;
   date?: string;
-  referenceId?: string;
+  source?: string;
+  sourceReferenceId?: string;
 }
 
 export type CreateTransaction = UseCase<CreateTransactionInput, ITransaction, DomainError>;
@@ -42,7 +44,7 @@ export const makeCreateTransaction = (
 
     const financialDay = dayResult.getValue();
     if (financialDay.status !== FinancialDayStatus.OPEN) {
-      return Result.fail(new ValidationError(`Financial day for date ${dateStr} is closed`));
+      return Result.fail(createValidationError(`Financial day for date ${dateStr} is closed`));
     }
 
     const accountResult = await accountRepository.getById(IdVO.create(input.accountId));
@@ -52,12 +54,10 @@ export const makeCreateTransaction = (
 
     const account = accountResult.getValue() as IAccount | null;
     if (!account) {
-      return Result.fail(new NotFoundError(`Account not found`));
+      return Result.fail(createNotFoundError(`Account not found`));
     }
 
-    let transaction: ITransaction;
-    try {
-      transaction = makeTransaction({
+    const transactionResult = makeTransactionResult({
         accountId: input.accountId,
         type: input.type,
         amount: input.amount,
@@ -65,11 +65,14 @@ export const makeCreateTransaction = (
         description: input.description,
         date: dateStr.toString(),
         financialDayId: financialDay.id!.toString(),
-        referenceId: input.referenceId,
+        source: input.source || TransactionSource.MANUAL,
+        sourceReferenceId: input.sourceReferenceId,
       });
-    } catch (e: unknown) {
-      return Result.fail(new ValidationError(e instanceof Error ? e.message : 'Invalid transaction properties'));
+    if (transactionResult.isFailure) {
+      return Result.fail(transactionResult.getError());
     }
+    const transaction = transactionResult.getValue();
+    
 
     let newBalance = account.balance;
     if (transaction.type === TransactionType.CREDIT) {

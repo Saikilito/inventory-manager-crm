@@ -1,3 +1,13 @@
+enum TransactionSource {
+  ORDER_PAYMENT
+  ORDER_REFUND
+  EXPENSE
+  EXPENSE_REVERSAL
+  FIXED_EXPENSE_PAYMENT
+  TRANSFER
+  MANUAL
+}
+
 type Account {
   id: ID!
   name: String!
@@ -14,7 +24,8 @@ type Transaction {
   description: String!
   date: String!
   financialDayId: ID!
-  referenceId: ID
+  source: TransactionSource!
+  sourceReferenceId: ID
   createdAt: String!
 }
 
@@ -44,6 +55,34 @@ type ExchangeRate {
   rate: Float!
 }
 
+type ReconciliationDiscrepancy {
+  type: String!
+  source: TransactionSource!
+  referenceId: ID!
+  expectedAmount: Float
+  actualAmount: Float
+  description: String!
+}
+
+type ReconciliationReport {
+  id: ID
+  date: String!
+  status: String!
+  matchedCount: Int!
+  discrepancies: [ReconciliationDiscrepancy!]!
+  openingBalance: Float!
+  closingBalance: Float!
+  totalCredits: Float!
+  totalDebits: Float!
+  financialDayId: ID!
+  createdAt: String!
+}
+
+type CloseFinancialDayResult {
+  financialDay: FinancialDay!
+  reconciliationReport: ReconciliationReport
+}
+
 type Query {
   getFinancialDayByDate(date: String): FinancialDayResult!
   getAccounts: [Account!]!
@@ -58,12 +97,14 @@ type Mutation {
     amount: Float!
     description: String!
     date: String
-    referenceId: ID
+    source: TransactionSource
+    sourceReferenceId: ID
   ): Transaction!
   deleteTransaction(id: ID!): Boolean!
   updateExchangeRate(date: String, rate: Float!): ExchangeRate!
   openFinancialDay(date: String): FinancialDay!
-  closeFinancialDay(date: String): FinancialDay!
+  closeFinancialDay(date: String, blockOnDiscrepancy: Boolean): CloseFinancialDayResult!
+  reconcileFinancialDay(date: String!): ReconciliationReport!
   transferFunds(
     sourceAccountId: ID!
     targetAccountId: ID!

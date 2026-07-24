@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- Mock repositories in tests require flexible typing for test isolation */
 import { describe, it, expect } from 'vitest';
 import { ValidationError } from '../../../../../../../shared-domain/src/shared/validation-error.js';
-import { IAccount } from '../../../../../../../shared-domain/src/financial/account.entity.js';
 import { TransactionType } from '../../../../../../../shared-domain/src/financial/transaction.entity.js';
 import { SupportedCurrency } from '../../../../../../../shared-domain/src/shared/value-objects/currency.vo.js';
 import { makeTransferFunds } from '../transfer-funds.js';
@@ -39,12 +38,12 @@ describe('Transfer Funds Use Case', () => {
     expect(output.sourceTransaction.type).toBe(TransactionType.DEBIT);
     expect(output.sourceTransaction.amount).toBe(150);
     expect(output.sourceTransaction.currency.toString()).toBe(SupportedCurrency.USD);
-    expect(output.sourceTransaction.referenceId?.toString()).toBeDefined();
+    expect(output.sourceTransaction.sourceReferenceId?.toString()).toBeDefined();
 
     expect(output.targetTransaction.type).toBe(TransactionType.CREDIT);
     expect(output.targetTransaction.amount).toBe(150);
     expect(output.targetTransaction.currency.toString()).toBe(SupportedCurrency.USD);
-    expect(output.targetTransaction.referenceId?.toString()).toBe(output.sourceTransaction.referenceId?.toString());
+    expect(output.targetTransaction.sourceReferenceId?.toString()).toBe(output.sourceTransaction.sourceReferenceId?.toString());
 
     const updatedSource = (await accountRepo.getById(sourceAcc.id!)).getValue()!;
     const updatedTarget = (await accountRepo.getById(targetAcc.id!)).getValue()!;
