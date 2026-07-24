@@ -45,7 +45,8 @@ export const GET_TRANSACTIONS = gql`
       description
       date
       financialDayId
-      referenceId
+      source
+      sourceReferenceId
       createdAt
     }
   }

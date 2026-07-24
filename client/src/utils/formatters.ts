@@ -25,6 +25,13 @@ export const formatDate = (date?: string | number | Date | null): string => {
   });
 };
 
+export const formatTime = (dateStr: string): string => {
+  return new Date(dateStr).toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
 export const formatTimeToAmPm = (timeStr: string): string => {
   if (!timeStr) return "-";
   // Check if it already contains AM/PM

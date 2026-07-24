@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useSystemConfig } from '@contexts/SystemConfigContext';
 import {
   LayoutDashboard,
   Users,
@@ -13,6 +14,7 @@ import {
 } from 'lucide-react';
 
 export const MobileBottomBar: React.FC = () => {
+  const { rentalsEnabled } = useSystemConfig();
   const location = useLocation();
 
   const isActive = (path: string) => location.pathname.startsWith(path);
@@ -48,11 +50,15 @@ export const MobileBottomBar: React.FC = () => {
       label: 'Finance',
       icon: Wallet,
     },
-    {
-      path: '/rentals',
-      label: 'Rentals',
-      icon: Clock,
-    },
+    ...(rentalsEnabled
+      ? [
+          {
+            path: '/rentals',
+            label: 'Rentals',
+            icon: Clock,
+          },
+        ]
+      : []),
     {
       path: '/deliveries',
       label: 'Deliveries',

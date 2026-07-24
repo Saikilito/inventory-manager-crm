@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Wallet, ArrowLeftRight } from 'lucide-react';
+import { Plus, Wallet } from 'lucide-react';
 import { IAccount } from '@shared-domain/financial/account.entity.js';
 
 interface AccountsOverviewProps {
@@ -8,8 +8,6 @@ interface AccountsOverviewProps {
   activeRate: number;
   isDayClosed: boolean;
   onSelectAccount: (id: string) => void;
-  onTransferFunds: () => void;
-  onNewAccount: () => void;
   onOpenTxDrawer: (acc: IAccount, e?: React.MouseEvent) => void;
 }
 
@@ -19,8 +17,6 @@ export const AccountsOverview: React.FC<AccountsOverviewProps> = ({
   activeRate,
   isDayClosed,
   onSelectAccount,
-  onTransferFunds,
-  onNewAccount,
   onOpenTxDrawer,
 }) => {
   return (
@@ -30,22 +26,6 @@ export const AccountsOverview: React.FC<AccountsOverviewProps> = ({
           <Wallet className="w-5 h-5 text-emerald-600" />
           Monodivisa Accounts
         </h3>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onTransferFunds}
-            className="inline-flex items-center justify-center h-8 px-3 rounded-lg text-xs font-semibold text-stone-700 dark:text-stone-300 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors shadow-sm focus:outline-none"
-          >
-            <ArrowLeftRight className="w-3.5 h-3.5 mr-1" />
-            Transfer Funds
-          </button>
-          <button
-            onClick={onNewAccount}
-            className="inline-flex items-center justify-center h-8 px-3 rounded-lg text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors shadow-sm focus:outline-none"
-          >
-            <Plus className="w-3.5 h-3.5 mr-1" />
-            New Account
-          </button>
-        </div>
       </div>
 
       {accounts.length === 0 ? (

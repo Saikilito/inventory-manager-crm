@@ -1,85 +1,17 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@apollo/client';
 import { match } from 'ts-pattern';
 import { usePlocState } from '@hooks/use-ploc-state';
 import { useExpensePloc } from '@contexts/expense-context';
 import { useFixedExpensePloc } from '@contexts/fixed-expense-context';
 import { GET_ALL_CONTEXTS, GET_CONTEXT_METRICS } from '@modules/product/infrastructure/graphql/queries';
-import { PRODUCTS_QUERY } from '@modules/product/infrastructure/graphql/queries';
-import { GET_USERS } from '@modules/auth/infrastructure/graphql/queries';
 import { ExpenseCategory } from '@shared-domain/expense/expense.entity';
 import { FixedExpenseChecklistItem } from '@modules/expense/domain/fixed-expense.repository';
 import { ExpenseState } from '@modules/expense/presentation/ploc/expense-state';
 import { FixedExpenseState } from '@modules/expense/presentation/ploc/fixed-expense-state';
 import { MetricsData } from '../components/ExpenseStats';
 import { LONG_TOAST_DURATION_MS } from '../../../utils/constants';
-
-const computePeriodDates = (period: string) => {
-  const now = new Date();
-  let start = new Date();
-  let end = new Date();
-
-  switch (period) {
-    case 'Today': {
-      start.setHours(0, 0, 0, 0);
-      end.setHours(23, 59, 59, 999);
-      break;
-    }
-    case 'Yesterday': {
-      const yesterday = new Date();
-      yesterday.setDate(now.getDate() - 1);
-      start = new Date(yesterday);
-      start.setHours(0, 0, 0, 0);
-      end = new Date(yesterday);
-      end.setHours(23, 59, 59, 999);
-      break;
-    }
-    case 'This Week': {
-      const day = now.getDay();
-      const diffToMonday = now.getDate() - (day === 0 ? 6 : day - 1);
-      start.setDate(diffToMonday);
-      start.setHours(0, 0, 0, 0);
-      
-      end.setDate(diffToMonday + 6);
-      end.setHours(23, 59, 59, 999);
-      break;
-    }
-    case 'Last Week': {
-      const day = now.getDay();
-      const diffToLastMonday = now.getDate() - (day === 0 ? 6 : day - 1) - 7;
-      start.setDate(diffToLastMonday);
-      start.setHours(0, 0, 0, 0);
-      
-      end.setDate(diffToLastMonday + 6);
-      end.setHours(23, 59, 59, 999);
-      break;
-    }
-    case 'This Month': {
-      start = new Date(now.getFullYear(), now.getMonth(), 1);
-      start.setHours(0, 0, 0, 0);
-      
-      end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      end.setHours(23, 59, 59, 999);
-      break;
-    }
-    case 'Last Month': {
-      start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      start.setHours(0, 0, 0, 0);
-      
-      end = new Date(now.getFullYear(), now.getMonth(), 0);
-      end.setHours(23, 59, 59, 999);
-      break;
-    }
-    case 'Custom':
-    default:
-      return null;
-  }
-
-  return {
-    startDate: start.toISOString(),
-    endDate: end.toISOString()
-  };
-};
+import { PeriodType, getPeriodRange, getTodayDateOnly } from '@utils/period-utils';
 
 export const useExpenseListLogic = () => {
   const ploc = useExpensePloc();
@@ -95,58 +27,23 @@ export const useExpenseListLogic = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // Date range and period states
-  const [selectedPeriod, setSelectedPeriod] = useState('This Month');
+  const [periodType, setPeriodType] = useState<PeriodType>('month');
+  const [referenceDate, setReferenceDate] = useState<string>(getTodayDateOnly());
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
-  const [selectedDay, setSelectedDay] = useState<Date>(new Date());
+  const [isCustomMode, setIsCustomMode] = useState(false);
 
-  const formatDayLabel = (date: Date) => {
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
-  };
-
-  const formatToInputDate = (date: Date) => {
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${year}-${month}-${day}`;
-  };
-
-  const handlePrevDay = () => {
-    setSelectedDay((prev) => {
-      const d = new Date(prev);
-      d.setDate(d.getDate() - 1);
-      return d;
-    });
-  };
-
-  const handleNextDay = () => {
-    setSelectedDay((prev) => {
-      const d = new Date(prev);
-      d.setDate(d.getDate() + 1);
-      return d;
-    });
-  };
-
-  // Fixed Expense Form States
   const [tplName, setTplName] = useState('');
   const [tplCategory, setTplCategory] = useState('UTILITIES');
   const [tplAmount, setTplAmount] = useState('');
   const [tplIsActive, setTplCategoryIsActive] = useState(true);
 
-  // Queries for contexts, products and users
   const { data: contextsData } = useQuery(GET_ALL_CONTEXTS, { fetchPolicy: "cache-and-network" });
-  const { data: productsData } = useQuery(PRODUCTS_QUERY, { variables: { limit: 100 } });
-  const { data: usersData } = useQuery(GET_USERS);
 
-  // Compute period dates based on selection
   useEffect(() => {
-    if (selectedPeriod === 'Custom') {
+    if (isCustomMode) {
       if (customStart) {
         const start = new Date(customStart + 'T00:00:00');
         setStartDate(start.toISOString());
@@ -159,26 +56,13 @@ export const useExpenseListLogic = () => {
       } else {
         setEndDate('');
       }
-    } else if (selectedPeriod === 'Day') {
-      const start = new Date(selectedDay);
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(selectedDay);
-      end.setHours(23, 59, 59, 999);
-      setStartDate(start.toISOString());
-      setEndDate(end.toISOString());
     } else {
-      const computed = computePeriodDates(selectedPeriod);
-      if (computed) {
-        setStartDate(computed.startDate);
-        setEndDate(computed.endDate);
-      } else {
-        setStartDate('');
-        setEndDate('');
-      }
+      const range = getPeriodRange(referenceDate, periodType);
+      setStartDate(range.startDate);
+      setEndDate(range.endDate);
     }
-  }, [selectedPeriod, customStart, customEnd, selectedDay]);
+  }, [periodType, referenceDate, customStart, customEnd, isCustomMode]);
 
-  // Consolidated metrics query for Egresos dashboard visualization
   const { data: metricsDataRaw, loading: loadingMetrics } = useQuery(GET_CONTEXT_METRICS, {
     variables: {
       contextId: selectedContextId || null,
@@ -189,17 +73,14 @@ export const useExpenseListLogic = () => {
   });
   const metricsData = metricsDataRaw as MetricsData | undefined;
 
-  // Load expenses on mount and when filter criteria change
   useEffect(() => {
     ploc.load(state.currentPage, state.limit, selectedContextId, selectedCategory);
   }, [ploc, selectedContextId, selectedCategory, state.currentPage, state.limit]);
 
-  // Load fixed expenses on mount and when context changes
   useEffect(() => {
     fixedPloc.load(undefined, selectedContextId);
   }, [fixedPloc, selectedContextId]);
 
-  // Sync edit form fields when template changes
   useEffect(() => {
     if (fixedState && 'selectedTemplate' in fixedState && fixedState.selectedTemplate) {
       setTplName(fixedState.selectedTemplate.name.toString());
@@ -267,32 +148,33 @@ export const useExpenseListLogic = () => {
     }
   };
 
-  const toggleChecklistPayment = async (item: FixedExpenseChecklistItem) => {
-    if (item.payment?.isPaid) {
-      await fixedPloc.unpayFixedExpense(item.fixedExpense.id as string);
-    } else {
-      await fixedPloc.payFixedExpense(item.fixedExpense.id as string, Number(item.fixedExpense.amount));
-    }
+  const [pendingToggleItem, setPendingToggleItem] = useState<FixedExpenseChecklistItem | null>(null);
+
+  const requestToggleChecklistPayment = (item: FixedExpenseChecklistItem) => {
+    setPendingToggleItem(item);
   };
 
-  // Safe lookups for names
-  const productMap = useMemo(() => {
-    const map = new Map<string, string>();
-    productsData?.getAllProducts?.forEach((p: { _id: string; name: string }) => map.set(p._id, p.name));
-    return map;
-  }, [productsData]);
+  const confirmToggleChecklistPayment = async () => {
+    if (!pendingToggleItem) return;
+    
+    if (pendingToggleItem.payment?.isPaid) {
+      await fixedPloc.unpayFixedExpense(pendingToggleItem.fixedExpense.id as string);
+    } else {
+      await fixedPloc.payFixedExpense(pendingToggleItem.fixedExpense.id as string, Number(pendingToggleItem.fixedExpense.amount));
+    }
+    // Refresh general expenses to reflect the change
+    ploc.load(state.currentPage, state.limit, selectedContextId, selectedCategory);
+    setPendingToggleItem(null);
+  };
 
-  const userMap = useMemo(() => {
-    const map = new Map<string, string>();
-    usersData?.getUsers?.forEach((u: { _id: string; name: string }) => map.set(u._id, u.name));
-    return map;
-  }, [usersData]);
+  const cancelToggleChecklistPayment = () => {
+    setPendingToggleItem(null);
+  };
 
-  const contextMap = useMemo(() => {
-    const map = new Map<string, string>();
-    contextsData?.getAllContexts?.forEach((c: { _id: string; name: string }) => map.set(c._id, c.name));
-    return map;
-  }, [contextsData]);
+  const toggleChecklistPayment = async (item: FixedExpenseChecklistItem) => {
+    // Legacy function, replaced by requestToggleChecklistPayment
+    requestToggleChecklistPayment(item);
+  };
 
   const getCategoryBadgeClass = (cat: string) => {
     return match(cat)
@@ -324,16 +206,18 @@ export const useExpenseListLogic = () => {
     selectedCategory,
     setSelectedCategory,
     successMessage,
-    selectedPeriod,
-    setSelectedPeriod,
+    periodType,
+    setPeriodType,
+    referenceDate,
+    setReferenceDate,
     startDate,
     endDate,
     customStart,
     setCustomStart,
     customEnd,
     setCustomEnd,
-    selectedDay,
-    setSelectedDay,
+    isCustomMode,
+    setIsCustomMode,
     tplName,
     setTplName,
     tplCategory,
@@ -345,13 +229,6 @@ export const useExpenseListLogic = () => {
     contextsData,
     loadingMetrics,
     metricsData,
-    productMap,
-    userMap,
-    contextMap,
-    formatDayLabel,
-    formatToInputDate,
-    handlePrevDay,
-    handleNextDay,
     handlePrevPage,
     handleNextPage,
     handleDelete,
@@ -359,6 +236,9 @@ export const useExpenseListLogic = () => {
     handleSaveFixedTemplate,
     handleDeleteFixedTemplate,
     toggleChecklistPayment,
+    pendingToggleItem,
+    confirmToggleChecklistPayment,
+    cancelToggleChecklistPayment,
     getCategoryBadgeClass,
     getCategoryLabel
   };

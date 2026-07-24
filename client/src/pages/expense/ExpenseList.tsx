@@ -27,16 +27,18 @@ export const ExpenseList: React.FC = () => {
     selectedCategory,
     setSelectedCategory,
     successMessage,
-    selectedPeriod,
-    setSelectedPeriod,
+    periodType,
+    setPeriodType,
+    referenceDate,
+    setReferenceDate,
     startDate,
     endDate,
     customStart,
     setCustomStart,
     customEnd,
     setCustomEnd,
-    selectedDay,
-    setSelectedDay,
+    isCustomMode,
+    setIsCustomMode,
     tplName,
     setTplName,
     tplCategory,
@@ -48,13 +50,6 @@ export const ExpenseList: React.FC = () => {
     contextsData,
     loadingMetrics,
     metricsData,
-    productMap,
-    userMap,
-    contextMap,
-    formatDayLabel,
-    formatToInputDate,
-    handlePrevDay,
-    handleNextDay,
     handlePrevPage,
     handleNextPage,
     handleDelete,
@@ -62,13 +57,15 @@ export const ExpenseList: React.FC = () => {
     handleSaveFixedTemplate,
     handleDeleteFixedTemplate,
     toggleChecklistPayment,
+    pendingToggleItem,
+    confirmToggleChecklistPayment,
+    cancelToggleChecklistPayment,
     getCategoryBadgeClass,
     getCategoryLabel
   } = useExpenseListLogic();
 
   return (
     <div className="w-full">
-      {/* Header and Add button */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-stone-900 dark:text-stone-100 flex items-center gap-2">
@@ -80,7 +77,6 @@ export const ExpenseList: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {/* Stone-style Tab bar */}
           <div className="flex bg-stone-100 dark:bg-stone-800/60 p-1 rounded-lg border border-stone-200/40 dark:border-stone-700/30">
             <button
               onClick={() => setActiveTab('general')}
@@ -130,20 +126,19 @@ export const ExpenseList: React.FC = () => {
         </div>
       )}
 
-      {/* RENDER ACTIVE TAB */}
       {activeTab === 'general' ? (
         <>
           <ExpenseFilters 
-            selectedPeriod={selectedPeriod}
-            setSelectedPeriod={setSelectedPeriod}
-            selectedDay={selectedDay}
-            setSelectedDay={setSelectedDay}
+            periodType={periodType}
+            setPeriodType={setPeriodType}
+            referenceDate={referenceDate}
+            setReferenceDate={setReferenceDate}
             customStart={customStart}
             setCustomStart={setCustomStart}
             customEnd={customEnd}
             setCustomEnd={setCustomEnd}
-            handlePrevDay={handlePrevDay}
-            handleNextDay={handleNextDay}
+            isCustomMode={isCustomMode}
+            setIsCustomMode={setIsCustomMode}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
             selectedContextId={selectedContextId}
@@ -151,13 +146,11 @@ export const ExpenseList: React.FC = () => {
             selectedCategory={selectedCategory}
             setSelectedCategory={setSelectedCategory}
             contextsData={contextsData}
-            formatDayLabel={formatDayLabel}
-            formatToInputDate={formatToInputDate}
             getCategoryLabel={getCategoryLabel}
           />
 
           <ExpenseStats 
-            selectedPeriod={selectedPeriod}
+            selectedPeriod={periodType}
             loadingMetrics={loadingMetrics}
             metricsData={metricsData}
           />
@@ -167,9 +160,6 @@ export const ExpenseList: React.FC = () => {
             searchQuery={searchQuery}
             startDate={startDate}
             endDate={endDate}
-            contextMap={contextMap}
-            productMap={productMap}
-            userMap={userMap}
             getCategoryBadgeClass={getCategoryBadgeClass}
             getCategoryLabel={getCategoryLabel}
             formatCurrency={formatCurrency}
@@ -194,7 +184,6 @@ export const ExpenseList: React.FC = () => {
         />
       ) : null}
 
-      {/* Slide-over/Modal Form for General Expense */}
       {state.showFormModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
           <div className="relative w-full max-w-2xl bg-white dark:bg-stone-900 rounded-2xl shadow-xl overflow-hidden border border-stone-200 dark:border-stone-800">
@@ -228,7 +217,6 @@ export const ExpenseList: React.FC = () => {
         </div>
       )}
 
-      {/* Modal Form for Recurring Expense Template */}
       {fixedState.showTemplateModal && (
         <FixedExpenseTemplateModal 
           fixedState={fixedState}
@@ -244,6 +232,40 @@ export const ExpenseList: React.FC = () => {
           onClose={() => fixedPloc.closeTemplateModal()}
           getCategoryLabel={getCategoryLabel}
         />
+      )}
+
+      {pendingToggleItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="relative w-full max-w-md bg-white dark:bg-stone-900 rounded-2xl shadow-xl overflow-hidden border border-stone-200 dark:border-stone-800 p-6 text-center">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-amber-100 dark:bg-amber-900/30 mb-4">
+              <AlertCircle className="h-6 w-6 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+            </div>
+            <h3 className="text-lg leading-6 font-bold text-stone-900 dark:text-stone-50">Confirmar acción</h3>
+            <div className="mt-2">
+              <p className="text-sm text-stone-500 dark:text-stone-400">
+                {pendingToggleItem.payment?.isPaid
+                  ? `¿Estás seguro de que deseas desmarcar el pago de "${pendingToggleItem.fixedExpense.name}"? Esto eliminará el registro del pago.`
+                  : `¿Estás seguro de que deseas marcar como pagado "${pendingToggleItem.fixedExpense.name}"? Esto creará un nuevo registro de pago.`}
+              </p>
+            </div>
+            <div className="mt-6 flex justify-center gap-3">
+              <button
+                type="button"
+                onClick={cancelToggleChecklistPayment}
+                className="inline-flex justify-center w-full sm:w-auto px-4 py-2 text-sm font-semibold text-stone-700 bg-white border border-stone-300 rounded-xl hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-stone-500 dark:bg-stone-800 dark:text-stone-300 dark:border-stone-700 dark:hover:bg-stone-700 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmToggleChecklistPayment}
+                className="inline-flex justify-center w-full sm:w-auto px-4 py-2 text-sm font-semibold text-white bg-emerald-600 border border-transparent rounded-xl hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

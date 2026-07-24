@@ -16,18 +16,24 @@ interface ExpenseStatsProps {
   metricsData?: MetricsData;
 }
 
+const capitalizeFirst = (str: string): string => {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+};
+
 export const ExpenseStats: React.FC<ExpenseStatsProps> = ({
   selectedPeriod,
   loadingMetrics,
   metricsData,
 }) => {
+  const periodLabel = capitalizeFirst(selectedPeriod);
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
       {/* Revenue Card */}
       <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800/80 rounded-xl p-4 shadow-sm flex items-center justify-between">
         <div>
           <span className="text-xs font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wider">
-            Revenue ({selectedPeriod})
+            Revenue ({periodLabel})
           </span>
           <h4 className="text-xl font-extrabold text-stone-900 dark:text-stone-50 mt-1">
             {loadingMetrics ? (
@@ -46,7 +52,7 @@ export const ExpenseStats: React.FC<ExpenseStatsProps> = ({
       <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800/80 rounded-xl p-4 shadow-sm flex items-center justify-between">
         <div>
           <span className="text-xs font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wider">
-            Expenses ({selectedPeriod})
+            Expenses ({periodLabel})
           </span>
           <h4 className="text-xl font-extrabold text-stone-900 dark:text-stone-50 mt-1">
             {loadingMetrics ? (
@@ -65,7 +71,7 @@ export const ExpenseStats: React.FC<ExpenseStatsProps> = ({
       <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800/80 rounded-xl p-4 shadow-sm flex items-center justify-between">
         <div>
           <span className="text-xs font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wider">
-            Net Profit ({selectedPeriod})
+            Net Profit ({periodLabel})
           </span>
           <h4 className={`text-xl font-extrabold mt-1 ${
             loadingMetrics ? '' : ((metricsData?.getContextMetrics?.netProfit || 0) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400')

@@ -1,13 +1,14 @@
-import React, { useState } from "react";
-import { gql, useQuery, useMutation, useApolloClient } from "@apollo/client";
-import { Database, RefreshCw, AlertTriangle, Sparkles } from "lucide-react";
-import Spinkit from "../../components/Spinkit";
-import { SEED_DATABASE, WIPE_DATABASE } from "../../lib/graphql/mutations";
+import React, { useState } from 'react';
+import { gql, useQuery, useMutation, useApolloClient } from '@apollo/client';
+import { Database, RefreshCw, AlertTriangle, Sparkles } from 'lucide-react';
+import Spinkit from '../../components/Spinkit';
+import { SEED_DATABASE, WIPE_DATABASE } from '../../lib/graphql/mutations';
 
 // Modular Sub-components
-import { DatabaseInventoryGrid } from "./components/DatabaseInventoryGrid.js";
-import { SandboxOperationsPanel } from "./components/SandboxOperationsPanel.js";
-import { WipeConfirmationModal } from "./components/WipeConfirmationModal.js";
+import { DatabaseInventoryGrid } from './components/DatabaseInventoryGrid.js';
+import { SandboxOperationsPanel } from './components/SandboxOperationsPanel.js';
+import { WipeConfirmationModal } from './components/WipeConfirmationModal.js';
+import { FeatureFlagPanel } from './components/FeatureFlagPanel';
 
 const GET_DATABASE_STATUS = gql`
   query GetDatabaseStatus {
@@ -27,7 +28,7 @@ const GET_DATABASE_STATUS = gql`
 export const SettingsPage: React.FC = () => {
   const apolloClient = useApolloClient();
   const { data, loading, error, refetch } = useQuery(GET_DATABASE_STATUS, {
-    fetchPolicy: "network-only",
+    fetchPolicy: 'network-only',
   });
 
   const [seedDatabase, { loading: seedLoading }] = useMutation(SEED_DATABASE);
@@ -47,16 +48,12 @@ export const SettingsPage: React.FC = () => {
       if (response.data?.seedDatabase) {
         await apolloClient.clearStore();
         await refetch();
-        setSuccessMessage(
-          "Database sandbox successfully seeded with realistic testing data.",
-        );
+        setSuccessMessage('Database sandbox successfully seeded with realistic testing data.');
       } else {
-        setErrorMessage("Failed to seed database sandbox.");
+        setErrorMessage('Failed to seed database sandbox.');
       }
     } catch (err: any) {
-      setErrorMessage(
-        err.message || "An error occurred while seeding the database sandbox.",
-      );
+      setErrorMessage(err.message || 'An error occurred while seeding the database sandbox.');
     }
   };
 
@@ -74,16 +71,12 @@ export const SettingsPage: React.FC = () => {
         setIsWipeModalOpen(false);
         await apolloClient.clearStore();
         await refetch();
-        setSuccessMessage(
-          "All sandbox testing data was successfully wiped from the database.",
-        );
+        setSuccessMessage('All sandbox testing data was successfully wiped from the database.');
       } else {
-        setWipeError("Failed to wipe database sandbox.");
+        setWipeError('Failed to wipe database sandbox.');
       }
     } catch (err: any) {
-      setWipeError(
-        err.message || "An error occurred while wiping the database sandbox.",
-      );
+      setWipeError(err.message || 'An error occurred while wiping the database sandbox.');
     }
   };
 
@@ -135,8 +128,7 @@ export const SettingsPage: React.FC = () => {
             Sandbox & Settings Manager
           </h1>
           <p className="text-sm text-stone-500 dark:text-stone-400 mt-1.5 font-medium">
-            Manage your sandbox environment, database seeds, and testing data
-            isolation.
+            Manage your sandbox environment, database seeds, and testing data isolation.
           </p>
         </div>
         <button
@@ -178,6 +170,9 @@ export const SettingsPage: React.FC = () => {
         seedLoading={seedLoading}
         wipeLoading={wipeLoading}
       />
+
+      {/* Feature Flags Section */}
+      <FeatureFlagPanel />
 
       {/* Double-Confirmation Modal */}
       <WipeConfirmationModal

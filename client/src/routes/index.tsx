@@ -9,6 +9,7 @@ import { useApolloClient, ApolloClient, NormalizedCacheObject } from "@apollo/cl
 import { match } from "ts-pattern";
 
 import { ShellProvider } from "@contexts/ShellContext";
+import { useSystemConfig } from "@contexts/SystemConfigContext";
 import { NavShell } from "@components/shell/NavShell";
 import { usePlocState } from "@hooks/use-ploc-state";
 import { UserRole } from "@shared-domain/shared/value-objects/role.vo";
@@ -58,6 +59,7 @@ const useApollo = (): ApolloClient<NormalizedCacheObject> =>
 const AppView: React.FC = () => {
   const ploc = useAuthPloc();
   const state = usePlocState(ploc);
+  const { rentalsEnabled } = useSystemConfig();
 
   useEffect(() => {
     ploc.checkSession();
@@ -106,7 +108,7 @@ const AppView: React.FC = () => {
                   <Route path="/dashboard" element={<DashboardRouteWrapper />} />
                   <Route path="/dashboard/profit" element={<ProfitDetailPage />} />
                   <Route path="/dashboard/analytics/:contextId" element={<AnalyticsPage />} />
-                  <Route path="/rentals" element={<RentalsPage />} />
+                  {rentalsEnabled && <Route path="/rentals" element={<RentalsPage />} />}
                   <Route path="/deliveries" element={<DeliveriesPage />} />
                   <Route path="/finance" element={<FinancialRouteWrapper />} />
                   <Route path="/expenses" element={<ExpenseRouteWrapper />} />

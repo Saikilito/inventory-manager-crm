@@ -9,6 +9,7 @@ import {
 
 import "./index.css";
 import Routes from "./routes/index";
+import { SystemConfigProvider } from "@contexts/SystemConfigContext";
 
 const graphqlUri =
   import.meta.env.VITE_GRAPHQL_URI || "http://localhost:4555/graphql";
@@ -43,6 +44,8 @@ if (!rootElement) {
 const root = createRoot(rootElement);
 root.render(
   <ApolloProvider client={client}>
-    <App />
+    <SystemConfigProvider>
+      <App />
+    </SystemConfigProvider>
   </ApolloProvider>,
 );

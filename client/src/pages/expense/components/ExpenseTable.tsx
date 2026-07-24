@@ -11,9 +11,6 @@ interface ExpenseTableProps {
   searchQuery: string;
   startDate: string;
   endDate: string;
-  contextMap: Map<string, string>;
-  productMap: Map<string, string>;
-  userMap: Map<string, string>;
   getCategoryBadgeClass: (cat: string) => string;
   getCategoryLabel: (cat: string) => string;
   formatCurrency: (amount: number) => string;
@@ -29,9 +26,6 @@ export const ExpenseTable: React.FC<ExpenseTableProps> = ({
   searchQuery,
   startDate,
   endDate,
-  contextMap,
-  productMap,
-  userMap,
   getCategoryBadgeClass,
   getCategoryLabel,
   formatCurrency,
@@ -98,7 +92,7 @@ export const ExpenseTable: React.FC<ExpenseTableProps> = ({
                         <th scope="col" className="px-6 py-3.5 text-left text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Description</th>
                         <th scope="col" className="px-6 py-3.5 text-left text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Category</th>
                         <th scope="col" className="px-6 py-3.5 text-left text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Context</th>
-                        <th scope="col" className="px-6 py-3.5 text-left text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Link Reference</th>
+                        <th scope="col" className="px-6 py-3.5 text-left text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Type</th>
                         <th scope="col" className="px-6 py-3.5 text-left text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Date</th>
                         <th scope="col" className="px-6 py-3.5 text-right text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Amount</th>
                         <th scope="col" className="px-6 py-3.5 text-right text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Actions</th>
@@ -109,14 +103,11 @@ export const ExpenseTable: React.FC<ExpenseTableProps> = ({
                         const id = String(item.id);
                         const contextName = item.contextId ? contextMap.get(String(item.contextId)) || 'Loading...' : 'General';
                         
-                        let referenceLabel = 'None';
-                        if (item.referenceType === 'PRODUCT' && item.referenceId) {
-                          referenceLabel = `Product: ${productMap.get(String(item.referenceId)) || 'Loading...'}`;
-                        } else if (item.referenceType === 'SELLER' && item.referenceId) {
-                          referenceLabel = `Seller: ${userMap.get(String(item.referenceId)) || 'Loading...'}`;
-                        } else if (item.referenceType === 'FIXED_EXPENSE') {
-                          referenceLabel = 'Fixed Cost sync';
-                        }
+                        const isFixed = item.referenceType === 'FIXED_EXPENSE';
+                        const typeLabel = isFixed ? 'Fixed' : 'Variable';
+                        const typeBadgeClass = isFixed 
+                          ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800/50'
+                          : 'bg-stone-100 text-stone-700 border-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:border-stone-700';
 
                         return (
                           <tr key={id} className="hover:bg-stone-50/50 dark:hover:bg-stone-950/20 transition-colors">
@@ -127,7 +118,11 @@ export const ExpenseTable: React.FC<ExpenseTableProps> = ({
                               </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-500 dark:text-stone-400 font-medium">{contextName}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-xs text-stone-400 dark:text-stone-505 font-medium">{referenceLabel}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-xs">
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider border ${typeBadgeClass}`}>
+                                {typeLabel}
+                              </span>
+                            </td>
                             <td className="px-6 py-4 whitespace-nowrap text-xs text-stone-500 dark:text-stone-400">{formatDate(String(item.createdAt))}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-extrabold text-stone-900 dark:text-stone-50 text-right">{formatCurrency(Number(item.amount))}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

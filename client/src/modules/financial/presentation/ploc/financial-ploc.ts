@@ -13,7 +13,8 @@ export interface FinancialPloc extends Ploc<FinancialState> {
     amount: number;
     description: string;
     date?: string;
-    referenceId?: string;
+    source?: string;
+    sourceReferenceId?: string;
   }): Promise<void>;
   updateExchangeRate(date: string, rate: number): Promise<void>;
   openDay(date: string): Promise<void>;
@@ -125,7 +126,6 @@ export function makeFinancialPloc(repository: FinancialRepository): FinancialPlo
   };
 
   const createAccount = async (name: string, currency: string, balance?: number) => {
-    const currentState = ploc.state();
     const result = await repository.createAccount(name, currency, balance);
 
     if (result.isFailure) {
@@ -135,7 +135,7 @@ export function makeFinancialPloc(repository: FinancialRepository): FinancialPlo
         errorMessage: result.getError().message || 'Error creating account',
       });
     } else {
-      await load(currentState.selectedDate);
+      await load(ploc.state().selectedDate);
     }
   };
 
@@ -145,12 +145,13 @@ export function makeFinancialPloc(repository: FinancialRepository): FinancialPlo
     amount: number;
     description: string;
     date?: string;
-    referenceId?: string;
+    source?: string;
+    sourceReferenceId?: string;
   }) => {
-    const currentState = ploc.state();
+    const selectedDate = ploc.state().selectedDate;
     const result = await repository.createTransaction({
       ...input,
-      date: input.date || currentState.selectedDate,
+      date: input.date || selectedDate,
     });
 
     if (result.isFailure) {
@@ -160,12 +161,11 @@ export function makeFinancialPloc(repository: FinancialRepository): FinancialPlo
         errorMessage: result.getError().message || 'Error creating transaction',
       });
     } else {
-      await load(currentState.selectedDate);
+      await load(selectedDate);
     }
   };
 
   const updateExchangeRate = async (date: string, rate: number) => {
-    const currentState = ploc.state();
     const result = await repository.updateExchangeRate(date, rate);
 
     if (result.isFailure) {
@@ -175,12 +175,11 @@ export function makeFinancialPloc(repository: FinancialRepository): FinancialPlo
         errorMessage: result.getError().message || 'Error updating exchange rate',
       });
     } else {
-      await load(currentState.selectedDate);
+      await load(ploc.state().selectedDate);
     }
   };
 
   const openDay = async (date: string) => {
-    const currentState = ploc.state();
     const result = await repository.openFinancialDay(date);
 
     if (result.isFailure) {
@@ -190,12 +189,11 @@ export function makeFinancialPloc(repository: FinancialRepository): FinancialPlo
         errorMessage: result.getError().message || 'Error opening financial day',
       });
     } else {
-      await load(currentState.selectedDate);
+      await load(ploc.state().selectedDate);
     }
   };
 
   const closeDay = async (date: string) => {
-    const currentState = ploc.state();
     const result = await repository.closeFinancialDay(date);
 
     if (result.isFailure) {
@@ -205,7 +203,7 @@ export function makeFinancialPloc(repository: FinancialRepository): FinancialPlo
         errorMessage: result.getError().message || 'Error closing financial day',
       });
     } else {
-      await load(currentState.selectedDate);
+      await load(ploc.state().selectedDate);
     }
   };
 
@@ -218,10 +216,10 @@ export function makeFinancialPloc(repository: FinancialRepository): FinancialPlo
     description?: string | null;
     date?: string | null;
   }) => {
-    const currentState = ploc.state();
+    const selectedDate = ploc.state().selectedDate;
     const result = await repository.transferFunds({
       ...input,
-      date: input.date || currentState.selectedDate,
+      date: input.date || selectedDate,
     });
 
     if (result.isFailure) {
@@ -231,12 +229,11 @@ export function makeFinancialPloc(repository: FinancialRepository): FinancialPlo
         errorMessage: result.getError().message || 'Error transferring funds',
       });
     } else {
-      await load(currentState.selectedDate);
+      await load(selectedDate);
     }
   };
 
   const deleteTransaction = async (id: string) => {
-    const currentState = ploc.state();
     const result = await repository.deleteTransaction(id);
 
     if (result.isFailure) {
@@ -246,7 +243,7 @@ export function makeFinancialPloc(repository: FinancialRepository): FinancialPlo
         errorMessage: result.getError().message || 'Error deleting transaction',
       });
     } else {
-      await load(currentState.selectedDate);
+      await load(ploc.state().selectedDate);
     }
   };
 

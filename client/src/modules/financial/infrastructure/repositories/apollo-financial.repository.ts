@@ -5,7 +5,6 @@ import { ITransaction, makeTransaction } from '@shared-domain/financial/transact
 import { IFinancialDay, makeFinancialDay } from '@shared-domain/financial/financial-day.entity.js';
 import { makeExchangeRate } from '@shared-domain/financial/exchange-rate.entity.js';
 import { doTryResult } from '@shared-domain/shared/do-try-result';
-import { DatabaseError } from '@shared-domain/shared/errors';
 import { GET_FINANCIAL_DAY_BY_DATE, GET_ACCOUNTS, GET_TRANSACTIONS } from '../graphql/queries';
 import {
   CREATE_ACCOUNT,
@@ -33,7 +32,8 @@ interface GQLTransaction {
   description: string;
   date: string;
   financialDayId: string;
-  referenceId?: string;
+  source?: string;
+  sourceReferenceId?: string;
   createdAt: string;
 }
 
@@ -79,7 +79,8 @@ export function makeApolloFinancialRepository(
       description: tx.description,
       date: tx.date,
       financialDayId: tx.financialDayId,
-      referenceId: tx.referenceId,
+      source: tx.source,
+      sourceReferenceId: tx.sourceReferenceId,
       createdAt: tx.createdAt,
     });
   };
@@ -118,7 +119,7 @@ export function makeApolloFinancialRepository(
             rate: result.exchangeRate,
           };
         },
-        (err) => new DatabaseError(err.message),
+        (err) => createDatabaseError(err.message),
       );
     },
 
@@ -132,7 +133,7 @@ export function makeApolloFinancialRepository(
 
           return (data.getAccounts || []).map(mapAccountToDomain);
         },
-        (err) => new DatabaseError(err.message),
+        (err) => createDatabaseError(err.message),
       );
     },
 
@@ -147,7 +148,7 @@ export function makeApolloFinancialRepository(
 
           return (data.getTransactions || []).map(mapTransactionToDomain);
         },
-        (err) => new DatabaseError(err.message),
+        (err) => createDatabaseError(err.message),
       );
     },
 
@@ -165,7 +166,7 @@ export function makeApolloFinancialRepository(
 
           return mapAccountToDomain(data.createAccount);
         },
-        (err) => new DatabaseError(err.message),
+        (err) => createDatabaseError(err.message),
       );
     },
 
@@ -183,7 +184,7 @@ export function makeApolloFinancialRepository(
 
           return mapTransactionToDomain(data.createTransaction);
         },
-        (err) => new DatabaseError(err.message),
+        (err) => createDatabaseError(err.message),
       );
     },
 
@@ -205,7 +206,7 @@ export function makeApolloFinancialRepository(
             rate: data.updateExchangeRate.rate,
           });
         },
-        (err) => new DatabaseError(err.message),
+        (err) => createDatabaseError(err.message),
       );
     },
 
@@ -223,7 +224,7 @@ export function makeApolloFinancialRepository(
 
           return mapFinancialDayToDomain(data.openFinancialDay);
         },
-        (err) => new DatabaseError(err.message),
+        (err) => createDatabaseError(err.message),
       );
     },
 
@@ -241,7 +242,7 @@ export function makeApolloFinancialRepository(
 
           return mapFinancialDayToDomain(data.closeFinancialDay);
         },
-        (err) => new DatabaseError(err.message),
+        (err) => createDatabaseError(err.message),
       );
     },
 
@@ -259,7 +260,7 @@ export function makeApolloFinancialRepository(
 
           return data.transferFunds;
         },
-        (err) => new DatabaseError(err.message),
+        (err) => createDatabaseError(err.message),
       );
     },
 
@@ -277,7 +278,7 @@ export function makeApolloFinancialRepository(
 
           return data.deleteTransaction;
         },
-        (err) => new DatabaseError(err.message),
+        (err) => createDatabaseError(err.message),
       );
     },
   };

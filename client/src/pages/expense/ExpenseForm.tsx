@@ -70,7 +70,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
       variables: { limit: 100, offset: 0 },
     },
   );
-  const { data: usersData, loading: loadingUsers } = useQuery(GET_USERS);
+  const { data: usersData } = useQuery(GET_USERS);
 
   useEffect(() => {
     if (!expense || String(expense.referenceType) !== referenceType) {
@@ -243,7 +243,9 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
             onChange={(e) => setReferenceType(e.target.value)}
           >
             <option value="">None</option>
-            {refTypes.map((t) => (
+            {refTypes
+              .filter(t => t !== 'FIXED_EXPENSE') // Hide FIXED_EXPENSE from manual selection
+              .map((t) => (
               <option key={t} value={t}>
                 {t === "PRODUCT" ? "Product" : "Seller/User"}
               </option>

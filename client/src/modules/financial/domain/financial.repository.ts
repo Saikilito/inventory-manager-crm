@@ -16,7 +16,8 @@ export interface FinancialRepository {
     amount: number;
     description: string;
     date?: string;
-    referenceId?: string;
+    source?: string;
+    sourceReferenceId?: string;
   }): Promise<Result<ITransaction, DomainError>>;
   updateExchangeRate(date: string, rate: number): Promise<Result<IExchangeRate, DomainError>>;
   openFinancialDay(date: string): Promise<Result<IFinancialDay, DomainError>>;

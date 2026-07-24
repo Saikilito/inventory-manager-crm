@@ -1,4 +1,4 @@
-import { OrderStatus, PaymentStatus, DeliveryStatus } from '@shared-domain/order/order.entity';
+import { OrderStatus, PaymentStatus } from '@shared-domain/order/order.entity';
 
 export interface TransactionLine {
   id: string;

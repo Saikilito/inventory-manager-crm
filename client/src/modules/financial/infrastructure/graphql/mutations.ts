@@ -18,7 +18,8 @@ export const CREATE_TRANSACTION = gql`
     $amount: Float!
     $description: String!
     $date: String
-    $referenceId: ID
+    $source: TransactionSource
+    $sourceReferenceId: ID
   ) {
     createTransaction(
       accountId: $accountId
@@ -26,7 +27,8 @@ export const CREATE_TRANSACTION = gql`
       amount: $amount
       description: $description
       date: $date
-      referenceId: $referenceId
+      source: $source
+      sourceReferenceId: $sourceReferenceId
     ) {
       id
       accountId
@@ -36,7 +38,8 @@ export const CREATE_TRANSACTION = gql`
       description
       date
       financialDayId
-      referenceId
+      source
+      sourceReferenceId
       createdAt
     }
   }
