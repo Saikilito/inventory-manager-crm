@@ -23,28 +23,30 @@ export interface CreateRentalReservationInput {
 
 export type CreateRentalReservation = UseCase<CreateRentalReservationInput, IRentalReservation, DomainError>;
 
-class KeyMutex {
-  private locks = new Map<string, Promise<void>>();
+const makeKeyMutex = () => {
+  const locks = new Map<string, Promise<void>>();
 
-  async acquire(key: string): Promise<() => void> {
-    while (this.locks.has(key)) {
-      await this.locks.get(key);
+  const acquire = async (key: string): Promise<() => void> => {
+    while (locks.has(key)) {
+      await locks.get(key);
     }
-    
+
     let resolveLock!: () => void;
     const promise = new Promise<void>((resolve) => {
       resolveLock = resolve;
     });
-    this.locks.set(key, promise);
+    locks.set(key, promise);
 
     return () => {
-      this.locks.delete(key);
+      locks.delete(key);
       resolveLock();
     };
-  }
-}
+  };
 
-const mutex = new KeyMutex();
+  return { acquire };
+};
+
+const mutex = makeKeyMutex();
 
 export const makeCreateRentalReservation = (
   rentalRepository: IRentalRepository,
@@ -54,15 +56,13 @@ export const makeCreateRentalReservation = (
     let startDT: DateTime;
     let endDT: DateTime;
     let prodId: Id;
-    let ordId: Id;
 
     try {
       prodId = IdVO.create(input.productId);
-      ordId = IdVO.create(input.orderId);
       startDT = DateTimeVO.create(input.startDateTime);
       endDT = RentalCalculator.calculateRentalDueDate(startDT, input.durationHours);
     } catch (err: unknown) {
-      return Result.fail(new ValidationError(getErrorMessage(err)));
+      return Result.fail(createValidationError(getErrorMessage(err)));
     }
 
     const release = await mutex.acquire(prodId.toString());
@@ -83,7 +83,7 @@ export const makeCreateRentalReservation = (
         })
         .useResult('stockCheck', ({ product, overlapping }: { product: IProduct | null; overlapping: IRentalReservation[] }) => {
           if (!product) {
-            return Result.fail(new ValidationError(`Product with ID ${input.productId} not found`));
+            return Result.fail(createValidationError(`Product with ID ${input.productId} not found`));
           }
 
           const bookedQuantity = overlapping.reduce((sum: number, rental: IRentalReservation) => sum + rental.quantity, 0);
@@ -91,7 +91,7 @@ export const makeCreateRentalReservation = (
 
           if (availableStock < input.quantity) {
             return Result.fail(
-              new ValidationError(
+              createValidationError(
                 `Insufficient stock for rental reservation of product "${product.name.toString()}". ` +
                 `Requested: ${input.quantity}, Available: ${availableStock} (Total: ${product.stock}, Booked: ${bookedQuantity})`
               )

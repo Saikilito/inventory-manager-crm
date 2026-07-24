@@ -3,7 +3,7 @@ import { NonNegativeNumber, NonNegativeNumberVO } from '../shared/value-objects/
 import { NonEmptyString, NonEmptyStringVO } from '../shared/value-objects/non-empty-string.vo.js';
 import { PositiveNumber, PositiveNumberVO } from '../shared/value-objects/positive-number.vo.js';
 import { DateTime, DateTimeVO } from '../shared/value-objects/date-time.vo.js';
-import { ValidationError } from '../shared/validation-error.js';
+import { createValidationError } from '../shared/validation-error.js';
 import { validateCancellationObservationForStatus } from './cancellation-observation.vo.js';
 
 export const PRICE_DECIMAL_PRECISION = 2;
@@ -99,11 +99,14 @@ export const makeOrder = (props: {
       ? Number(Number(props.deliveryCost).toFixed(PRICE_DECIMAL_PRECISION))
       : undefined;
 
-  if (props.status === 'CANCELLED') {
+  if (props.status === OrderStatus.CANCELLED) {
     const pStatus = props.paymentStatus || PaymentStatus.PENDING;
     const dStatus = props.deliveryStatus || DeliveryStatus.PENDING;
-    if (pStatus === 'PAID' && (dStatus === 'SENT' || dStatus === 'COMPLETE')) {
-      throw new ValidationError('Cannot cancel an order that is PAID and SENT/COMPLETE');
+    if (
+      pStatus === PaymentStatus.PAID &&
+      (dStatus === DeliveryStatus.SENT || dStatus === DeliveryStatus.COMPLETE)
+    ) {
+      throw createValidationError('Cannot cancel an order that is PAID and SENT/COMPLETE');
     }
 
     const obsValidation = validateCancellationObservationForStatus(props.cancellationObservation, props.status);
@@ -124,14 +127,14 @@ export const makeOrder = (props: {
           item.purchasePriceAtSale === null ||
           isNaN(item.purchasePriceAtSale)
         ) {
-          throw new ValidationError('Purchase price at sale is required');
+          throw createValidationError('Purchase price at sale is required');
         }
         if (
           item.sellingPriceAtSale === undefined ||
           item.sellingPriceAtSale === null ||
           isNaN(item.sellingPriceAtSale)
         ) {
-          throw new ValidationError('Selling price at sale is required');
+          throw createValidationError('Selling price at sale is required');
         }
       }
       const rawPPrice =

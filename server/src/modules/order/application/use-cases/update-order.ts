@@ -1,10 +1,10 @@
-import { match } from 'ts-pattern';
-import { DomainError, NotFoundError } from '../../../../../../shared-domain/src/shared/errors.js';
+import { DomainError, createNotFoundError } from '../../../../../../shared-domain/src/shared/errors.js';
 import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { ResultComposer } from '../../../../../../shared-domain/src/shared/result-composer.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
 import { PositiveNumberVO } from '../../../../../../shared-domain/src/shared/value-objects/positive-number.vo.js';
+import { NonNegativeNumberVO } from '../../../../../../shared-domain/src/shared/value-objects/non-negative-number.vo.js';
 import {
   IOrder,
   IOrderItem,
@@ -16,9 +16,13 @@ import {
 } from '../../../../../../shared-domain/src/order/order.entity.js';
 import { IOrderRepository } from '../repositories/order.repository.js';
 import { IProductRepository } from '../../../product/application/repositories/product.repository.js';
-import { IProduct, makeProduct } from '../../../../../../shared-domain/src/product/product.entity.js';
+import { makeProduct } from '../../../../../../shared-domain/src/product/product.entity.js';
 import { RecalculateClientRating } from '../../../client/application/use-cases/recalculate-client-rating.js';
 import { StockOperation } from './update-order.constants.js';
+import { IDeliveryRepository } from '../../../delivery/application/repositories/delivery.repository.js';
+import { DeliveryStatus as SharedDeliveryStatus } from '../../../../../../shared-domain/src/delivery/delivery.entity.js';
+import { RecordOrderPaymentUseCase } from '../../../financial/application/use-cases/record-order-payment.js';
+import { ReverseOrderPaymentUseCase } from '../../../financial/application/use-cases/reverse-order-payment.js';
 
 export interface UpdateOrderInput {
   id: string;
@@ -41,6 +45,9 @@ export const makeUpdateOrder = (
   orderRepository: IOrderRepository,
   productRepository: IProductRepository,
   recalculateClientRating: RecalculateClientRating,
+  deliveryRepository?: IDeliveryRepository,
+  recordOrderPayment?: RecordOrderPaymentUseCase,
+  reverseOrderPayment?: ReverseOrderPaymentUseCase,
 ): UpdateOrder => {
   return async (input: UpdateOrderInput) => {
     const composerResult = await ResultComposer.start()
@@ -48,7 +55,7 @@ export const makeUpdateOrder = (
       .useResult('validateExisting', ({ existing }) => {
         const ord = existing as IOrder | null;
         if (!ord) {
-          return Result.fail(new NotFoundError('Order not found'));
+          return Result.fail(createNotFoundError('Order not found'));
         }
         return Result.ok(ord);
       })
@@ -127,9 +134,10 @@ export const makeUpdateOrder = (
       paymentStatus: nextPaymentStatus,
       deliveryStatus: nextDeliveryStatus,
       sellerId: input.sellerId !== undefined ? input.sellerId : existing.sellerId,
-      contextId: input.contextId !== undefined ? input.contextId : existing.contextId,
+      contextId: input.contextId !== undefined ? input.contextId : (existing.contextId ? existing.contextId.toString() : undefined),
       deliveryCost:
         input.deliveryCost !== undefined ? input.deliveryCost : (existing.deliveryCost as unknown as number),
+      deliveryId: existing.deliveryId?.toString(),
       payments:
         input.payments !== undefined
           ? input.payments
@@ -148,7 +156,7 @@ export const makeUpdateOrder = (
 
     const isNewActive = updated.status !== OrderStatus.CANCELLED && updated.paymentStatus !== PaymentStatus.REFUNDED;
 
-    let operation = StockOperation.NONE;
+    let operation: StockOperation = StockOperation.NONE;
     if (isOldActive && !isNewActive) {
       operation = StockOperation.RESTORE;
     } else if (!isOldActive && isNewActive) {
@@ -164,7 +172,7 @@ export const makeUpdateOrder = (
 
         const product = prodResult.getValue();
         if (!product) {
-          return Result.fail(new NotFoundError(`Product not found: ${item.productId}`));
+          return Result.fail(createNotFoundError(`Product not found: ${item.productId}`));
         }
 
         const quantity = item.quantity;
@@ -193,9 +201,70 @@ export const makeUpdateOrder = (
       }
     }
 
+    // Handle delivery sync
+    if (existing.deliveryId && deliveryRepository) {
+      const deliveryRes = await deliveryRepository.getById(existing.deliveryId);
+      if (!deliveryRes.isFailure && deliveryRes.getValue()) {
+        const delivery = deliveryRes.getValue()!;
+        
+        // If delivery cost is explicitly set to 0, we delete the delivery completely (user removed delivery)
+        if (input.deliveryCost === 0) {
+          await deliveryRepository.deleteByIds([existing.deliveryId], IdVO.generateNil());
+          // Strip deliveryId from the updated order
+          updated.deliveryId = undefined;
+        } 
+        // If order is cancelled, cancel the delivery if it is not already completed
+        else if (finalStatus === OrderStatus.CANCELLED && delivery.status !== SharedDeliveryStatus.DELIVERED) {
+          delivery.status = SharedDeliveryStatus.CANCELLED;
+          await deliveryRepository.updateById(existing.deliveryId, delivery, IdVO.generateNil());
+        }
+        // If deliveryCost was updated but not to 0, sync the cost
+        else if (input.deliveryCost !== undefined && input.deliveryCost !== delivery.deliveryCost?.valueOf()) {
+          delivery.deliveryCost = NonNegativeNumberVO.create(input.deliveryCost);
+          await deliveryRepository.updateById(existing.deliveryId, delivery, IdVO.generateNil());
+        }
+      }
+    }
+
     const saveOrderResult = await orderRepository.updateById(IdVO.create(input.id), updated, IdVO.generateNil());
     if (saveOrderResult.isFailure) {
       return Result.fail(saveOrderResult.getError());
+    }
+
+    // Handle financial transactions after order is saved
+    if (recordOrderPayment && updated.payments && updated.payments.length > 0) {
+      const isPaymentTransition = existing.paymentStatus !== PaymentStatus.PAID && nextPaymentStatus === PaymentStatus.PAID;
+      
+      if (isPaymentTransition) {
+        const txResult = await recordOrderPayment({
+          orderId: input.id,
+          payments: updated.payments,
+        });
+
+        if (txResult.isFailure) {
+          // Log but don't fail - financial transactions are optional
+          console.error('Failed to record order payment:', txResult.getError());
+        }
+      } 
+    }
+    
+    if (reverseOrderPayment && existing.payments && existing.payments.length > 0) {
+      const isRefundTransition = existing.paymentStatus !== PaymentStatus.REFUNDED && nextPaymentStatus === PaymentStatus.REFUNDED;
+
+      if (isRefundTransition) {
+        // Reverse payments for refunds
+        for (const payment of existing.payments) {
+          const txResult = await reverseOrderPayment({
+            orderId: input.id,
+            amount: payment.amount as number,
+            accountId: payment.accountId.toString(),
+          });
+
+          if (txResult.isFailure) {
+            console.error('Failed to reverse order payment:', txResult.getError());
+          }
+        }
+      }
     }
 
     const oldClientId = existing.clientId;

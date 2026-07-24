@@ -1,6 +1,5 @@
 import { UseCase } from "../../../../../../shared-domain/src/shared/use-case.js";
 import { DomainError } from "../../../../../../shared-domain/src/shared/errors.js";
-import { ValidationError } from "../../../../../../shared-domain/src/shared/validation-error.js";
 import { Result } from "../../../../../../shared-domain/src/shared/result.js";
 import {
   IDelivery,

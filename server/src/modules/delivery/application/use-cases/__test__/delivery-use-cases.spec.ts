@@ -6,10 +6,14 @@ import { makeScheduleDelivery } from '../schedule-delivery.js';
 import { makeUpdateDeliveryStatus } from '../update-delivery-status.js';
 import { makeGetDelivery } from '../get-delivery.js';
 import { IdVO } from '../../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
-import { ValidationError } from '../../../../../../../shared-domain/src/shared/validation-error.js';
+import { RecordDeliveryPaymentUseCase } from '../../../../financial/application/use-cases/record-delivery-payment.js';
 
 const VALID_ORDER_UUID = '550e8400-e29b-41d4-a716-446655440000';
 const VALID_DELIVERY_UUID = '550e8400-e29b-41d4-a716-446655440001';
+
+const makeMockRecordDeliveryPayment = (): RecordDeliveryPaymentUseCase => {
+  return async () => Result.ok(null);
+};
 
 const makeMockDeliveryRepository = (): IDeliveryRepository => {
   const store = new Map<string, IDelivery>();
@@ -133,7 +137,8 @@ describe('Logistics & Delivery Use Cases', () => {
       getById: async () => Result.ok({ id: VALID_ORDER_UUID, deliveryStatus: 'PENDING', status: 'ACTIVE' } as any),
       updateById: async () => Result.ok(void 0)
     } as any;
-    const updateDeliveryStatus = makeUpdateDeliveryStatus(repo, mockOrderRepo);
+    const mockRecordDeliveryPayment = makeMockRecordDeliveryPayment();
+    const updateDeliveryStatus = makeUpdateDeliveryStatus(repo, mockOrderRepo, mockRecordDeliveryPayment);
     const getDelivery = makeGetDelivery(repo);
 
     const scheduleResult = await scheduleDelivery({
@@ -162,7 +167,8 @@ describe('Logistics & Delivery Use Cases', () => {
     const mockOrderRepo = {
       getById: async () => Result.ok(null)
     } as any;
-    const updateDeliveryStatus = makeUpdateDeliveryStatus(repo, mockOrderRepo);
+    const mockRecordDeliveryPayment = makeMockRecordDeliveryPayment();
+    const updateDeliveryStatus = makeUpdateDeliveryStatus(repo, mockOrderRepo, mockRecordDeliveryPayment);
 
     const result = await updateDeliveryStatus({
       id: VALID_DELIVERY_UUID,
