@@ -17,6 +17,8 @@ const mapToDomain = (doc: IExpenseDocument): IExpense => {
     contextId: doc.contextId ? doc.contextId.toString() : undefined,
     referenceId: doc.referenceId ? doc.referenceId.toString() : undefined,
     referenceType: doc.referenceType ?? undefined,
+    accountId: doc.accountId ? doc.accountId.toString() : undefined,
+    transactionId: doc.transactionId ? doc.transactionId.toString() : undefined,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   });
@@ -46,6 +48,12 @@ const mapToDocumentData = (expense: Partial<IExpense>) => {
   if (expense.referenceType !== undefined) {
     data.referenceType = expense.referenceType ?? null;
   }
+  if (expense.accountId !== undefined) {
+    data.accountId = expense.accountId ? new mongoose.Types.ObjectId(expense.accountId.toString()) : null;
+  }
+  if (expense.transactionId !== undefined) {
+    data.transactionId = expense.transactionId ? new mongoose.Types.ObjectId(expense.transactionId.toString()) : null;
+  }
   if (expense.createdAt !== undefined) {
     data.createdAt = expense.createdAt;
   }
@@ -72,7 +80,7 @@ export const makeExpenseMongooseRepository = (): IExpenseRepository => {
             { $set: { contextId: null } }
           ).exec();
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message)
       );
     }
   };

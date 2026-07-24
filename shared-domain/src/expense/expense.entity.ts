@@ -30,6 +30,8 @@ export interface IExpense {
   contextId?: Id;
   referenceId?: Id;
   referenceType?: ExpenseReferenceType;
+  accountId?: Id;
+  transactionId?: Id;
   createdAt?: DateTime;
   updatedAt?: DateTime;
 }
@@ -42,6 +44,8 @@ export const makeExpense = (props: {
   contextId?: string;
   referenceId?: string;
   referenceType?: string;
+  accountId?: string;
+  transactionId?: string;
   createdAt?: string | Date | number;
   updatedAt?: string | Date | number;
 }): IExpense => {
@@ -53,6 +57,8 @@ export const makeExpense = (props: {
     contextId: props.contextId ? IdVO.create(props.contextId) : undefined,
     referenceId: props.referenceId ? IdVO.create(props.referenceId) : undefined,
     referenceType: props.referenceType as ExpenseReferenceType | undefined,
+    accountId: props.accountId ? IdVO.create(props.accountId) : undefined,
+    transactionId: props.transactionId ? IdVO.create(props.transactionId) : undefined,
     createdAt: props.createdAt ? DateTimeVO.create(props.createdAt) : undefined,
     updatedAt: props.updatedAt ? DateTimeVO.create(props.updatedAt) : undefined,
   };

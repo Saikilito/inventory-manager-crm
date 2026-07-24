@@ -162,7 +162,7 @@ const topClientsResult = await doTryResult(
       { $limit: 10 }
     ]).exec();
   },
-  (err) => new DatabaseError(err.message)
+  (err) => createDatabaseError(err.message)
 );
 ```
 

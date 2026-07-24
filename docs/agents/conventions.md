@@ -91,7 +91,7 @@ if (input !== undefined) {
     if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
       return Result.ok(input);
     }
-    return Result.fail(new ValidationError('Invalid date'));
+    return Result.fail(createValidationError('Invalid date'));
   }
   date = input;
 } else {
@@ -102,7 +102,7 @@ if (input !== undefined) {
 if (typeof input === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(input)) {
   return Result.ok(input);
 }
-return Result.fail(new ValidationError('Invalid date'));
+return Result.fail(createValidationError('Invalid date'));
 
 const date = input instanceof Date ? input : new Date(input ?? Date.now());
 ```

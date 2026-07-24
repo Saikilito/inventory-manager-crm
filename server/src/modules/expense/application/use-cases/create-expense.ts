@@ -1,14 +1,15 @@
 import { z } from 'zod';
 import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
 import { DomainError } from '../../../../../../shared-domain/src/shared/errors.js';
-import { ValidationError } from '../../../../../../shared-domain/src/shared/validation-error.js';
+import { ValidationError, createValidationError } from '../../../../../../shared-domain/src/shared/validation-error.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { ResultComposer } from '../../../../../../shared-domain/src/shared/result-composer.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
-import { zodNonEmptyString, zodOptionalNullableIdString, zodPositiveNumber } from '../../../../../../shared-domain/src/shared/zod-schemas.js';
+import { zodNonEmptyString, zodOptionalNullableIdString, zodPositiveNumber, zodOptionalIdString } from '../../../../../../shared-domain/src/shared/zod-schemas.js';
 import { makeExpense, ExpenseCategory, ExpenseReferenceType, IExpense } from '../../../../../../shared-domain/src/expense/expense.entity.js';
 import { IExpenseRepository } from '../repositories/expense.repository.js';
 import { CreateEntityInput } from '../../../../../../shared-domain/src/shared/repository.js';
+import { RecordExpenseUseCase } from '../../../financial/application/use-cases/record-expense.js';
 
 export const CreateExpenseSchema = z.object({
   amount: zodPositiveNumber,
@@ -17,6 +18,7 @@ export const CreateExpenseSchema = z.object({
   contextId: zodOptionalNullableIdString,
   referenceId: zodOptionalNullableIdString,
   referenceType: z.nativeEnum(ExpenseReferenceType).optional().nullable(),
+  accountId: zodOptionalIdString,
   isTesting: z.boolean().optional(),
 });
 
@@ -24,11 +26,14 @@ export type CreateExpenseInput = z.infer<typeof CreateExpenseSchema>;
 
 export type CreateExpense = UseCase<CreateExpenseInput, IExpense, DomainError>;
 
-export const makeCreateExpense = (expenseRepository: IExpenseRepository): CreateExpense => {
+export const makeCreateExpense = (
+  expenseRepository: IExpenseRepository,
+  recordExpense?: RecordExpenseUseCase,
+): CreateExpense => {
   return async (input: CreateExpenseInput) => {
     const parseResult = CreateExpenseSchema.safeParse(input);
     if (!parseResult.success) {
-      return Result.fail(new ValidationError(parseResult.error.message));
+      return Result.fail(createValidationError(parseResult.error.message));
     }
 
     const composerResult = await ResultComposer.start()
@@ -40,6 +45,7 @@ export const makeCreateExpense = (expenseRepository: IExpenseRepository): Create
           contextId: input.contextId || undefined,
           referenceId: input.referenceId || undefined,
           referenceType: input.referenceType || undefined,
+          accountId: input.accountId || undefined,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         }));
@@ -57,6 +63,37 @@ export const makeCreateExpense = (expenseRepository: IExpenseRepository): Create
       return Result.fail(composerResult.getError());
     }
 
-    return Result.ok<IExpense, DomainError>(composerResult.getValue().save);
+    const savedExpense = composerResult.getValue().save as IExpense;
+
+    // Create financial transaction if accountId is provided
+    if (recordExpense && input.accountId && savedExpense.id) {
+      const txResult = await recordExpense({
+        expenseId: savedExpense.id.toString(),
+        accountId: input.accountId,
+        amount: Number(savedExpense.amount),
+      });
+
+      if (!txResult.isFailure && txResult.getValue()) {
+        // Update expense with transactionId
+        const transactionId = txResult.getValue().id;
+        const updatedExpense = makeExpense({
+          id: savedExpense.id?.toString(),
+          amount: Number(savedExpense.amount),
+          description: String(savedExpense.description),
+          category: String(savedExpense.category),
+          contextId: savedExpense.contextId?.toString(),
+          referenceId: savedExpense.referenceId?.toString(),
+          referenceType: savedExpense.referenceType?.toString(),
+          accountId: input.accountId,
+          transactionId: transactionId?.toString(),
+          createdAt: savedExpense.createdAt?.toString(),
+          updatedAt: new Date().toISOString(),
+        });
+        
+        await expenseRepository.updateById(savedExpense.id!, updatedExpense, IdVO.generateNil());
+      }
+    }
+
+    return Result.ok<IExpense, DomainError>(savedExpense);
   };
 };

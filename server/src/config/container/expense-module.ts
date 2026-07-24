@@ -15,6 +15,9 @@ import { DeleteFixedExpense, makeDeleteFixedExpense } from '../../modules/expens
 import { PayFixedExpense, makePayFixedExpense } from '../../modules/expense/application/use-cases/pay-fixed-expense.js';
 import { UnpayFixedExpense, makeUnpayFixedExpense } from '../../modules/expense/application/use-cases/unpay-fixed-expense.js';
 
+import { RecordExpenseUseCase } from '../../modules/financial/application/use-cases/record-expense.js';
+import { ReverseExpenseUseCase } from '../../modules/financial/application/use-cases/reverse-expense.js';
+
 export interface ExpenseSubContainer {
   getExpense: GetExpense;
   getAllExpenses: GetAllExpenses;
@@ -34,6 +37,8 @@ export const buildExpenseModule = (deps: {
   expenseRepository?: IExpenseRepository;
   fixedExpenseRepository?: IFixedExpenseRepository;
   fixedExpensePaymentRepository?: IFixedExpensePaymentRepository;
+  recordExpense?: RecordExpenseUseCase;
+  reverseExpense?: ReverseExpenseUseCase;
 }): ExpenseSubContainer => {
   const expenseRepository = deps.expenseRepository ?? makeExpenseMongooseRepository();
   const fixedExpenseRepository = deps.fixedExpenseRepository ?? makeFixedExpenseMongooseRepository();
@@ -43,8 +48,8 @@ export const buildExpenseModule = (deps: {
   return {
     getExpense: makeGetExpense(expenseRepository),
     getAllExpenses: makeGetAllExpenses(expenseRepository),
-    createExpense: makeCreateExpense(expenseRepository),
-    updateExpense: makeUpdateExpense(expenseRepository),
+    createExpense: makeCreateExpense(expenseRepository, deps.recordExpense),
+    updateExpense: makeUpdateExpense(expenseRepository, deps.recordExpense, deps.reverseExpense),
     deleteExpense: makeDeleteExpense(expenseRepository),
     getAllFixedExpenses: makeGetAllFixedExpenses(fixedExpenseRepository),
     getFixedExpensePayments: makeGetFixedExpensePayments(fixedExpenseRepository, fixedExpensePaymentRepository),

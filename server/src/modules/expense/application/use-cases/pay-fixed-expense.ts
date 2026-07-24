@@ -1,22 +1,23 @@
 import { z } from 'zod';
 import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
-import { DomainError, NotFoundError } from '../../../../../../shared-domain/src/shared/errors.js';
-import { ValidationError } from '../../../../../../shared-domain/src/shared/validation-error.js';
+import { DomainError, NotFoundError, createNotFoundError, createDomainError } from '../../../../../../shared-domain/src/shared/errors.js';
+import { ValidationError, createValidationError } from '../../../../../../shared-domain/src/shared/validation-error.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
-import { ResultComposer } from '../../../../../../shared-domain/src/shared/result-composer.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
-import { zodIdString, zodOptionalNullableIdString, zodPositiveNumber, zodBillingMonth } from '../../../../../../shared-domain/src/shared/zod-schemas.js';
+import { zodIdString, zodOptionalNullableIdString, zodPositiveNumber, zodBillingMonth, zodOptionalIdString } from '../../../../../../shared-domain/src/shared/zod-schemas.js';
 import { makeFixedExpensePayment, IFixedExpensePayment } from '../../../../../../shared-domain/src/expense/fixed-expense.entity.js';
-import { makeExpense } from '../../../../../../shared-domain/src/expense/expense.entity.js';
+import { makeExpense, IExpense } from '../../../../../../shared-domain/src/expense/expense.entity.js';
 import { IFixedExpenseRepository, IFixedExpensePaymentRepository } from '../repositories/fixed-expense.repository.js';
 import { IExpenseRepository } from '../repositories/expense.repository.js';
 import { CreateEntityInput } from '../../../../../../shared-domain/src/shared/repository.js';
+import { FinancialTransactionService } from '../../../financial/application/services/financial-transaction.service.js';
 
 export const PayFixedExpenseSchema = z.object({
   fixedExpenseId: zodIdString,
   billingMonth: zodBillingMonth,
   amountPaid: zodPositiveNumber,
   contextId: zodOptionalNullableIdString,
+  accountId: zodOptionalIdString,
 });
 
 export type PayFixedExpenseInput = z.infer<typeof PayFixedExpenseSchema>;
@@ -26,12 +27,13 @@ export type PayFixedExpense = UseCase<PayFixedExpenseInput, IFixedExpensePayment
 export const makePayFixedExpense = (
   fixedExpenseRepository: IFixedExpenseRepository,
   fixedExpensePaymentRepository: IFixedExpensePaymentRepository,
-  expenseRepository: IExpenseRepository
+  expenseRepository: IExpenseRepository,
+  financialTransactionService?: FinancialTransactionService,
 ): PayFixedExpense => {
   return async (input: PayFixedExpenseInput) => {
     const parseResult = PayFixedExpenseSchema.safeParse(input);
     if (!parseResult.success) {
-      return Result.fail(new ValidationError(parseResult.error.message));
+      return Result.fail(createValidationError(parseResult.error.message));
     }
 
     const fixedExpenseIdVO = IdVO.create(input.fixedExpenseId);
@@ -42,7 +44,7 @@ export const makePayFixedExpense = (
     }
     const template = templateResult.getValue();
     if (!template) {
-      return Result.fail(new NotFoundError('Fixed expense template not found'));
+      return Result.fail(createNotFoundError('Fixed expense template not found'));
     }
 
     const existingPaymentResult = await fixedExpensePaymentRepository.getByMonthAndExpense(
@@ -54,17 +56,18 @@ export const makePayFixedExpense = (
     }
     const existingPayment = existingPaymentResult.getValue();
     if (existingPayment && existingPayment.isPaid) {
-      return Result.fail(new DomainError('Fixed expense already paid for this month'));
+      return Result.fail(createDomainError('Fixed expense already paid for this month'));
     }
 
     const expenseDateStr = new Date().toISOString();
     const ledgerExpense = makeExpense({
       amount: input.amountPaid,
-      description: `[Paid - ${input.billingMonth}] ${template.name.toString()}`,
+      description: template.name.toString(),
       category: template.category,
       contextId: template.contextId ? template.contextId.toString() : (input.contextId || undefined),
       referenceId: template.id ? template.id.toString() : undefined,
       referenceType: 'FIXED_EXPENSE',
+      accountId: input.accountId || undefined,
       createdAt: expenseDateStr,
       updatedAt: expenseDateStr,
     });
@@ -74,6 +77,17 @@ export const makePayFixedExpense = (
       return Result.fail(createLedgerResult.getError());
     }
     const createdLedgerExpense = createLedgerResult.getValue();
+
+    // Create financial transaction if accountId is provided
+    if (financialTransactionService && input.accountId && createdLedgerExpense.id) {
+      const txResult = await financialTransactionService.recordExpense({
+        expenseId: createdLedgerExpense.id,
+        accountId: IdVO.create(input.accountId),
+        amount: createdLedgerExpense.amount,
+        financialDayId: IdVO.generateNil(),
+      });
+
+    }
 
     const payment = makeFixedExpensePayment({
       fixedExpenseId: template.id!.toString(),

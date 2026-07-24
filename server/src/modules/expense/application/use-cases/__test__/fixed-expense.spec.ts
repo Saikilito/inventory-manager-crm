@@ -212,7 +212,7 @@ describe('Fixed Expense Use Cases', () => {
     const ledgerExpense = ledgerStore.get(payment.generatedExpenseId!.toString());
     expect(ledgerExpense).toBeDefined();
     expect(ledgerExpense.amount).toBe(200);
-    expect(ledgerExpense.description).toBe('[Paid - 2026-07] Vercel Pro');
+    expect(ledgerExpense.description).toBe('Vercel Pro');
     expect(ledgerExpense.referenceType).toBe('FIXED_EXPENSE');
     expect(ledgerExpense.createdAt).toBeDefined();
     expect(typeof ledgerExpense.createdAt.toString()).toBe('string');
