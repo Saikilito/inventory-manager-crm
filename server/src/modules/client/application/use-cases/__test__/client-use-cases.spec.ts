@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Result } from '../../../../../../../shared-domain/src/shared/result.js';
-import { DatabaseError } from '../../../../../../../shared-domain/src/shared/errors.js';
+import { DatabaseError, createDatabaseError } from '../../../../../../../shared-domain/src/shared/errors.js';
 import { IClient, makeClient, calculateClientRatingTier, ClientRatingTier } from '../../../../../../../shared-domain/src/client/client.entity.js';
 import { IdVO } from '../../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
 import { IClientRepository } from '../../repositories/client.repository.js';
@@ -72,7 +72,7 @@ const makeMockClientRepository = () => {
 
     async updateById(id: string, client: any): Promise<Result<void, any>> {
       const existing = store.get(id);
-      if (!existing) return Result.fail(new DatabaseError('Client not found'));
+      if (!existing) return Result.fail(createDatabaseError('Client not found'));
       store.set(id, { ...existing, ...client });
       return Result.ok();
     },
@@ -194,7 +194,7 @@ describe('Client Use Cases (TDD)', () => {
     const getRes = await repo.getById(VALID_CLIENT_UUID);
     const updated = getRes.getValue()!;
     expect(updated.address).toBe('New Address St.');
-    expect(updated.firstName).toBe('Kember'); // Kept original
+    expect(updated.firstName).toBe('Kember');
   });
 
   it('should successfully delete an existing client (DeleteClient)', async () => {

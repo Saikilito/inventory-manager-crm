@@ -1,7 +1,6 @@
 import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
-import { DomainError } from '../../../../../../shared-domain/src/shared/errors.js';
+import { DomainError, createValidationError, isDomainError } from '../../../../../../shared-domain/src/shared/errors.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
-import { ValidationError } from '../../../../../../shared-domain/src/shared/validation-error.js';
 import { getErrorMessage } from '../../../../../../shared-domain/src/shared/error-utils.js';
 import { Id, IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
 import { DateTime, DateTimeVO } from '../../../../../../shared-domain/src/shared/value-objects/date-time.vo.js';
@@ -28,11 +27,11 @@ export const makeGetOverlappingReservations = (rentalRepository: IRentalReposito
       startDT = DateTimeVO.create(input.startDateTime);
       endDT = DateTimeVO.create(input.endDateTime);
     } catch (err: unknown) {
-      return Result.fail(err instanceof DomainError ? err : new ValidationError(getErrorMessage(err)));
+      return Result.fail(isDomainError(err) ? err : createValidationError(getErrorMessage(err)));
     }
 
     const overlapResult = await rentalRepository.getAll({
-      where: { fields: buildOverlapWhere(pId, startDT, endDT) }
+      where: { fields: buildOverlapWhere(pId, startDT, endDT) },
     });
     if (overlapResult.isFailure) {
       return Result.fail(overlapResult.getError());

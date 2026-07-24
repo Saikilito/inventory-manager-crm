@@ -1,5 +1,5 @@
 import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
-import { DomainError, NotFoundError } from '../../../../../../shared-domain/src/shared/errors.js';
+import { DomainError, createNotFoundError } from '../../../../../../shared-domain/src/shared/errors.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { ResultComposer } from '../../../../../../shared-domain/src/shared/result-composer.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
@@ -23,7 +23,7 @@ export const makeRecalculateClientRating = (
       .useResult('validateClient', ({ client }) => {
         const cli = client as IClient | null;
         if (!cli) {
-          return Result.fail(new NotFoundError('Client not found'));
+          return Result.fail(createNotFoundError('Client not found'));
         }
         return Result.ok(cli);
       })

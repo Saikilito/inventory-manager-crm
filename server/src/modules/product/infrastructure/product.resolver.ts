@@ -99,7 +99,6 @@ export default {
         const purchasePrice = Number(p.purchasePrice) || 0;
         const sellingPrice = Number(p.sellingPrice) || 0;
         const stock = Number(p.stock) || 0;
-        const profit = calculateProfit(sellingPrice, purchasePrice);
 
         totalStock += stock;
         totalStockValue += calculateStockValue(purchasePrice, stock);

@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
-import { DomainError, NotFoundError } from '../../../../../../shared-domain/src/shared/errors.js';
-import { ValidationError } from '../../../../../../shared-domain/src/shared/validation-error.js';
+import { DomainError, createNotFoundError, createValidationError } from '../../../../../../shared-domain/src/shared/errors.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { ResultComposer } from '../../../../../../shared-domain/src/shared/result-composer.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
@@ -27,7 +26,7 @@ export const makeUpdateFixedExpense = (fixedExpenseRepository: IFixedExpenseRepo
   return async (input: UpdateFixedExpenseInput) => {
     const parseResult = UpdateFixedExpenseSchema.safeParse(input);
     if (!parseResult.success) {
-      return Result.fail(new ValidationError(parseResult.error.message));
+      return Result.fail(createValidationError(parseResult.error.message));
     }
 
     const composerResult = await ResultComposer.start()
@@ -35,7 +34,7 @@ export const makeUpdateFixedExpense = (fixedExpenseRepository: IFixedExpenseRepo
       .useResult('validateExisting', ({ existing }) => {
         const exp = existing as IFixedExpense | null;
         if (!exp) {
-          return Result.fail(new NotFoundError('Fixed expense template not found'));
+          return Result.fail(createNotFoundError('Fixed expense template not found'));
         }
         return Result.ok(exp);
       })

@@ -1,5 +1,5 @@
 import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
-import { DomainError, NotFoundError } from '../../../../../../shared-domain/src/shared/errors.js';
+import { DomainError, createNotFoundError } from '../../../../../../shared-domain/src/shared/errors.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { ResultComposer } from '../../../../../../shared-domain/src/shared/result-composer.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
@@ -41,7 +41,7 @@ export const makeCreateOrder = (
           const productResult = await productRepository.getById(IdVO.create(item.productId));
           if (productResult.isFailure) return Result.fail(productResult.getError());
           const product = productResult.getValue();
-          if (!product) return Result.fail(new NotFoundError(`Product not found: ${item.productId}`));
+          if (!product) return Result.fail(createNotFoundError(`Product not found: ${item.productId}`));
           productMap.set(item.productId, product);
         }
         return Result.ok(productMap);
@@ -50,7 +50,7 @@ export const makeCreateOrder = (
         const clientResult = await clientRepository.getById(IdVO.create(input.clientId));
         if (clientResult.isFailure) return Result.fail(clientResult.getError());
         const client = clientResult.getValue();
-        if (!client) return Result.fail(new NotFoundError(`Client not found: ${input.clientId}`));
+        if (!client) return Result.fail(createNotFoundError(`Client not found: ${input.clientId}`));
         return Result.ok(client);
       })
       .useResult('order', ({ products: prods }) => {
@@ -126,7 +126,7 @@ export const makeCreateOrder = (
       const deliveryResult = makeDelivery({
         orderId: savedOrder.id.toString(),
         scheduledDate: DateTimeVO.create(new Date()).toString(),
-        deliveryTime: '09:00', // Default delivery time
+        deliveryTime: '09:00',
         address: deliveryAddress,
         status: DeliveryStatus.PENDING,
         notes: 'Auto-created from order',
@@ -138,7 +138,6 @@ export const makeCreateOrder = (
         const savedDeliveryResult = await deliveryRepository.create(delivery, IdVO.generateNil());
 
         if (!savedDeliveryResult.isFailure && savedDeliveryResult.getValue().id) {
-          // Update order with deliveryId reference
           const updatedOrder = makeOrder({
             id: savedOrder.id?.toString(),
             items: savedOrder.items.map((item) => ({

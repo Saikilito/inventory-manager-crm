@@ -1,5 +1,5 @@
 import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
-import { DomainError, NotFoundError } from '../../../../../../shared-domain/src/shared/errors.js';
+import { DomainError, createNotFoundError } from '../../../../../../shared-domain/src/shared/errors.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { ResultComposer } from '../../../../../../shared-domain/src/shared/result-composer.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
@@ -13,7 +13,7 @@ export const makeDeleteFixedExpense = (fixedExpenseRepository: IFixedExpenseRepo
       .useResult('existing', () => fixedExpenseRepository.getById(IdVO.create(id)))
       .useResult('validateExisting', ({ existing }) => {
         if (!existing) {
-          return Result.fail(new NotFoundError('Fixed expense template not found'));
+          return Result.fail(createNotFoundError('Fixed expense template not found'));
         }
         return Result.ok();
       })

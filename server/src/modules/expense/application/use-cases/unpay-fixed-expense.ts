@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
-import { DomainError, NotFoundError } from '../../../../../../shared-domain/src/shared/errors.js';
-import { ValidationError } from '../../../../../../shared-domain/src/shared/validation-error.js';
+import { DomainError, createNotFoundError, createValidationError } from '../../../../../../shared-domain/src/shared/errors.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
 import { zodIdString, zodBillingMonth } from '../../../../../../shared-domain/src/shared/zod-schemas.js';
@@ -24,7 +23,7 @@ export const makeUnpayFixedExpense = (
   return async (input: UnpayFixedExpenseInput) => {
     const parseResult = UnpayFixedExpenseSchema.safeParse(input);
     if (!parseResult.success) {
-      return Result.fail(new ValidationError(parseResult.error.message));
+      return Result.fail(createValidationError(parseResult.error.message));
     }
 
     const fixedExpenseIdVO = IdVO.create(input.fixedExpenseId);
@@ -38,7 +37,7 @@ export const makeUnpayFixedExpense = (
     }
     const payment = paymentResult.getValue();
     if (!payment) {
-      return Result.fail(new NotFoundError('Payment registry not found for this month'));
+      return Result.fail(createNotFoundError('Payment registry not found for this month'));
     }
 
     if (payment.generatedExpenseId) {

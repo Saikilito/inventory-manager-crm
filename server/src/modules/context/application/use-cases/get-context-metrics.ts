@@ -1,32 +1,29 @@
-import { UseCase } from "../../../../../../shared-domain/src/shared/use-case.js";
-import {
-  DomainError,
-  NotFoundError,
-} from "../../../../../../shared-domain/src/shared/errors.js";
-import { Result } from "../../../../../../shared-domain/src/shared/result.js";
-import { IdVO } from "../../../../../../shared-domain/src/shared/value-objects/id.vo.js";
-import { PositiveNumberVO } from "../../../../../../shared-domain/src/shared/value-objects/positive-number.vo.js";
-import { NonEmptyStringVO } from "../../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js";
-import { IProductRepository } from "../../../product/application/repositories/product.repository.js";
-import { IOrderRepository } from "../../../order/application/repositories/order.repository.js";
-import { IContextRepository } from "../repositories/context.repository.js";
-import { IExpenseRepository } from "../../../expense/application/repositories/expense.repository.js";
-import { IAccountRepository } from "../../../financial/application/repositories/financial.repository.js";
-import { calculateContextMetrics } from "../../domain/services/context-metrics-calculator.js";
-import { MongoQueryConstants } from "../../../chat/infrastructure/services/gemini.constants.js";
-import type { IAccount } from "../../../../../../shared-domain/src/financial/account.entity.js";
-import type { IProduct } from "../../../../../../shared-domain/src/product/product.entity.js";
-import type { IOrder } from "../../../../../../shared-domain/src/order/order.entity.js";
-import type { IExpense } from "../../../../../../shared-domain/src/expense/expense.entity.js";
+import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
+import { createNotFoundError, DomainError, NotFoundError } from '../../../../../../shared-domain/src/shared/errors.js';
+import { Result } from '../../../../../../shared-domain/src/shared/result.js';
+import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
+import { PositiveNumberVO } from '../../../../../../shared-domain/src/shared/value-objects/positive-number.vo.js';
+import { NonEmptyStringVO } from '../../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js';
+import { IProductRepository } from '../../../product/application/repositories/product.repository.js';
+import { IOrderRepository } from '../../../order/application/repositories/order.repository.js';
+import { IContextRepository } from '../repositories/context.repository.js';
+import { IExpenseRepository } from '../../../expense/application/repositories/expense.repository.js';
+import { IAccountRepository } from '../../../financial/application/repositories/financial.repository.js';
+import { calculateContextMetrics } from '../../domain/services/context-metrics-calculator.js';
+import { MongoQueryConstants } from '../../../chat/infrastructure/services/gemini.constants.js';
+import type { IAccount } from '../../../../../../shared-domain/src/financial/account.entity.js';
+import type { IProduct } from '../../../../../../shared-domain/src/product/product.entity.js';
+import type { IOrder } from '../../../../../../shared-domain/src/order/order.entity.js';
+import type { IExpense } from '../../../../../../shared-domain/src/expense/expense.entity.js';
 
 export type {
   PeriodMetric,
   TopSellerMetric,
   AccountDistribution,
   ContextMetrics,
-} from "../../domain/services/context-metrics-calculator.js";
+} from '../../domain/services/context-metrics-calculator.js';
 
-import { ContextMetrics } from "../../domain/services/context-metrics-calculator.js";
+import { ContextMetrics } from '../../domain/services/context-metrics-calculator.js';
 
 export interface GetContextMetricsInput {
   contextId?: string;
@@ -35,11 +32,7 @@ export interface GetContextMetricsInput {
   endDate?: string;
 }
 
-export type GetContextMetrics = UseCase<
-  GetContextMetricsInput,
-  ContextMetrics,
-  DomainError
->;
+export type GetContextMetrics = UseCase<GetContextMetricsInput, ContextMetrics, DomainError>;
 
 export const makeGetContextMetrics = (
   productRepository: IProductRepository,
@@ -50,16 +43,12 @@ export const makeGetContextMetrics = (
 ): GetContextMetrics => {
   return async (input: GetContextMetricsInput) => {
     if (input.contextId) {
-      const contextResult = await contextRepository.getById(
-        IdVO.create(input.contextId),
-      );
+      const contextResult = await contextRepository.getById(IdVO.create(input.contextId));
       if (contextResult.isFailure) {
         return Result.fail(contextResult.getError());
       }
       if (!contextResult.getValue()) {
-        return Result.fail(
-          new NotFoundError(`Context ${input.contextId} not found`),
-        );
+        return Result.fail(createNotFoundError(`Context ${input.contextId} not found`));
       }
     }
 
@@ -102,10 +91,10 @@ export const makeGetContextMetrics = (
             {
               field: NonEmptyStringVO.create('contextId'),
               value: input.contextId,
-              operator: '='
-            }
-          ]
-        }
+              operator: '=',
+            },
+          ],
+        },
       });
       if (productsResult.isFailure) {
         return Result.fail(productsResult.getError());
@@ -119,20 +108,18 @@ export const makeGetContextMetrics = (
             {
               field: NonEmptyStringVO.create('contextId'),
               value: input.contextId,
-              operator: '='
+              operator: '=',
             },
-            ...dateFilters
-          ]
-        }
+            ...dateFilters,
+          ],
+        },
       });
       if (expensesResult.isFailure) {
         return Result.fail(expensesResult.getError());
       }
       allExpenses = expensesResult.getValue().items;
 
-      const contextProductIdsArray = allProducts
-        .map((p) => p.id?.toString())
-        .filter(Boolean) as string[];
+      const contextProductIdsArray = allProducts.map((p) => p.id?.toString()).filter(Boolean) as string[];
 
       if (contextProductIdsArray.length > 0) {
         const ordersResult = await orderRepository.getAll({
@@ -142,11 +129,11 @@ export const makeGetContextMetrics = (
               {
                 field: NonEmptyStringVO.create('items.productId'),
                 value: contextProductIdsArray,
-                operator: '='
+                operator: '=',
               },
-              ...dateFilters
-            ]
-          }
+              ...dateFilters,
+            ],
+          },
         });
         if (ordersResult.isFailure) {
           return Result.fail(ordersResult.getError());

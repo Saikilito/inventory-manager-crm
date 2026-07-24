@@ -1,5 +1,9 @@
 import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
-import { DomainError, ContextInUseError } from '../../../../../../shared-domain/src/shared/errors.js';
+import {
+  DomainError,
+  ContextInUseError,
+  createContextInUseError,
+} from '../../../../../../shared-domain/src/shared/errors.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { ResultComposer } from '../../../../../../shared-domain/src/shared/result-composer.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
@@ -13,11 +17,11 @@ export type DeleteContext = UseCase<string, void, DomainError>;
 export const makeDeleteContext = (
   contextRepository: IContextRepository,
   productRepository: IProductRepository,
-  expenseRepository: IExpenseRepository
+  expenseRepository: IExpenseRepository,
 ): DeleteContext => {
   return async (id: string) => {
     const productCheck = await productRepository.getOne([
-      { field: NonEmptyStringVO.create('contextId'), value: id, operator: '=' }
+      { field: NonEmptyStringVO.create('contextId'), value: id, operator: '=' },
     ]);
 
     if (productCheck.isFailure) {
@@ -25,7 +29,7 @@ export const makeDeleteContext = (
     }
 
     if (productCheck.getValue() !== null) {
-      return Result.fail(new ContextInUseError('Products are assigned to this context'));
+      return Result.fail(createContextInUseError('Products are assigned to this context'));
     }
 
     const composerResult = await ResultComposer.start()

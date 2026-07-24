@@ -1,5 +1,5 @@
 import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
-import { DomainError, NotFoundError } from '../../../../../../shared-domain/src/shared/errors.js';
+import { DomainError, createNotFoundError } from '../../../../../../shared-domain/src/shared/errors.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { ResultComposer } from '../../../../../../shared-domain/src/shared/result-composer.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
@@ -24,7 +24,7 @@ export const makeUpdateProduct = (productRepository: IProductRepository): Update
       .useResult('validateExisting', ({ existing }) => {
         const prod = existing as IProduct | null;
         if (!prod) {
-          return Result.fail(new NotFoundError('Product not found'));
+          return Result.fail(createNotFoundError('Product not found'));
         }
         return Result.ok(prod);
       })

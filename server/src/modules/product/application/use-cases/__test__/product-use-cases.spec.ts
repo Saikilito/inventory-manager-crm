@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Result } from '../../../../../../../shared-domain/src/shared/result.js';
-import { DatabaseError } from '../../../../../../../shared-domain/src/shared/errors.js';
+import { DatabaseError, createDatabaseError } from '../../../../../../../shared-domain/src/shared/errors.js';
 import { IProduct, makeProduct } from '../../../../../../../shared-domain/src/product/product.entity.js';
 import { IdVO } from '../../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
 import { IProductRepository } from '../../repositories/product.repository.js';
@@ -35,7 +35,6 @@ const productMother = {
 // Create fully isolated mock repository
 const makeMockProductRepository = (): IProductRepository => {
   const store = new Map<string, IProduct>();
-  // Pre-populate with one item
   const initial = productMother.create();
   store.set(initial.id!, initial);
 
@@ -64,7 +63,7 @@ const makeMockProductRepository = (): IProductRepository => {
 
     async updateById(id: string, product: UpdateEntityInput<IProduct>): Promise<Result<void, DatabaseError>> {
       const existing = store.get(id);
-      if (!existing) return Result.fail(new DatabaseError('Product not found'));
+      if (!existing) return Result.fail(createDatabaseError('Product not found'));
       store.set(id, { ...existing, ...product });
       return Result.ok();
     },
@@ -174,7 +173,7 @@ describe('Product Use Cases (TDD)', () => {
     const updated = getRes.getValue()!;
     expect(updated.sellingPrice).toBe(15.0);
     expect(updated.stock).toBe(50);
-    expect(updated.name).toBe('Premium Saikilo Coffee'); // Kept original
+    expect(updated.name).toBe('Premium Saikilo Coffee');
   });
 
   it('should fail to update a product if value object rules are broken (UpdateProduct)', async () => {

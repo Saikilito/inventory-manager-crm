@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Result } from '../../../../../../../shared-domain/src/shared/result.js';
-import { DatabaseError } from '../../../../../../../shared-domain/src/shared/errors.js';
+import { DatabaseError, createDatabaseError } from '../../../../../../../shared-domain/src/shared/errors.js';
 import { IOrder, makeOrder, OrderStatus, PaymentStatus, DeliveryStatus } from '../../../../../../../shared-domain/src/order/order.entity.js';
 import { IProduct, makeProduct } from '../../../../../../../shared-domain/src/product/product.entity.js';
 import { IdVO } from '../../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
@@ -65,7 +65,7 @@ const makeMockProductRepository = (initialProduct: IProduct): IProductRepository
     },
     async updateById(id: string, product: any): Promise<Result<void, any>> {
       const existing = store.get(id);
-      if (!existing) return Result.fail(new DatabaseError('Product not found'));
+      if (!existing) return Result.fail(createDatabaseError('Product not found'));
       store.set(id, { ...existing, ...product });
       return Result.ok();
     },
@@ -110,7 +110,7 @@ const makeMockOrderRepository = (initialOrder: IOrder): IOrderRepository => {
     },
     async updateById(id: string, order: any): Promise<Result<void, any>> {
       const existing = store.get(id);
-      if (!existing) return Result.fail(new DatabaseError('Order not found'));
+      if (!existing) return Result.fail(createDatabaseError('Order not found'));
       store.set(id, { ...existing, ...order });
       return Result.ok();
     },

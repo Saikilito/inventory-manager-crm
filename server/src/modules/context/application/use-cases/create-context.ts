@@ -1,8 +1,12 @@
 import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
-import { DomainError } from '../../../../../../shared-domain/src/shared/errors.js';
+import { createDomainError, DomainError, isDomainError } from '../../../../../../shared-domain/src/shared/errors.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
-import { IContext, makeContext, ContextAttributeType } from '../../../../../../shared-domain/src/context/context.entity.js';
+import {
+  IContext,
+  makeContext,
+  ContextAttributeType,
+} from '../../../../../../shared-domain/src/context/context.entity.js';
 import { IContextRepository } from '../repositories/context.repository.js';
 import { getErrorMessage } from '../../../../../../shared-domain/src/shared/error-utils.js';
 
@@ -23,11 +27,7 @@ export const makeCreateContext = (contextRepository: IContextRepository): Create
     try {
       context = makeContext(input);
     } catch (error: unknown) {
-      return Result.fail(
-        error instanceof DomainError
-          ? error
-          : new DomainError(getErrorMessage(error))
-      );
+      return Result.fail(isDomainError(error) ? error : createDomainError(getErrorMessage(error)));
     }
 
     const savedContextResult = await contextRepository.create(context, IdVO.generateNil());

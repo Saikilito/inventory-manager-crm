@@ -1,5 +1,5 @@
 import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
-import { DomainError, NotFoundError } from '../../../../../../shared-domain/src/shared/errors.js';
+import { createNotFoundError, DomainError } from '../../../../../../shared-domain/src/shared/errors.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { ResultComposer } from '../../../../../../shared-domain/src/shared/result-composer.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
@@ -26,23 +26,25 @@ export const makeUpdateClient = (clientRepository: IClientRepository): UpdateCli
       .useResult('validateExisting', ({ existing }) => {
         const cli = existing as IClient | null;
         if (!cli) {
-          return Result.fail(new NotFoundError('Client not found'));
+          return Result.fail(createNotFoundError('Client not found'));
         }
         return Result.ok(cli);
       })
       .useResult('updated', ({ validateExisting }) => {
         const existingCli = validateExisting as IClient;
-        return Result.ok(makeClient({
-          id: input.id,
-          firstName: input.firstName !== undefined ? input.firstName : existingCli.firstName,
-          lastName: input.lastName !== undefined ? input.lastName : existingCli.lastName,
-          address: input.address !== undefined ? input.address : existingCli.address,
-          whatsapp: input.whatsapp !== undefined ? input.whatsapp : existingCli.whatsapp,
-          nationalId: input.nationalId !== undefined ? input.nationalId : existingCli.nationalId,
-          type: existingCli.type,
-          orders: input.orders !== undefined ? input.orders : (existingCli.orders as unknown as string[]),
-          sellerId: input.sellerId !== undefined ? input.sellerId : existingCli.sellerId,
-        }));
+        return Result.ok(
+          makeClient({
+            id: input.id,
+            firstName: input.firstName !== undefined ? input.firstName : existingCli.firstName,
+            lastName: input.lastName !== undefined ? input.lastName : existingCli.lastName,
+            address: input.address !== undefined ? input.address : existingCli.address,
+            whatsapp: input.whatsapp !== undefined ? input.whatsapp : existingCli.whatsapp,
+            nationalId: input.nationalId !== undefined ? input.nationalId : existingCli.nationalId,
+            type: existingCli.type,
+            orders: input.orders !== undefined ? input.orders : (existingCli.orders as unknown as string[]),
+            sellerId: input.sellerId !== undefined ? input.sellerId : existingCli.sellerId,
+          }),
+        );
       })
       .run();
 

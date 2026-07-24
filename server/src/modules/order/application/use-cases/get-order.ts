@@ -1,5 +1,5 @@
 import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
-import { DomainError, NotFoundError } from '../../../../../../shared-domain/src/shared/errors.js';
+import { DomainError, createNotFoundError } from '../../../../../../shared-domain/src/shared/errors.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { ResultComposer } from '../../../../../../shared-domain/src/shared/result-composer.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
@@ -20,7 +20,7 @@ export const makeGetOrder = (orderRepository: IOrderRepository): GetOrder => {
 
     const order = composerResult.getValue().order;
     if (!order) {
-      return Result.fail(new NotFoundError('Order not found'));
+      return Result.fail(createNotFoundError('Order not found'));
     }
 
     return Result.ok(order);
