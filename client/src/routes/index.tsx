@@ -37,6 +37,8 @@ import { RentalsPage } from "@pages/rental/RentalsPage";
 import { DeliveriesPage } from "@pages/delivery/DeliveriesPage";
 import { ContextsPage } from "@pages/context/ContextsPage";
 import KnowledgePage from "@pages/knowledge/KnowledgePage";
+import { StockLotsPage } from "@pages/stock-lot/StockLotsPage";
+import { AccountsPayablesPage } from "@pages/accounts-payable/AccountsPayablesPage";
 
 import {
   ClientsRouteWrapper,
@@ -109,6 +111,8 @@ const AppView: React.FC = () => {
                   <Route path="/rentals" element={<RentalsPage />} />
                   <Route path="/deliveries" element={<DeliveriesPage />} />
                   <Route path="/finance" element={<FinancialRouteWrapper />} />
+                  <Route path="/stock-lots" element={<StockLotsPage />} />
+                  <Route path="/accounts-payable" element={<AccountsPayablesPage />} />
                   <Route path="/expenses" element={<ExpenseRouteWrapper />} />
                   <Route path="/chat" element={<AgentChatPage />} />
                   <Route path="/users" element={<UsersPage />} />

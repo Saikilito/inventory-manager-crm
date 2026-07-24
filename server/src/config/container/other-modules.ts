@@ -5,7 +5,11 @@ import { TotalProducts, makeTotalProducts } from '../../modules/product/applicat
 import { CreateProduct, makeCreateProduct } from '../../modules/product/application/use-cases/create-product.js';
 import { UpdateProduct, makeUpdateProduct } from '../../modules/product/application/use-cases/update-product.js';
 import { DeleteProduct, makeDeleteProduct } from '../../modules/product/application/use-cases/delete-product.js';
+import { CreateStockLot, makeCreateStockLot } from '../../modules/product/application/use-cases/create-stock-lot.js';
+import { GetStockLots, makeGetStockLots } from '../../modules/product/application/use-cases/get-stock-lots.js';
 import { IProductRepository } from '../../modules/product/application/repositories/product.repository.js';
+import { IStockLotRepository } from '../../modules/product/application/repositories/stock-lot.repository.js';
+import { makeStockLotMongooseRepository } from '../../modules/product/infrastructure/repositories/stock-lot-mongoose.repository.js';
 import { LibrarianService } from '../../modules/knowledge/application/services/librarian.service.js';
 
 import { makeUserMongooseRepository } from '../../modules/user/infrastructure/repositories/user-mongoose.repository.js';
@@ -68,7 +72,9 @@ import { GetOverlappingReservations, makeGetOverlappingReservations } from '../.
 import { IRentalRepository } from '../../modules/rental/application/repositories/rental.repository.js';
 
 import { IAccountRepository, ITransactionRepository, IExchangeRateRepository, IFinancialDayRepository } from '../../modules/financial/application/repositories/financial.repository.js';
+import { IAccountsPayableRepository } from '../../modules/financial/application/repositories/accounts-payable.repository.js';
 import { makeAccountMongooseRepository, makeTransactionMongooseRepository, makeExchangeRateMongooseRepository, makeFinancialDayMongooseRepository } from '../../modules/financial/infrastructure/repositories/financial-mongoose.repository.js';
+import { makeAccountsPayableMongooseRepository } from '../../modules/financial/infrastructure/repositories/accounts-payable-mongoose.repository.js';
 import { CreateAccount, makeCreateAccount } from '../../modules/financial/application/use-cases/create-account.js';
 import { CreateTransaction, makeCreateTransaction } from '../../modules/financial/application/use-cases/create-transaction.js';
 import { DeleteTransaction, makeDeleteTransaction } from '../../modules/financial/application/use-cases/delete-transaction.js';
@@ -77,6 +83,8 @@ import { UpdateExchangeRate, makeUpdateExchangeRate } from '../../modules/financ
 import { OpenFinancialDay, makeOpenFinancialDay } from '../../modules/financial/application/use-cases/open-financial-day.js';
 import { CloseFinancialDay, makeCloseFinancialDay } from '../../modules/financial/application/use-cases/close-financial-day.js';
 import { GetFinancialDayByDate, makeGetFinancialDayByDate } from '../../modules/financial/application/use-cases/get-financial-day.js';
+import { PayAccountsPayable, makePayAccountsPayable } from '../../modules/financial/application/use-cases/pay-accounts-payable.js';
+import { GetAccountsPayables, makeGetAccountsPayables } from '../../modules/financial/application/use-cases/get-accounts-payables.js';
 import { IExpenseRepository } from '../../modules/expense/application/repositories/expense.repository.js';
 
 
@@ -88,13 +96,35 @@ export interface ProductSubContainer {
   createProduct: CreateProduct;
   updateProduct: UpdateProduct;
   deleteProduct: DeleteProduct;
+  createStockLot: CreateStockLot;
+  getStockLots: GetStockLots;
+  getStockLot: (id: string) => Promise<any>;
+  stockLotRepository: IStockLotRepository;
 }
 
 export const buildProductModule = (deps: {
   productRepository?: IProductRepository;
   librarian?: LibrarianService;
+  accountRepository?: IAccountRepository;
+  transactionRepository?: ITransactionRepository;
+  financialDayRepository?: IFinancialDayRepository;
+  accountsPayableRepository?: IAccountsPayableRepository;
+  expenseRepository?: IExpenseRepository;
 }): ProductSubContainer => {
   const productRepository = deps.productRepository ?? makeProductMongooseRepository();
+  const stockLotRepository = makeStockLotMongooseRepository();
+  const accountsPayableRepository = deps.accountsPayableRepository ?? makeAccountsPayableMongooseRepository();
+  
+  // Create the actual createStockLot use case with all required dependencies
+  const createStockLot = makeCreateStockLot({
+    productRepository,
+    stockLotRepository,
+    accountRepository: deps.accountRepository!,
+    transactionRepository: deps.transactionRepository!,
+    financialDayRepository: deps.financialDayRepository!,
+    accountsPayableRepository,
+  });
+  
   return {
     getProduct: makeGetProduct(productRepository),
     getAllProducts: makeGetAllProducts(productRepository),
@@ -102,6 +132,13 @@ export const buildProductModule = (deps: {
     createProduct: makeCreateProduct({ productRepository, librarian: deps.librarian }),
     updateProduct: makeUpdateProduct(productRepository),
     deleteProduct: makeDeleteProduct(productRepository),
+    createStockLot,
+    stockLotRepository,
+    getStockLots: makeGetStockLots({ stockLotRepository }),
+    getStockLot: async (id: string) => {
+      const result = await stockLotRepository.getById(id);
+      return result.isFailure ? null : result.getValue();
+    },
   };
 };
 
@@ -302,10 +339,14 @@ export interface FinancialSubContainer {
   openFinancialDay: OpenFinancialDay;
   closeFinancialDay: CloseFinancialDay;
   getFinancialDayByDate: GetFinancialDayByDate;
+  payAccountsPayable: PayAccountsPayable;
+  getAccountsPayables: GetAccountsPayables;
+  getAccountsPayable: (id: string) => Promise<any>;
   accountRepository: IAccountRepository;
   transactionRepository: ITransactionRepository;
   exchangeRateRepository: IExchangeRateRepository;
   financialDayRepository: IFinancialDayRepository;
+  accountsPayableRepository: IAccountsPayableRepository;
 }
 
 export interface FinancialModuleDependencies {
@@ -314,6 +355,7 @@ export interface FinancialModuleDependencies {
   exchangeRateRepository?: IExchangeRateRepository;
   financialDayRepository?: IFinancialDayRepository;
   deliveryRepository: IDeliveryRepository;
+  expenseRepository: IExpenseRepository;
 }
 
 export const buildFinancialModule = (deps: FinancialModuleDependencies): FinancialSubContainer => {
@@ -321,6 +363,7 @@ export const buildFinancialModule = (deps: FinancialModuleDependencies): Financi
   const transactionRepository = deps.transactionRepository ?? makeTransactionMongooseRepository();
   const exchangeRateRepository = deps.exchangeRateRepository ?? makeExchangeRateMongooseRepository();
   const financialDayRepository = deps.financialDayRepository ?? makeFinancialDayMongooseRepository();
+  const accountsPayableRepository = makeAccountsPayableMongooseRepository();
 
   return {
     createAccount: makeCreateAccount(accountRepository),
@@ -336,10 +379,23 @@ export const buildFinancialModule = (deps: FinancialModuleDependencies): Financi
     openFinancialDay: makeOpenFinancialDay(financialDayRepository, accountRepository),
     closeFinancialDay: makeCloseFinancialDay(financialDayRepository, accountRepository),
     getFinancialDayByDate: makeGetFinancialDayByDate(financialDayRepository, exchangeRateRepository),
+    payAccountsPayable: makePayAccountsPayable({
+      accountsPayableRepository,
+      accountRepository,
+      transactionRepository,
+      financialDayRepository,
+      expenseRepository: deps.expenseRepository,
+    }),
+    getAccountsPayables: makeGetAccountsPayables({ accountsPayableRepository }),
+    getAccountsPayable: async (id: string) => {
+      const result = await accountsPayableRepository.getById(id);
+      return result.isFailure ? null : result.getValue();
+    },
     accountRepository,
     transactionRepository,
     exchangeRateRepository,
     financialDayRepository,
+    accountsPayableRepository,
   };
 };
 

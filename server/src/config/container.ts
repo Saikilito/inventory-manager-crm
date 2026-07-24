@@ -119,12 +119,25 @@ export const makeContainer = (overrides: ContainerDependencies = {}): Container 
   const orderRepository = overrides.orderRepository ?? makeOrderMongooseRepository();
   const deliveryRepository = overrides.deliveryRepository ?? makeDeliveryMongooseRepository();
 
+  // Financial repositories must be declared before they're used in modules
+  const accountRepository = overrides.accountRepository ?? makeAccountMongooseRepository();
+  const transactionRepository = overrides.transactionRepository ?? makeTransactionMongooseRepository();
+  const exchangeRateRepository = overrides.exchangeRateRepository ?? makeExchangeRateMongooseRepository();
+  const financialDayRepository = overrides.financialDayRepository ?? makeFinancialDayMongooseRepository();
+
   const knowledge = buildKnowledgeModule({
     knowledgeRepository: overrides.knowledgeRepository,
     librarianEnabled: config.librarianEnabled,
   });
 
-  const product = buildProductModule({ productRepository, librarian: knowledge.librarian });
+  const product = buildProductModule({ 
+    productRepository, 
+    librarian: knowledge.librarian,
+    accountRepository,
+    transactionRepository,
+    financialDayRepository,
+    accountsPayableRepository: undefined, // Will be created in buildFinancialModule
+  });
   const user = buildUserModule({ userRepository });
   const recalculateClientRating = makeRecalculateClientRating(clientRepository, orderRepository);
   const client = buildClientModule({ clientRepository, orderRepository, recalculateClientRating });
@@ -157,17 +170,13 @@ export const makeContainer = (overrides: ContainerDependencies = {}): Container 
     productRepository,
   });
 
-  const accountRepository = overrides.accountRepository ?? makeAccountMongooseRepository();
-  const transactionRepository = overrides.transactionRepository ?? makeTransactionMongooseRepository();
-  const exchangeRateRepository = overrides.exchangeRateRepository ?? makeExchangeRateMongooseRepository();
-  const financialDayRepository = overrides.financialDayRepository ?? makeFinancialDayMongooseRepository();
-
   const financial = buildFinancialModule({
     accountRepository,
     transactionRepository,
     exchangeRateRepository,
     financialDayRepository,
     deliveryRepository,
+    expenseRepository: overrides.expenseRepository ?? makeExpenseMongooseRepository(),
   });
 
   const context = buildContextModule({

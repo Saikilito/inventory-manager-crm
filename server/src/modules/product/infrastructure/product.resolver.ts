@@ -1,5 +1,6 @@
 import { IContext } from '../../../config/apollo.js';
 import { IProduct } from '../../../../../shared-domain/src/product/product.entity.js';
+import { IStockLot } from '../../../../../shared-domain/src/stock-lot/stock-lot.entity.js';
 import {
   calculateProfit,
   calculateProfitMargin,
@@ -21,6 +22,21 @@ interface UpdateProductInput {
   purchasePrice?: number;
   sellingPrice?: number;
   stock?: number;
+  contextId?: string;
+}
+
+interface CreateStockLotInput {
+  supplier: string;
+  purchaseDate: string;
+  items: Array<{
+    productName: string;
+    quantity: number;
+    unitCost: number;
+    confirmedSellingPrice: number;
+  }>;
+  paymentMethod: string;
+  accountId?: string;
+  notes?: string;
   contextId?: string;
 }
 
@@ -47,6 +63,31 @@ const mapToGql = (product: IProduct) => {
     contextId: product.contextId?.toString() || null,
   };
 };
+
+const mapStockLotToGql = (stockLot: IStockLot) => ({
+  _id: stockLot.id?.toString(),
+  supplier: stockLot.supplier.toString(),
+  purchaseDate: stockLot.purchaseDate,
+  items: stockLot.items.map((item) => ({
+    productId: item.productId?.toString() || null,
+    productName: item.productName.toString(),
+    quantity: Number(item.quantity),
+    unitCost: Number(item.unitCost),
+    confirmedSellingPrice: Number(item.confirmedSellingPrice),
+    isNewProduct: item.isNewProduct,
+    projectedProfit: item.projectedProfit ? Number(item.projectedProfit) : null,
+  })),
+  totalCost: Number(stockLot.totalCost),
+  projectedProfit: stockLot.projectedProfit ? Number(stockLot.projectedProfit) : null,
+  paymentMethod: stockLot.paymentMethod,
+  transactionId: stockLot.transactionId?.toString() || null,
+  accountsPayableId: stockLot.accountsPayableId?.toString() || null,
+  status: stockLot.status,
+  notes: stockLot.notes?.toString() || null,
+  contextId: stockLot.contextId?.toString() || null,
+  createdAt: stockLot.createdAt.toISOString(),
+  updatedAt: stockLot.updatedAt.toISOString(),
+});
 
 export default {
   Query: {
@@ -119,6 +160,27 @@ export default {
         averageMargin: productCount > 0 ? Number((totalMargin / productCount).toFixed(2)) : 0,
       };
     },
+
+    stockLots: async (
+      _parent: unknown,
+      { contextId, supplierName, status }: { contextId?: string; supplierName?: string; status?: string },
+      { container }: IContext,
+    ) => {
+      const result = await container.product.getStockLots({ contextId, supplierName, status });
+      if (result.isFailure) {
+        throw result.getError();
+      }
+      return result.getValue().map(mapStockLotToGql);
+    },
+
+    stockLot: async (_parent: unknown, { id }: { id: string }, { container }: IContext) => {
+      const result = await container.product.getStockLot(id);
+      if (result.isFailure) {
+        throw result.getError();
+      }
+      const stockLot = result.getValue();
+      return stockLot ? mapStockLotToGql(stockLot) : null;
+    },
   },
 
   Mutation: {
@@ -154,6 +216,23 @@ export default {
     deleteProduct: async (_parent: unknown, { _id }: { _id: string }, { container }: IContext) => {
       const result = await container.product.deleteProduct(_id);
       return !result.isFailure;
+    },
+
+    createStockLot: async (_parent: unknown, { input }: { input: CreateStockLotInput }, { container }: IContext) => {
+      const result = await container.product.createStockLot({
+        ...input,
+        paymentMethod: input.paymentMethod as 'CASH' | 'CREDIT',
+      });
+      if (result.isFailure) {
+        throw result.getError();
+      }
+      const output = result.getValue();
+      return {
+        stockLot: mapStockLotToGql(output.stockLot),
+        accountsPayableId: output.accountsPayableId || null,
+        createdProducts: output.createdProducts.map(mapToGql),
+        updatedProducts: output.updatedProducts.map(mapToGql),
+      };
     },
   },
 };

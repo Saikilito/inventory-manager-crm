@@ -12,9 +12,11 @@ import {
   AlertCircle,
   HelpCircle,
   FileText,
+  CreditCard,
 } from 'lucide-react';
 import Spinkit from '@components/Spinkit';
 import Alert from '@components/Alert';
+import { Link } from 'react-router-dom';
 
 // Modals
 import { CreateAccountModal } from './components/CreateAccountModal';
@@ -52,6 +54,15 @@ export const FinancialDashboardPage: React.FC = () => {
           <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">
             Real-time cashflow management, multi-currency accounts, and daily journal sessions.
           </p>
+          <div className="flex items-center gap-3 mt-3">
+            <Link
+              to="/accounts-payable"
+              className="inline-flex items-center justify-center h-9 px-4 rounded-xl text-sm font-medium text-stone-700 dark:text-stone-200 bg-white dark:bg-stone-800 border border-stone-300 dark:border-stone-700 hover:bg-stone-50 dark:hover:bg-stone-750 active:bg-stone-100 dark:active:bg-stone-700 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-stone-950"
+            >
+              <CreditCard className="w-4 h-4 mr-2" />
+              Accounts Payable
+            </Link>
+          </div>
         </div>
 
         {/* Calendar Picker & Day Arrows */}
