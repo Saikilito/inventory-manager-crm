@@ -3,7 +3,6 @@ import { DomainError, ReconciliationError } from '../../../../../../shared-domai
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
 import { DateOnlyVO } from '../../../../../../shared-domain/src/shared/value-objects/date-only.vo.js';
-import { PositiveNumber, PositiveNumberVO } from '../../../../../../shared-domain/src/shared/value-objects/positive-number.vo.js';
 import { IReconciliationReport, makeReconciliationReport, IReconciliationDiscrepancy } from '../../../../../../shared-domain/src/financial/reconciliation-report.vo.js';
 import { ReconciliationStatus } from '../../../../../../shared-domain/src/financial/reconciliation-status.vo.js';
 import { TransactionSource } from '../../../../../../shared-domain/src/financial/transaction-source.vo.js';
@@ -29,7 +28,6 @@ export const makeReconcileFinancialDayUseCase = (
     const date = DateOnlyVO.create(input.date);
     const dateStr = date.toString();
 
-    // Get financial day
     const dayResult = await financialDayRepository.getOne([
       { field: 'date', value: dateStr, operator: '=' },
     ]);
@@ -43,7 +41,6 @@ export const makeReconcileFinancialDayUseCase = (
       return Result.fail(new ReconciliationError(`Financial day not found for date: ${dateStr}`));
     }
 
-    // Get all PAID orders for date
     const ordersResult = await orderRepository.getAll([
       { field: 'paymentStatus', value: PaymentStatus.PAID, operator: '=' },
     ]);
@@ -54,7 +51,6 @@ export const makeReconcileFinancialDayUseCase = (
 
     const orders = ordersResult.getValue() || [];
 
-    // Get all transactions for date
     const transactionsResult = await transactionRepository.getAll([
       { field: 'date', value: dateStr, operator: '=' },
     ]);
@@ -65,7 +61,6 @@ export const makeReconcileFinancialDayUseCase = (
 
     const transactions = transactionsResult.getValue() || [];
 
-    // Get all expenses with accountId
     const expensesResult = await expenseRepository.getAll([]);
     if (expensesResult.isFailure) {
       return Result.fail(expensesResult.getError());
@@ -73,11 +68,9 @@ export const makeReconcileFinancialDayUseCase = (
 
     const expenses = (expensesResult.getValue() || []).filter((e) => e.accountId);
 
-    // Build discrepancies
     const discrepancies: IReconciliationDiscrepancy[] = [];
     let matchedCount = 0;
 
-    // Check expected order payment transactions
     for (const order of orders) {
       if (!order.payments) continue;
 
@@ -103,7 +96,6 @@ export const makeReconcileFinancialDayUseCase = (
       }
     }
 
-    // Check expected expense transactions
     for (const expense of expenses) {
       const matchingTx = transactions.find(
         (tx) =>
@@ -124,7 +116,6 @@ export const makeReconcileFinancialDayUseCase = (
       }
     }
 
-    // Check for unexpected transactions
     for (const tx of transactions) {
       const isExpectedOrder = orders.some(
         (o) =>
@@ -162,7 +153,6 @@ export const makeReconcileFinancialDayUseCase = (
       }
     }
 
-    // Calculate balances
     const openingBalance = financialDay.openingBalances.reduce(
       (sum, b) => sum + b.balance,
       0
@@ -180,7 +170,6 @@ export const makeReconcileFinancialDayUseCase = (
       .filter((tx) => tx.type === TransactionType.DEBIT)
       .reduce((sum, tx) => sum + (tx.amount as number), 0);
 
-    // Determine overall status
     let status = ReconciliationStatus.MATCHED;
     if (discrepancies.length > 0) {
       const hasMissing = discrepancies.some((d) => d.type === ReconciliationStatus.MISSING_TRANSACTION);

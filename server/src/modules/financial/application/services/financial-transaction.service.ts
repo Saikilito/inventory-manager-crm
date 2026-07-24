@@ -6,8 +6,7 @@ import { ITransaction, makeTransactionResult, TransactionType } from '../../../.
 import { IAccount, makeAccount } from '../../../../../../shared-domain/src/financial/account.entity.js';
 import { TransactionSource } from '../../../../../../shared-domain/src/financial/transaction-source.vo.js';
 import { DatabaseError, FinancialIntegrationError } from '../../../../../../shared-domain/src/shared/errors.js';
-import { ITransactionRepository } from '../repositories/financial.repository.js';
-import { IAccountRepository } from '../repositories/financial.repository.js';
+import { ITransactionRepository, IAccountRepository } from '../repositories/financial.repository.js';
 
 export interface RecordOrderPaymentInput {
   orderId: Id;

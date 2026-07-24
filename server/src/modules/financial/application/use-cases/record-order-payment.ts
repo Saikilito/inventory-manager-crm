@@ -2,7 +2,6 @@ import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js'
 import { DomainError } from '../../../../../../shared-domain/src/shared/errors.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
-import { PositiveNumber } from '../../../../../../shared-domain/src/shared/value-objects/positive-number.vo.js';
 import { ITransaction } from '../../../../../../shared-domain/src/financial/transaction.entity.js';
 import { IOrderPayment } from '../../../../../../shared-domain/src/order/order.entity.js';
 import { FinancialTransactionService } from '../services/financial-transaction.service.js';
