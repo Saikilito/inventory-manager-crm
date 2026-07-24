@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, UserPlus } from 'lucide-react';
 import { z } from 'zod';
+import { Result } from '@shared-domain/shared/result';
 
 const clientFormSchema = z.object({
   firstName: z.string().min(2, 'Must be at least 2 characters').regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s'-]+$/, 'Must contain only letters'),
@@ -15,7 +16,7 @@ interface NewClientInlineModalProps {
   onClose: () => void;
   onSuccess: () => void;
   sellerId: string;
-  apolloClient: any;
+  onCreateClient: (data: { firstName: string; lastName: string; address: string; whatsapp: string; nationalId: string; sellerId: string }) => Promise<Result<boolean, Error>>;
 }
 
 export const NewClientInlineModal: React.FC<NewClientInlineModalProps> = ({
@@ -23,7 +24,7 @@ export const NewClientInlineModal: React.FC<NewClientInlineModalProps> = ({
   onClose,
   onSuccess,
   sellerId,
-  apolloClient,
+  onCreateClient,
 }) => {
   const [step, setStep] = useState<'form' | 'confirm'>('form');
   const [firstName, setFirstName] = useState('');
@@ -67,25 +68,14 @@ export const NewClientInlineModal: React.FC<NewClientInlineModalProps> = ({
     setErrors({});
 
     try {
-      const { makeApolloClientRepository } = await import('@modules/client/infrastructure/repositories/apollo-client.repository');
-      const { makeCreateClientUseCase } = await import('@modules/client/application/use-cases/create-client');
-      const { makeClient, ClientRatingTier } = await import('@shared-domain/client/client.entity');
-
-      const repository = makeApolloClientRepository(apolloClient);
-      const createClient = makeCreateClientUseCase(repository);
-
-      const clientEntity = makeClient({
+      const result = await onCreateClient({
         firstName,
         lastName,
         address,
         whatsapp,
         nationalId,
-        type: ClientRatingTier.BASIC,
-        orders: [],
         sellerId,
       });
-
-      const result = await createClient.execute(clientEntity);
 
       setIsSubmitting(false);
 
@@ -107,9 +97,9 @@ export const NewClientInlineModal: React.FC<NewClientInlineModalProps> = ({
         setWhatsapp('');
         setNationalId('');
       }, 300);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setIsSubmitting(false);
-      setErrors({ submit: err.message || 'Error creating client' });
+      setErrors({ submit: err instanceof Error ? err.message : 'Error creating client' });
       setStep('form');
     }
   };

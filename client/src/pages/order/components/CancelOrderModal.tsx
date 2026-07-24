@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, AlertTriangle, XCircle } from 'lucide-react';
 import { TRANSITION_DURATION_MS } from '../../../utils/constants';
-import {
-  validateCancellationObservation,
-  getCharacterCount,
-} from '@modules/order/application/validators/cancellation-observation.validator';
+import { validateCancellationObservation } from '@shared-domain/order/cancellation-observation.vo';
 
 interface CancelOrderModalProps {
   isOpen: boolean;
@@ -55,18 +52,19 @@ export const CancelOrderModal: React.FC<CancelOrderModalProps> = ({
   const handleConfirm = () => {
     const validation = validateCancellationObservation(observation);
     
-    if (!validation.isValid) {
-      setError(validation.error);
+    if (validation.isFailure) {
+      setError(validation.getError().message);
       return;
     }
 
-    if (validation.trimmedValue) {
-      onConfirm(validation.trimmedValue);
+    const trimmedValue = validation.getValue();
+    if (trimmedValue) {
+      onConfirm(trimmedValue);
       onClose();
     }
   };
 
-  const characterCount = getCharacterCount(observation);
+  const characterCount = observation.trim().length;
   const isValid = characterCount >= MIN_CHARS;
   const isDisabled = isUpdating || !isValid;
 

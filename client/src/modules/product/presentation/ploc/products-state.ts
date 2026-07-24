@@ -11,6 +11,7 @@ export type ProductsStateKind = typeof ProductsStateKind[keyof typeof ProductsSt
 
 export interface CommonProductsState {
   searchTerm: string;
+  selectedContextId: string | null;
   currentPage: number;
   totalProducts: number;
   limit: number;
@@ -45,6 +46,7 @@ export type ProductsState = (
 export const productsInitialState: ProductsState = {
   kind: ProductsStateKind.LOADING,
   searchTerm: '',
+  selectedContextId: null,
   currentPage: 1,
   totalProducts: 0,
   limit: 10,

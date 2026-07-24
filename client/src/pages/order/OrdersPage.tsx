@@ -20,13 +20,14 @@ import { DateNavigator, formatDisplayDateInTimezone } from '../../components/ui/
 import { OrderCard } from './components/OrderCard';
 import { OrdersFilters } from './components/OrdersFilters';
 import { OrdersPageProps, StatusChangeOptions } from './types';
-import { getTodayDate, formatDate, formatTime } from './utils/date-formatters';
+import { DateOnlyVO } from '@shared-domain/shared/value-objects/date-only.vo';
+import { formatDate, formatTime } from '../../utils/formatters';
 
 export const OrdersPage: React.FC<OrdersPageProps> = ({ session }) => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedContextId, setSelectedContextId] = useState<string>('');
-  const [selectedDate, setSelectedDate] = useState<string>(getTodayDate());
+  const [selectedDate, setSelectedDate] = useState<string>(DateOnlyVO.create().toString());
 
   // Modal State
   const [selectedOrder, setSelectedOrder] = useState<GQLOrder | null>(null);
@@ -353,7 +354,7 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ session }) => {
         <OrderDetailModal
           order={selectedOrder}
           clients={clientsData?.getAllClients || []}
-          products={productsData?.getProducts || []}
+          products={productsData?.getAllProducts || []}
           isOpen={isModalOpen}
           isUpdating={isUpdating}
           updateError={updateError}

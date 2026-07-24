@@ -10,6 +10,7 @@ import { PRODUCT_MESSAGES } from '@modules/product/domain/product.constants';
 export interface ProductsPloc extends Ploc<ProductsState> {
   load(page?: number, limit?: number): Promise<void>;
   search(term: string): Promise<void>;
+  selectContext(contextId: string | null): Promise<void>;
   deleteProduct(id: string): Promise<void>;
 }
 
@@ -27,6 +28,7 @@ export function makeProductsPloc(
         kind: ProductsStateKind.RELOADING,
         products: currentState.products,
         searchTerm: currentState.searchTerm,
+        selectedContextId: currentState.selectedContextId,
         currentPage: page,
         limit,
         totalProducts: currentState.totalProducts,
@@ -35,6 +37,7 @@ export function makeProductsPloc(
       ploc.changeState({
         kind: ProductsStateKind.LOADING,
         searchTerm: currentState.searchTerm,
+        selectedContextId: currentState.selectedContextId,
         currentPage: page,
         limit,
         totalProducts: currentState.totalProducts,
@@ -44,8 +47,9 @@ export function makeProductsPloc(
     const offsetVal = (page - 1) * limit;
     const limitVO = PositiveNumberVO.create(limit);
     const offsetVO = NonNegativeNumberVO.create(offsetVal);
+    const contextIdVO = currentState.selectedContextId ? IdVO.create(currentState.selectedContextId) : undefined;
 
-    const result = await getProducts.execute(limitVO, offsetVO);
+    const result = await getProducts.execute(limitVO, offsetVO, contextIdVO);
 
     if (result.isFailure) {
       const err = result.getError();
@@ -53,6 +57,7 @@ export function makeProductsPloc(
         kind: ProductsStateKind.ERROR,
         errorMessage: err.message || PRODUCT_MESSAGES.ERROR_LOADING,
         searchTerm: currentState.searchTerm,
+        selectedContextId: currentState.selectedContextId,
         currentPage: page,
         limit,
         totalProducts: 0,
@@ -64,6 +69,7 @@ export function makeProductsPloc(
         products: data.products,
         totalProducts: data.totalProducts,
         searchTerm: currentState.searchTerm,
+        selectedContextId: currentState.selectedContextId,
         currentPage: page,
         limit,
       });
@@ -75,6 +81,15 @@ export function makeProductsPloc(
     ploc.changeState({
       ...currentState,
       searchTerm: term,
+    });
+  };
+
+  const selectContext = async (contextId: string | null) => {
+    const currentState = ploc.state();
+    ploc.changeState({
+      ...currentState,
+      selectedContextId: contextId,
+      currentPage: 1,
     });
     await load(1, currentState.limit);
   };
@@ -101,6 +116,7 @@ export function makeProductsPloc(
     ...ploc,
     load,
     search,
+    selectContext,
     deleteProduct,
   };
 }
