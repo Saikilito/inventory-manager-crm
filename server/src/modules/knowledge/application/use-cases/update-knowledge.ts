@@ -16,7 +16,7 @@ import {
 } from '../../../../../../shared-domain/src/knowledge/knowledge.entity.js';
 import { KnowledgeCategoryVO } from '../../../../../../shared-domain/src/knowledge/value-objects/knowledge-category.vo.js';
 import { HierarchyLevelVO } from '../../../../../../shared-domain/src/knowledge/value-objects/hierarchy-level.vo.js';
-import { KnowledgeStatus, KnowledgeStatusVO } from '../../../../../../shared-domain/src/knowledge/value-objects/knowledge-status.vo.js';
+import { KnowledgeStatusVO } from '../../../../../../shared-domain/src/knowledge/value-objects/knowledge-status.vo.js';
 import { WikiLinkVO } from '../../../../../../shared-domain/src/knowledge/value-objects/wiki-link.vo.js';
 import { IKnowledgeRepository } from '../repositories/knowledge.repository.js';
 
@@ -50,7 +50,7 @@ export const makeUpdateKnowledge = (knowledgeRepository: IKnowledgeRepository): 
 
     const existing = existingResult.getValue();
     if (!existing) {
-      return Result.fail(new NotFoundError(`Knowledge not found: ${validated.id}`));
+      return Result.fail(createNotFoundError(`Knowledge not found: ${validated.id}`));
     }
 
     const composerResult = await ResultComposer.start()
@@ -60,7 +60,7 @@ export const makeUpdateKnowledge = (knowledgeRepository: IKnowledgeRepository): 
             (v) => v !== undefined,
             () => {
               const r = KnowledgeCategoryVO.createResult(validated.category!);
-              if (r.isFailure) throw new ValidationError(r.getError().message);
+              if (r.isFailure) throw createValidationError(r.getError().message);
               return r.getValue();
             },
           )
@@ -71,7 +71,7 @@ export const makeUpdateKnowledge = (knowledgeRepository: IKnowledgeRepository): 
             (v) => v !== undefined,
             () => {
               const r = HierarchyLevelVO.createResult(validated.hierarchyLevel!);
-              if (r.isFailure) throw new ValidationError(r.getError().message);
+              if (r.isFailure) throw createValidationError(r.getError().message);
               return r.getValue();
             },
           )

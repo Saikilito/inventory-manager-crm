@@ -1,6 +1,6 @@
 import { getISOWeekKey } from '../../../../../../shared-domain/src/shared/utils/date-utils.js';
 import { DateTimeVO } from '../../../../../../shared-domain/src/shared/value-objects/date-time.vo.js';
-import { OrderStatus, PaymentStatus, DeliveryStatus } from '../../../../../../shared-domain/src/order/order.entity.js';
+import { OrderStatus, PaymentStatus } from '../../../../../../shared-domain/src/order/order.entity.js';
 import { IProduct } from '../../../../../../shared-domain/src/product/product.entity.js';
 import { IOrder } from '../../../../../../shared-domain/src/order/order.entity.js';
 import { IExpense } from '../../../../../../shared-domain/src/expense/expense.entity.js';

@@ -3,6 +3,8 @@ export const GeminiConstants = {
   MAX_REPLY_WORDS: 50,
 } as const;
 
+export const MAX_PRODUCT_SEARCH_LIMIT = 10;
+
 export type GeminiConstants = (typeof GeminiConstants)[keyof typeof GeminiConstants];
 
 export const MongoCollectionNames = {

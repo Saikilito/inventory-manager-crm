@@ -132,7 +132,7 @@ export const makePdfReportService = (): IPdfReportService => {
             .fontSize(8)
             .text(`Est. Margin: ${marginPercent.toFixed(2)}%`, 396, 180);
 
-          const periodTypeUpper = periodType.toUpperCase();
+          const periodTypeUpper = (periodType || 'MONTHLY').toUpperCase();
           let periods = metrics.periods.monthly;
           let periodLabel = "Monthly";
 
@@ -165,7 +165,7 @@ export const makePdfReportService = (): IPdfReportService => {
             .font("Helvetica-Bold")
             .fontSize(12)
             .text(
-              `HISTORICAL SALES SUMMARY (${periodLabel.toUpperCase()})`,
+              `HISTORICAL SALES SUMMARY (${(periodLabel || 'MONTHLY').toUpperCase()})`,
               50,
               currentY,
             );

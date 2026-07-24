@@ -88,28 +88,6 @@ function filterClientsByPeriod(clients: Array<{ createdAt?: Date | string }>, st
   }).length;
 }
 
-function calculatePeriodMetric(
-  expenses: Array<{ amount: number; createdAt?: Date | string }>,
-  clients: Array<{ createdAt?: Date | string }>,
-  startDate: Date,
-  endDate: Date,
-  daysInPeriod: number,
-  periodLabel: string,
-): BusinessCostMetricByPeriod {
-  const totalExpenses = filterExpensesByPeriod(expenses, startDate, endDate);
-  const costPerDay = daysInPeriod > 0 ? totalExpenses / daysInPeriod : 0;
-  const newClients = filterClientsByPeriod(clients, startDate, endDate);
-  const customerAcquisitionCost = newClients > 0 ? totalExpenses / newClients : null;
-
-  return {
-    period: periodLabel,
-    totalExpenses,
-    daysInPeriod,
-    costPerDay,
-    newClients,
-    customerAcquisitionCost,
-  };
-}
 
 export function calculateBusinessCostMetrics(params: BusinessCostMetricsCalculatorParams): BusinessCostMetrics {
   const { expenses, fixedExpenses, clients, contextId, referenceDate = new Date() } = params;
@@ -182,8 +160,6 @@ export function calculateBusinessCostMetrics(params: BusinessCostMetricsCalculat
     customerAcquisitionCost: monthNewClients > 0 ? monthTotalExpenses / monthNewClients : null,
   };
 
-  const totalNewClients = todayNewClients + weekNewClients + monthNewClients;
-  const totalAllExpenses = todayTotalExpenses + weekTotalExpenses + monthTotalExpenses;
   const averageCostPerDay = (daily.costPerDay + weekly.costPerDay + monthly.costPerDay) / 3;
   const overallCac = monthNewClients > 0 ? monthTotalExpenses / monthNewClients : null;
 

@@ -9,11 +9,18 @@ type DatabaseStatus {
   testingUsersCount: Int!
 }
 
+type SystemConfig {
+  id: ID!
+  rentalsEnabled: Boolean!
+}
+
 type Query {
   getDatabaseStatus: DatabaseStatus!
+  getSystemConfig: SystemConfig!
 }
 
 type Mutation {
   seedDatabase: Boolean!
   wipeDatabase: Boolean!
+  updateSystemConfig(rentalsEnabled: Boolean!): SystemConfig!
 }

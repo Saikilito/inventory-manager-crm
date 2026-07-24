@@ -77,6 +77,12 @@ import { UpdateExchangeRate, makeUpdateExchangeRate } from '../../modules/financ
 import { OpenFinancialDay, makeOpenFinancialDay } from '../../modules/financial/application/use-cases/open-financial-day.js';
 import { CloseFinancialDay, makeCloseFinancialDay } from '../../modules/financial/application/use-cases/close-financial-day.js';
 import { GetFinancialDayByDate, makeGetFinancialDayByDate } from '../../modules/financial/application/use-cases/get-financial-day.js';
+import { RecordDeliveryPaymentUseCase, makeRecordDeliveryPaymentUseCase } from '../../modules/financial/application/use-cases/record-delivery-payment.js';
+import { RecordOrderPaymentUseCase, makeRecordOrderPaymentUseCase } from '../../modules/financial/application/use-cases/record-order-payment.js';
+import { ReverseOrderPaymentUseCase, makeReverseOrderPaymentUseCase } from '../../modules/financial/application/use-cases/reverse-order-payment.js';
+import { RecordExpenseUseCase, makeRecordExpenseUseCase } from '../../modules/financial/application/use-cases/record-expense.js';
+import { ReverseExpenseUseCase, makeReverseExpenseUseCase } from '../../modules/financial/application/use-cases/reverse-expense.js';
+import { makeFinancialTransactionService } from '../../modules/financial/application/services/financial-transaction.service.js';
 import { IExpenseRepository } from '../../modules/expense/application/repositories/expense.repository.js';
 
 
@@ -169,6 +175,8 @@ export const buildOrderModule = (deps: {
   recalculateClientRating: RecalculateClientRating;
   clientRepository: IClientRepository;
   deliveryRepository: IDeliveryRepository;
+  recordOrderPayment?: RecordOrderPaymentUseCase;
+  reverseOrderPayment?: ReverseOrderPaymentUseCase;
 }): OrderSubContainer => {
   const orderRepository = deps.orderRepository ?? makeOrderMongooseRepository();
   return {
@@ -177,8 +185,8 @@ export const buildOrderModule = (deps: {
     getAllOrders: makeGetAllOrders(orderRepository),
     totalOrders: makeTotalOrders(orderRepository),
     createOrder: makeCreateOrder(orderRepository, deps.productRepository, deps.recalculateClientRating, deps.clientRepository, deps.deliveryRepository),
-    updateOrder: makeUpdateOrder(orderRepository, deps.productRepository, deps.recalculateClientRating),
-    deleteOrder: makeDeleteOrder(orderRepository, deps.recalculateClientRating),
+    updateOrder: makeUpdateOrder(orderRepository, deps.productRepository, deps.recalculateClientRating, deps.deliveryRepository, deps.recordOrderPayment, deps.reverseOrderPayment),
+    deleteOrder: makeDeleteOrder(orderRepository, deps.recalculateClientRating, deps.deliveryRepository),
   };
 };
 
@@ -246,7 +254,6 @@ export const buildContextModule = (deps: ContextModuleDependencies): ContextSubC
     getBusinessCostMetrics: makeGetBusinessCostMetrics(
       deps.expenseRepository,
       deps.fixedExpenseRepository,
-      deps.clientRepository,
     ),
   };
 };
@@ -261,12 +268,13 @@ export interface DeliverySubContainer {
 export const buildDeliveryModule = (deps: {
   deliveryRepository?: IDeliveryRepository;
   orderRepository: IOrderRepository;
+  recordDeliveryPayment: RecordDeliveryPaymentUseCase;
 }): DeliverySubContainer => {
   const deliveryRepository = deps.deliveryRepository ?? makeDeliveryMongooseRepository();
   return {
     getDelivery: makeGetDelivery(deliveryRepository),
     scheduleDelivery: makeScheduleDelivery(deliveryRepository),
-    updateDeliveryStatus: makeUpdateDeliveryStatus(deliveryRepository, deps.orderRepository),
+    updateDeliveryStatus: makeUpdateDeliveryStatus(deliveryRepository, deps.orderRepository, deps.recordDeliveryPayment),
     deliveryRepository,
   };
 };
@@ -293,6 +301,8 @@ export const buildRentalModule = (deps: {
   };
 };
 
+import { ReconcileFinancialDayUseCase, makeReconcileFinancialDayUseCase } from '../../modules/financial/application/use-cases/reconcile-financial-day.js';
+
 export interface FinancialSubContainer {
   createAccount: CreateAccount;
   createTransaction: CreateTransaction;
@@ -302,6 +312,12 @@ export interface FinancialSubContainer {
   openFinancialDay: OpenFinancialDay;
   closeFinancialDay: CloseFinancialDay;
   getFinancialDayByDate: GetFinancialDayByDate;
+  reconcileFinancialDay: ReconcileFinancialDayUseCase;
+  recordDeliveryPayment: RecordDeliveryPaymentUseCase;
+  recordOrderPayment: RecordOrderPaymentUseCase;
+  reverseOrderPayment: ReverseOrderPaymentUseCase;
+  recordExpense: RecordExpenseUseCase;
+  reverseExpense: ReverseExpenseUseCase;
   accountRepository: IAccountRepository;
   transactionRepository: ITransactionRepository;
   exchangeRateRepository: IExchangeRateRepository;
@@ -314,6 +330,8 @@ export interface FinancialModuleDependencies {
   exchangeRateRepository?: IExchangeRateRepository;
   financialDayRepository?: IFinancialDayRepository;
   deliveryRepository: IDeliveryRepository;
+  orderRepository: IOrderRepository;
+  expenseRepository: IExpenseRepository;
 }
 
 export const buildFinancialModule = (deps: FinancialModuleDependencies): FinancialSubContainer => {
@@ -321,6 +339,11 @@ export const buildFinancialModule = (deps: FinancialModuleDependencies): Financi
   const transactionRepository = deps.transactionRepository ?? makeTransactionMongooseRepository();
   const exchangeRateRepository = deps.exchangeRateRepository ?? makeExchangeRateMongooseRepository();
   const financialDayRepository = deps.financialDayRepository ?? makeFinancialDayMongooseRepository();
+
+  const financialTransactionService = makeFinancialTransactionService(
+    transactionRepository,
+    accountRepository,
+  );
 
   return {
     createAccount: makeCreateAccount(accountRepository),
@@ -334,8 +357,46 @@ export const buildFinancialModule = (deps: FinancialModuleDependencies): Financi
     transferFunds: makeTransferFunds(transactionRepository, accountRepository, financialDayRepository),
     updateExchangeRate: makeUpdateExchangeRate(exchangeRateRepository),
     openFinancialDay: makeOpenFinancialDay(financialDayRepository, accountRepository),
-    closeFinancialDay: makeCloseFinancialDay(financialDayRepository, accountRepository),
+    closeFinancialDay: makeCloseFinancialDay(
+      financialDayRepository,
+      accountRepository,
+      transactionRepository,
+      deps.orderRepository,
+      deps.expenseRepository,
+    ),
     getFinancialDayByDate: makeGetFinancialDayByDate(financialDayRepository, exchangeRateRepository),
+    reconcileFinancialDay: makeReconcileFinancialDayUseCase(
+      transactionRepository,
+      financialDayRepository,
+      deps.orderRepository,
+      deps.expenseRepository,
+    ),
+    recordDeliveryPayment: makeRecordDeliveryPaymentUseCase(
+      financialTransactionService,
+      financialDayRepository,
+      accountRepository,
+      deps.orderRepository,
+    ),
+    recordOrderPayment: makeRecordOrderPaymentUseCase(
+      financialTransactionService,
+      financialDayRepository,
+      accountRepository,
+    ),
+    reverseOrderPayment: makeReverseOrderPaymentUseCase(
+      financialTransactionService,
+      financialDayRepository,
+      accountRepository,
+    ),
+    recordExpense: makeRecordExpenseUseCase(
+      financialTransactionService,
+      financialDayRepository,
+      accountRepository,
+    ),
+    reverseExpense: makeReverseExpenseUseCase(
+      financialTransactionService,
+      financialDayRepository,
+      accountRepository,
+    ),
     accountRepository,
     transactionRepository,
     exchangeRateRepository,

@@ -24,6 +24,7 @@ import { makeCreateClient } from '../../modules/client/application/use-cases/cre
 import { makeOrderMongooseRepository } from '../../modules/order/infrastructure/repositories/order-mongoose.repository.js';
 import { makeRecalculateClientRating } from '../../modules/client/application/use-cases/recalculate-client-rating.js';
 import { makeCreateOrder } from '../../modules/order/application/use-cases/create-order.js';
+import { makeDeliveryMongooseRepository } from '../../modules/delivery/infrastructure/repositories/delivery-mongoose.repository.js';
 import { IProductRepository } from '../../modules/product/application/repositories/product.repository.js';
 import { IClientRepository } from '../../modules/client/application/repositories/client.repository.js';
 import { IKnowledgeRepository } from '../../modules/knowledge/application/repositories/knowledge.repository.js';
@@ -59,7 +60,7 @@ export interface ChatModuleDependencies {
   clientRepository: IClientRepository;
   pubSubInstance: unknown;
   knowledgeRepository: IKnowledgeRepository;
-  config: Pick<IConfig, "knowledgeInjectionEnabled" | "knowledgeInjectionTopN" | "knowledgeInjectionTokenBudget">;
+  config: Pick<IConfig, 'knowledgeInjectionEnabled' | 'knowledgeInjectionTopN' | 'knowledgeInjectionTokenBudget'>;
 }
 
 export const buildChatModule = (deps: ChatModuleDependencies): ChatSubContainer => {
@@ -70,14 +71,17 @@ export const buildChatModule = (deps: ChatModuleDependencies): ChatSubContainer 
   const unsatisfiedDemandRepository = makeUnsatisfiedDemandMongooseRepository();
   const baileysAuthRepository = makeBaileysAuthMongooseRepository();
 
-  // The LLM adapter is a thin wrapper around Gemini. It only needs the use
-  // cases it actually invokes through the tool dispatcher (createClient,
-  // createOrder, calculateDeliveryFee, logUnsatisfiedDemand) plus the two
-  // repositories the dispatcher queries directly.
   const createClient = makeCreateClient(clientRepository);
   const orderRepository = makeOrderMongooseRepository();
   const recalculateClientRating = makeRecalculateClientRating(clientRepository, orderRepository);
-  const createOrder = makeCreateOrder(orderRepository, recalculateClientRating);
+  const deliveryRepository = makeDeliveryMongooseRepository();
+  const createOrder = makeCreateOrder(
+    orderRepository,
+    productRepository,
+    recalculateClientRating,
+    clientRepository,
+    deliveryRepository,
+  );
   const calculateDeliveryFee = makeCalculateDeliveryFee(knowledgeRepository);
   const logUnsatisfiedDemand = makeLogUnsatisfiedDemand({ unsatisfiedDemandRepository });
 

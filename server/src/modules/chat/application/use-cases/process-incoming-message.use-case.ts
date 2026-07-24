@@ -1,4 +1,3 @@
-import { UseCase } from "../../../../../../shared-domain/src/shared/use-case.js";
 import { DomainError } from "../../../../../../shared-domain/src/shared/errors.js";
 import { Result } from "../../../../../../shared-domain/src/shared/result.js";
 import { ValidationError } from "../../../../../../shared-domain/src/shared/validation-error.js";
@@ -46,7 +45,7 @@ export const makeProcessIncomingMessage = (dependencies: {
     const phoneResult = WhatsappIdVO.createResult(input.from);
     if (phoneResult.isFailure) {
       return Result.fail(
-        new ValidationError(
+        createValidationError(
           `Invalid phone format: ${input.from}. Must be E.164 compliant (e.g., +12345678900)`
         )
       );
@@ -62,7 +61,7 @@ export const makeProcessIncomingMessage = (dependencies: {
         const cedulaResult = CedulaVO.createResult(normalizedToken);
         if (cedulaResult.isFailure) {
           return Result.fail(
-            new ValidationError(
+            createValidationError(
               `Invalid Cédula format: ${token}. Must match ^[VE]-\\d{7,9}$`
             )
           );
@@ -306,7 +305,7 @@ export const makeProcessIncomingMessage = (dependencies: {
           { alreadySaved: true, messageId: botMsgId }
         );
         if (sendRes.isFailure) {
-          return Result.fail(new DomainError(sendRes.getError().message));
+          return Result.fail(createDomainError(sendRes.getError().message));
         }
       }
 

@@ -128,34 +128,6 @@ export const makeContainer = (overrides: ContainerDependencies = {}): Container 
   const user = buildUserModule({ userRepository });
   const recalculateClientRating = makeRecalculateClientRating(clientRepository, orderRepository);
   const client = buildClientModule({ clientRepository, orderRepository, recalculateClientRating });
-  const order = buildOrderModule({
-    orderRepository,
-    productRepository,
-    recalculateClientRating,
-    clientRepository,
-    deliveryRepository,
-  });
-
-  const dashboard = buildDashboardModule({
-    dashboardRepository: overrides.dashboardRepository ?? makeDashboardMongooseRepository(),
-  });
-
-  const expense = buildExpenseModule({
-    expenseRepository: overrides.expenseRepository ?? makeExpenseMongooseRepository(),
-    fixedExpenseRepository: overrides.fixedExpenseRepository ?? makeFixedExpenseMongooseRepository(),
-    fixedExpensePaymentRepository:
-      overrides.fixedExpensePaymentRepository ?? makeFixedExpensePaymentMongooseRepository(),
-  });
-
-  const delivery = buildDeliveryModule({
-    deliveryRepository,
-    orderRepository,
-  });
-
-  const rental = buildRentalModule({
-    rentalRepository: overrides.rentalRepository ?? makeRentalMongooseRepository(),
-    productRepository,
-  });
 
   const accountRepository = overrides.accountRepository ?? makeAccountMongooseRepository();
   const transactionRepository = overrides.transactionRepository ?? makeTransactionMongooseRepository();
@@ -168,6 +140,42 @@ export const makeContainer = (overrides: ContainerDependencies = {}): Container 
     exchangeRateRepository,
     financialDayRepository,
     deliveryRepository,
+    orderRepository,
+    expenseRepository: overrides.expenseRepository ?? makeExpenseMongooseRepository(),
+  });
+
+  const order = buildOrderModule({
+    orderRepository,
+    productRepository,
+    recalculateClientRating,
+    clientRepository,
+    deliveryRepository,
+    recordOrderPayment: financial.recordOrderPayment,
+    reverseOrderPayment: financial.reverseOrderPayment,
+  });
+
+  const dashboard = buildDashboardModule({
+    dashboardRepository: overrides.dashboardRepository ?? makeDashboardMongooseRepository(),
+  });
+
+  const expense = buildExpenseModule({
+    expenseRepository: overrides.expenseRepository ?? makeExpenseMongooseRepository(),
+    fixedExpenseRepository: overrides.fixedExpenseRepository ?? makeFixedExpenseMongooseRepository(),
+    fixedExpensePaymentRepository:
+      overrides.fixedExpensePaymentRepository ?? makeFixedExpensePaymentMongooseRepository(),
+    recordExpense: financial.recordExpense,
+    reverseExpense: financial.reverseExpense,
+  });
+
+  const delivery = buildDeliveryModule({
+    deliveryRepository,
+    orderRepository,
+    recordDeliveryPayment: financial.recordDeliveryPayment,
+  });
+
+  const rental = buildRentalModule({
+    rentalRepository: overrides.rentalRepository ?? makeRentalMongooseRepository(),
+    productRepository,
   });
 
   const context = buildContextModule({

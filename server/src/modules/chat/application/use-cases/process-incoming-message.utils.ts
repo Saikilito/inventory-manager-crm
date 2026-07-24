@@ -1,4 +1,3 @@
-import { z } from "zod";
 
 export const potentialCedulaRegex =
   /\b(?:[vVeE]-?)?\d{1,3}(?:\.\d{3}){2}\b|\b(?:[vVeE]-?)?\d{7,9}\b/;

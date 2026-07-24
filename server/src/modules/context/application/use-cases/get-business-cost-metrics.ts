@@ -4,7 +4,6 @@ import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { PositiveNumberVO } from '../../../../../../shared-domain/src/shared/value-objects/positive-number.vo.js';
 import { NonEmptyStringVO } from '../../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js';
 import { IExpenseRepository } from '../../../expense/application/repositories/expense.repository.js';
-import { IClientRepository } from '../../../client/application/repositories/client.repository.js';
 import { IFixedExpenseRepository } from '../../../expense/application/repositories/fixed-expense.repository.js';
 import { calculateBusinessCostMetrics } from '../../domain/services/business-cost-metrics-calculator.js';
 import { BusinessCostMetrics } from '../../domain/services/business-cost-metrics.types.js';
@@ -23,7 +22,6 @@ export type GetBusinessCostMetrics = UseCase<GetBusinessCostMetricsInput, Busine
 export const makeGetBusinessCostMetrics = (
   expenseRepository: IExpenseRepository,
   fixedExpenseRepository: IFixedExpenseRepository,
-  clientRepository: IClientRepository,
 ): GetBusinessCostMetrics => {
   return async (input: GetBusinessCostMetricsInput) => {
     const referenceDate = input.referenceDate ? new Date(input.referenceDate) : new Date();

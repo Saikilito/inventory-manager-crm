@@ -3,7 +3,6 @@ import { IKnowledgeRepository } from '../../application/repositories/knowledge.r
 import { makeMongooseBaseRepository } from '../../../shared/infrastructure/repositories/mongoose-base.repository.js';
 import { IShared } from '../../../../../../shared-domain/src/shared/repository.js';
 import { NonEmptyStringVO } from '../../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js';
-import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
 import { DateTimeVO } from '../../../../../../shared-domain/src/shared/value-objects/date-time.vo.js';
 import KnowledgeModel, { IKnowledgeDocument } from '../knowledge.model.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
@@ -145,7 +144,7 @@ const textSearch = async (
       const docs = await KnowledgeModel.find(filter).exec();
       return docs.map(mapToDomain);
     },
-    (err) => new DatabaseError(err.message),
+    (err) => createDatabaseError(err.message),
   );
 
   if (result.isFailure) return [];
@@ -168,7 +167,7 @@ const softDeleteByIds = async (
         },
       ).exec();
     },
-    (err) => new DatabaseError(err.message),
+    (err) => createDatabaseError(err.message),
   );
 };
 
@@ -180,7 +179,7 @@ const findByStatus = async (status: KnowledgeStatusType): Promise<IKnowledge[]> 
         .exec();
       return docs.map(mapToDomain);
     },
-    (err) => new DatabaseError(err.message),
+    (err) => createDatabaseError(err.message),
   );
 
   if (result.isFailure) return [];
@@ -203,7 +202,7 @@ const updateStatus = async (
         throw new Error('Knowledge not found for status update');
       }
     },
-    (err) => new DatabaseError(err.message),
+    (err) => createDatabaseError(err.message),
   );
 };
 

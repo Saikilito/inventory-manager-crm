@@ -10,21 +10,11 @@ import { ChatThreadModel, IChatThreadDocument } from "../chat-thread.model.js";
 import { Result } from "../../../../../../shared-domain/src/shared/result.js";
 import { DatabaseError } from "../../../../../../shared-domain/src/shared/errors.js";
 import { doTryResult } from "../../../../../../shared-domain/src/shared/do-try-result.js";
-import { Id, IdVO } from "../../../../../../shared-domain/src/shared/value-objects/id.vo.js";
+import { IdVO } from "../../../../../../shared-domain/src/shared/value-objects/id.vo.js";
 import { NonEmptyString, NonEmptyStringVO } from "../../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js";
 import { DateTimeVO } from "../../../../../../shared-domain/src/shared/value-objects/date-time.vo.js";
 import { CreateEntityInput, UpdateEntityInput, GetAllInput, WhereField, IShared } from "../../../../../../shared-domain/src/shared/repository.js";
-
-const getCaracasDateStr = (date: Date = new Date()): string => {
-  const d = new Date(date);
-  const formatter = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Caracas",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-  return formatter.format(d); // returns YYYY-MM-DD
-};
+import { getCaracasDateStr } from "../../application/use-cases/process-incoming-message.utils.js";
 
 export const makeChatMessageMongooseRepository = (): IChatMessageRepository => {
   return {
@@ -80,7 +70,7 @@ export const makeChatMessageMongooseRepository = (): IChatMessageRepository => {
           }
           return results[0];
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message)
       );
     }) as IChatMessageRepository["create"],
 
@@ -109,7 +99,7 @@ export const makeChatMessageMongooseRepository = (): IChatMessageRepository => {
           }
           return messages;
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message)
       ),
 
     getAll: async <R = IChatMessage>(input?: GetAllInput): Promise<Result<IShared.PaginatedResult<R>, DatabaseError>> =>
@@ -164,7 +154,7 @@ export const makeChatMessageMongooseRepository = (): IChatMessageRepository => {
             pages,
           };
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message)
       ),
 
     getActiveThreads: async (whatsappId: NonEmptyString) =>
@@ -190,7 +180,7 @@ export const makeChatMessageMongooseRepository = (): IChatMessageRepository => {
             })),
           }));
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message)
       ),
 
     archiveThreads: async (whatsappId: NonEmptyString, dateStrs: string[]) =>
@@ -206,27 +196,27 @@ export const makeChatMessageMongooseRepository = (): IChatMessageRepository => {
             }
           ).exec();
         },
-        (err) => new DatabaseError(err.message)
+        (err) => createDatabaseError(err.message)
       ),
 
     getOne: async <R = IChatMessage>(_where: WhereField[]): Promise<Result<R | null, DatabaseError>> => {
-      return Result.fail(new DatabaseError("getOne is not implemented on ChatMessageMongooseRepository"));
+      return Result.fail(createDatabaseError("getOne is not implemented on ChatMessageMongooseRepository"));
     },
 
     getById: async <R = IChatMessage>(_id: IShared.VO.Id, _relations?: IShared.VO.NonEmptyString[]): Promise<Result<R | null, DatabaseError>> => {
-      return Result.fail(new DatabaseError("getById is not implemented on ChatMessageMongooseRepository"));
+      return Result.fail(createDatabaseError("getById is not implemented on ChatMessageMongooseRepository"));
     },
 
     updateById: async (_id: IShared.VO.Id, _input: UpdateEntityInput<IChatMessage>, _updatedBy: IShared.VO.Id): Promise<Result<void, DatabaseError>> => {
-      return Result.fail(new DatabaseError("updateById is not implemented on ChatMessageMongooseRepository"));
+      return Result.fail(createDatabaseError("updateById is not implemented on ChatMessageMongooseRepository"));
     },
 
     updateByIdIf: async (_id: IShared.VO.Id, _where: Partial<Record<keyof IChatMessage, unknown>>, _input: UpdateEntityInput<IChatMessage>, _updatedBy: IShared.VO.Id): Promise<Result<boolean, DatabaseError>> => {
-      return Result.fail(new DatabaseError("updateByIdIf is not implemented on ChatMessageMongooseRepository"));
+      return Result.fail(createDatabaseError("updateByIdIf is not implemented on ChatMessageMongooseRepository"));
     },
 
     deleteByIds: async (_ids: IShared.VO.Id[], _deletedBy: IShared.VO.Id): Promise<Result<void, DatabaseError>> => {
-      return Result.fail(new DatabaseError("deleteByIds is not implemented on ChatMessageMongooseRepository"));
+      return Result.fail(createDatabaseError("deleteByIds is not implemented on ChatMessageMongooseRepository"));
     },
   };
 };

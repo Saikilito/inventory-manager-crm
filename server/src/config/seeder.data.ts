@@ -142,11 +142,18 @@ export const buildProductsData = (contexts: {
 ];
 
 export const buildSellersData = () => {
-  const sellersData = [
+  const sellersData: Array<{
+    user: string;
+    email: string;
+    name: string;
+    password: string;
+    role: UserRole;
+    isTesting: boolean;
+  }> = [
     {
-      user: "admin",
-      email: "kember@example.com",
-      name: "Kember Nieves",
+      user: "kembert",
+      email: "kembertnieves@gmail.com",
+      name: "Kembert",
       password: "password123",
       role: UserRole.ADMIN,
       isTesting: true,
