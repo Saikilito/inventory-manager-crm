@@ -56,26 +56,31 @@ const mapTransactionToDomain = (doc: ITransactionDocument): ITransaction => {
 
 const mapTransactionToDocumentData = (tx: ITransaction) => {
   const data: Partial<ITransactionDocument> = {};
-  if (tx.accountId !== undefined) data.accountId = new mongoose.Types.ObjectId(tx.accountId.toString());
+  if (tx.accountId !== undefined) {
+    const accStr = tx.accountId.toString();
+    data.accountId = /^[0-9a-fA-F]{24}$/.test(accStr) ? (new mongoose.Types.ObjectId(accStr) as any) : accStr;
+  }
   if (tx.type !== undefined) data.type = tx.type;
   if (tx.amount !== undefined) data.amount = tx.amount;
   if (tx.currency !== undefined) data.currency = tx.currency.toString();
   if (tx.description !== undefined) data.description = tx.description.toString();
   if (tx.date !== undefined) data.date = tx.date.toString();
-  if (tx.financialDayId !== undefined) data.financialDayId = new mongoose.Types.ObjectId(tx.financialDayId.toString());
+  if (tx.financialDayId !== undefined) {
+    const dayStr = tx.financialDayId.toString();
+    data.financialDayId = /^[0-9a-fA-F]{24}$/.test(dayStr) ? (new mongoose.Types.ObjectId(dayStr) as any) : dayStr;
+  }
   if (tx.source !== undefined) data.source = tx.source;
-  if (tx.sourceReferenceId !== undefined) {
-    const refStr = tx.sourceReferenceId ? tx.sourceReferenceId.toString() : '';
-    const isObjectId = /^[0-9a-fA-F]{24}$/.test(refStr);
-    data.sourceReferenceId = tx.sourceReferenceId
-      ? (isObjectId ? new mongoose.Types.ObjectId(refStr) : refStr)
-      : undefined;
+  if (tx.sourceReferenceId !== undefined && tx.sourceReferenceId !== null) {
+    const refStr = tx.sourceReferenceId.toString();
+    if (refStr) {
+      data.sourceReferenceId = /^[0-9a-fA-F]{24}$/.test(refStr) ? new mongoose.Types.ObjectId(refStr) : refStr;
+    }
   }
   if (tx.createdAt !== undefined) data.createdAt = tx.createdAt.toString();
   return data;
 };
 
-export const makeTransactionResultMongooseRepository = (): ITransactionRepository => {
+export const makeTransactionMongooseRepository = (): ITransactionRepository => {
   return makeMongooseBaseRepository<ITransaction, ITransactionDocument>({
     model: TransactionModel,
     mapToDomain: mapTransactionToDomain,

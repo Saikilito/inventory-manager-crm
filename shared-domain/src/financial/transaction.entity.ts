@@ -4,7 +4,7 @@ import { Currency, CurrencyVO } from '../shared/value-objects/currency.vo.js';
 import { PositiveNumber, PositiveNumberVO } from '../shared/value-objects/positive-number.vo.js';
 import { DateTime, DateTimeVO } from '../shared/value-objects/date-time.vo.js';
 import { DateOnly, DateOnlyVO } from '../shared/value-objects/date-only.vo.js';
-import { TransactionSource, isTransactionSource } from './transaction-source.vo.js';
+import { TransactionSource, TransactionSourceVO, TransactionSourceType } from './transaction-source.vo.js';
 
 import { Result } from '../shared/result.js';
 import { ValidationError, createValidationError } from '../shared/validation-error.js';
@@ -25,7 +25,7 @@ export interface ITransaction {
   description: NonEmptyString;
   date: DateOnly;
   financialDayId: Id;
-  source: TransactionSource;
+  source: TransactionSourceType;
   sourceReferenceId?: Id;
   createdAt: DateTime;
 }
@@ -43,17 +43,17 @@ export const makeTransactionResult = (props: {
   sourceReferenceId?: string;
   createdAt?: string;
 }): Result<ITransaction, ValidationError> => {
+  if (!props.type || typeof props.type !== 'string') {
+    return Result.fail(createValidationError('Transaction type must be a non-empty string'));
+  }
   const parsedType = props.type.toUpperCase() as TransactionType;
   if (parsedType !== TransactionType.CREDIT && parsedType !== TransactionType.DEBIT) {
     return Result.fail(createValidationError(`Unsupported transaction type: ${props.type}`));
   }
 
   // Default to MANUAL for legacy transactions without source
-  const sourceValue = props.source || 'MANUAL';
-  const parsedSource = sourceValue.toUpperCase() as TransactionSource;
-  if (!isTransactionSource(parsedSource)) {
-    return Result.fail(createValidationError(`Unsupported transaction source: ${sourceValue}`));
-  }
+  const sourceResult = TransactionSourceVO.createResult(props.source || TransactionSource.MANUAL);
+  if (sourceResult.isFailure) return Result.fail(sourceResult.getError());
 
   const idResult = props.id ? IdVO.createResult(props.id) : undefined;
   if (idResult && idResult.isFailure) return Result.fail(idResult.getError());
@@ -94,7 +94,7 @@ export const makeTransactionResult = (props: {
     description: descriptionResult.getValue(),
     date: dateResult.getValue(),
     financialDayId: financialDayIdResult.getValue(),
-    source: parsedSource,
+    source: sourceResult.getValue(),
     sourceReferenceId: sourceReferenceIdResult?.getValue(),
     createdAt: createdAtResult.getValue(),
   });

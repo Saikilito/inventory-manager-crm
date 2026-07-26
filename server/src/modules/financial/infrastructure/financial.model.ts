@@ -47,7 +47,7 @@ const transactionSchema = new Schema<ITransactionDocument>({
   date: { type: String, required: true },
   financialDayId: { type: Schema.Types.ObjectId, ref: "FinancialDay", required: true },
   source: { type: String, required: true },
-  sourceReferenceId: { type: Schema.Types.Mixed, default: null },
+  sourceReferenceId: { type: Schema.Types.Mixed },
   createdAt: { type: String, required: true },
   isTesting: { type: Boolean, default: false, index: true },
 });

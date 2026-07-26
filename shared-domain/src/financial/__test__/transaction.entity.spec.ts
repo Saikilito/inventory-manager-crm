@@ -19,7 +19,7 @@ describe('Transaction Entity', () => {
   describe('makeTransactionResult', () => {
     it('should create a valid credit transaction', () => {
       const txResult = makeTransactionResult({ ...baseProps, type: TransactionType.CREDIT });
-      expect(txResult.isSuccess).toBe(true);
+      expect(txResult.isFailure).toBe(false);
       const tx = txResult.getValue();
       expect(tx.type).toBe(TransactionType.CREDIT);
       expect(tx.amount).toBe(100.5);
@@ -29,14 +29,14 @@ describe('Transaction Entity', () => {
 
     it('should create a valid debit transaction', () => {
       const txResult = makeTransactionResult({ ...baseProps, type: TransactionType.DEBIT });
-      expect(txResult.isSuccess).toBe(true);
+      expect(txResult.isFailure).toBe(false);
       const tx = txResult.getValue();
       expect(tx.type).toBe(TransactionType.DEBIT);
     });
 
     it('should normalize transaction type to uppercase', () => {
       const txResult = makeTransactionResult({ ...baseProps, type: 'credit' });
-      expect(txResult.isSuccess).toBe(true);
+      expect(txResult.isFailure).toBe(false);
       const tx = txResult.getValue();
       expect(tx.type).toBe(TransactionType.CREDIT);
     });

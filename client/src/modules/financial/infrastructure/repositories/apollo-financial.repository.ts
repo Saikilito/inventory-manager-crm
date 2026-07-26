@@ -1,13 +1,15 @@
 import { ApolloClient, NormalizedCacheObject } from '@apollo/client';
 import { FinancialRepository } from '../../domain/financial.repository';
 import { IAccount, makeAccount } from '@shared-domain/financial/account.entity.js';
-import { ITransaction, makeTransaction } from '@shared-domain/financial/transaction.entity.js';
+import { ITransaction, makeTransactionResult } from '@shared-domain/financial/transaction.entity.js';
 import { IFinancialDay, makeFinancialDay } from '@shared-domain/financial/financial-day.entity.js';
 import { makeExchangeRate } from '@shared-domain/financial/exchange-rate.entity.js';
 import { doTryResult } from '@shared-domain/shared/do-try-result';
+import { createDatabaseError } from '@shared-domain/shared/errors.js';
 import { GET_FINANCIAL_DAY_BY_DATE, GET_ACCOUNTS, GET_TRANSACTIONS } from '../graphql/queries';
 import {
   CREATE_ACCOUNT,
+  ADJUST_ACCOUNT,
   CREATE_TRANSACTION,
   UPDATE_EXCHANGE_RATE,
   OPEN_FINANCIAL_DAY,
@@ -70,7 +72,7 @@ export function makeApolloFinancialRepository(
   };
 
   const mapTransactionToDomain = (tx: GQLTransaction): ITransaction => {
-    return makeTransaction({
+    const result = makeTransactionResult({
       id: tx.id,
       accountId: tx.accountId,
       type: tx.type,
@@ -83,6 +85,8 @@ export function makeApolloFinancialRepository(
       sourceReferenceId: tx.sourceReferenceId,
       createdAt: tx.createdAt,
     });
+    if (result.isFailure) throw new Error(result.getError()?.message);
+    return result.getValue();
   };
 
   const mapFinancialDayToDomain = (fd: GQLFinancialDay): IFinancialDay => {
@@ -165,6 +169,24 @@ export function makeApolloFinancialRepository(
           }
 
           return mapAccountToDomain(data.createAccount);
+        },
+        (err) => createDatabaseError(err.message),
+      );
+    },
+
+    adjustAccount: async (input) => {
+      return doTryResult(
+        async () => {
+          const { data } = await apolloClient.mutate<{ adjustAccount: GQLAccount }>({
+            mutation: ADJUST_ACCOUNT,
+            variables: input,
+          });
+
+          if (!data || !data.adjustAccount) {
+            throw new Error('Failed to adjust account');
+          }
+
+          return mapAccountToDomain(data.adjustAccount);
         },
         (err) => createDatabaseError(err.message),
       );

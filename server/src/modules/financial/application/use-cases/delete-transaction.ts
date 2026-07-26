@@ -10,6 +10,9 @@ import { IAccount, makeAccount } from '../../../../../../shared-domain/src/finan
 import { IAccountRepository, ITransactionRepository, IFinancialDayRepository } from '../repositories/financial.repository.js';
 import { IDeliveryRepository } from '../../../delivery/application/repositories/delivery.repository.js';
 import { DeliveryField } from '../../../delivery/application/repositories/delivery.constants.js';
+import { TransactionSource } from '../../../../../../shared-domain/src/financial/transaction-source.vo.js';
+import { IExpenseRepository } from '../../../expense/application/repositories/expense.repository.js';
+import { makeExpense } from '../../../../../../shared-domain/src/expense/expense.entity.js';
 
 export interface DeleteTransactionInput {
   id: string;
@@ -22,6 +25,7 @@ export const makeDeleteTransaction = (
   accountRepository: IAccountRepository,
   financialDayRepository: IFinancialDayRepository,
   deliveryRepository: IDeliveryRepository,
+  expenseRepository?: IExpenseRepository,
 ): DeleteTransaction => {
   return async (input: DeleteTransactionInput) => {
     const txId = IdVO.create(input.id);
@@ -79,6 +83,44 @@ export const makeDeleteTransaction = (
     const updateAccResult = await accountRepository.updateById(account.id!, updatedAccount, IdVO.generateNil());
     if (updateAccResult.isFailure) {
       return Result.fail(updateAccResult.getError());
+    }
+
+    // Clear expense references for EXPENSE/EXPENSE_REVERSAL transactions
+    if (
+      expenseRepository &&
+      (transaction.source === TransactionSource.EXPENSE ||
+        transaction.source === TransactionSource.EXPENSE_REVERSAL) &&
+      transaction.sourceReferenceId
+    ) {
+      const expenseId = IdVO.create(transaction.sourceReferenceId.toString());
+      const expenseResult = await expenseRepository.getById(expenseId);
+
+      if (!expenseResult.isFailure && expenseResult.getValue()) {
+        const expense = expenseResult.getValue()!;
+        const updatedExpense = makeExpense({
+          id: expense.id!.toString(),
+          amount: expense.amount as number,
+          description: expense.description.toString(),
+          category: expense.category,
+          contextId: expense.contextId?.toString(),
+          referenceId: expense.referenceId?.toString(),
+          referenceType: expense.referenceType,
+          accountId: undefined,
+          transactionId: undefined,
+          createdAt: expense.createdAt?.toString(),
+          updatedAt: new Date().toISOString(),
+        });
+
+        const updateExpenseResult = await expenseRepository.updateById(
+          expense.id!,
+          updatedExpense,
+          IdVO.generateNil(),
+        );
+        if (updateExpenseResult.isFailure) {
+          return Result.fail(updateExpenseResult.getError());
+        }
+      }
+      // If expense doesn't exist, continue gracefully (no error)
     }
 
     if (transaction.sourceReferenceId) {

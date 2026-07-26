@@ -6,6 +6,8 @@ enum TransactionSource {
   FIXED_EXPENSE_PAYMENT
   TRANSFER
   MANUAL
+  DELIVERY
+  STOCK_PURCHASE
 }
 
 type Account {
@@ -81,6 +83,7 @@ type ReconciliationReport {
 type CloseFinancialDayResult {
   financialDay: FinancialDay!
   reconciliationReport: ReconciliationReport
+}
 
 type PaymentRecord {
   id: ID!
@@ -119,6 +122,12 @@ type Query {
 }
 
 type Mutation {
+  adjustAccount(
+    accountId: ID!
+    name: String
+    newBalance: Float
+    justification: String
+  ): Account!
   createAccount(name: String!, currency: String!, balance: Float): Account!
   createTransaction(
     accountId: ID!

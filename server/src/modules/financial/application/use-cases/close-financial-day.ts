@@ -1,5 +1,5 @@
 import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
-import { DomainError, ReconciliationError } from '../../../../../../shared-domain/src/shared/errors.js';
+import { DomainError, ReconciliationError, createReconciliationError } from '../../../../../../shared-domain/src/shared/errors.js';
 import { createValidationError } from '../../../../../../shared-domain/src/shared/validation-error.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';

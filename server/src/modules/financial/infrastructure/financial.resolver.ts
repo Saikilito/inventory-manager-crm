@@ -65,6 +65,7 @@ const mapReconciliationReportToGql = (report: IReconciliationReport) => ({
   totalDebits: Number(report.totalDebits),
   financialDayId: report.financialDayId.toString(),
   createdAt: report.createdAt.toString(),
+});
 
 const mapAccountsPayableToGql = (payable: IAccountsPayable) => ({
   id: payable.id!.toString(),
@@ -125,6 +126,10 @@ export default {
             { field: NonEmptyStringVO.create('accountId'), value: accountId, operator: '=' }
           ]
         },
+        sort: {
+          field: 'createdAt',
+          direction: 'DESC',
+        },
         limit: PositiveNumberVO.create(MongoQueryConstants.DEFAULT_PAGE_LIMIT),
       });
       if (result.isFailure) {
@@ -156,6 +161,18 @@ export default {
   },
 
   Mutation: {
+    adjustAccount: async (
+      _parent: unknown,
+      { accountId, name, newBalance, justification }: { accountId: string; name?: string; newBalance?: number; justification?: string },
+      { container }: IContext,
+    ) => {
+      const result = await container.financial.adjustAccount({ accountId, name, newBalance, justification });
+      if (result.isFailure) {
+        throw result.getError();
+      }
+      return mapAccountToGql(result.getValue());
+    },
+
     createAccount: async (
       _parent: unknown,
       { name, currency, balance }: { name: string; currency: string; balance?: number },

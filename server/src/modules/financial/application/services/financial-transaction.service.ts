@@ -26,6 +26,7 @@ export interface RecordExpenseInput {
   accountId: Id;
   amount: PositiveNumber;
   financialDayId: Id;
+  description?: string;
 }
 
 export interface ReverseExpenseInput {
@@ -33,6 +34,7 @@ export interface ReverseExpenseInput {
   amount: PositiveNumber;
   accountId: Id;
   financialDayId: Id;
+  description?: string;
 }
 
 export interface RecordDeliveryPaymentInput {
@@ -73,13 +75,14 @@ const checkIdempotency = async (
 const updateAccountBalance = async (
   accountRepository: IAccountRepository,
   account: IAccount,
-  amount: PositiveNumber,
+  amount: PositiveNumber | number,
   isCredit: boolean,
-  session?: mongoose.ClientSession,
+  _session?: mongoose.ClientSession,
 ): Promise<Result<IAccount, DatabaseError>> => {
+  const numAmount = Number(amount);
   const newBalance = isCredit
-    ? (account.balance as number) + (amount as number)
-    : (account.balance as number) - (amount as number);
+    ? Number(account.balance) + numAmount
+    : Number(account.balance) - numAmount;
 
   const updatedAccount = makeAccount({
     id: account.id!.toString(),
@@ -93,6 +96,84 @@ const updateAccountBalance = async (
   return accountRepository.updateById(account.id!, updatedAccount, IdVO.generateNil());
 };
 
+interface ExecuteSingleTransactionParams {
+  source: TransactionSource;
+  sourceReferenceId: Id;
+  accountId: Id;
+  type: TransactionType;
+  amount: PositiveNumber | number;
+  financialDayId: Id;
+  description: string;
+  isCredit: boolean;
+  session?: mongoose.ClientSession;
+}
+
+const executeSingleTransaction = async (
+  transactionRepository: ITransactionRepository,
+  accountRepository: IAccountRepository,
+  params: ExecuteSingleTransactionParams,
+): Promise<Result<ITransaction, FinancialIntegrationError | DatabaseError>> => {
+  const {
+    source,
+    sourceReferenceId,
+    accountId,
+    type,
+    amount,
+    financialDayId,
+    description,
+    isCredit,
+    session,
+  } = params;
+
+  const existing = await checkIdempotency(
+    transactionRepository,
+    source,
+    sourceReferenceId,
+    accountId,
+  );
+
+  if (existing) {
+    return Result.ok(existing);
+  }
+
+  const accountResult = await accountRepository.getById(accountId);
+  if (accountResult.isFailure) {
+    return Result.fail(accountResult.getError());
+  }
+
+  const account = accountResult.getValue() as IAccount | null;
+  if (!account) {
+    return Result.fail(new FinancialIntegrationError(`Account not found: ${accountId}`));
+  }
+
+  const transactionResult = makeTransactionResult({
+    accountId: accountId.toString(),
+    type,
+    amount: Number(amount),
+    currency: account.currency.toString(),
+    description,
+    date: new Date().toISOString(),
+    financialDayId: financialDayId.toString(),
+    source,
+    sourceReferenceId: sourceReferenceId.toString(),
+  });
+  if (transactionResult.isFailure) return Result.fail(transactionResult.getError());
+  const transaction = transactionResult.getValue();
+
+  const saveResult = await transactionRepository.create(transaction, IdVO.generateNil());
+  if (saveResult.isFailure) {
+    return Result.fail(saveResult.getError());
+  }
+
+  const updateResult = await updateAccountBalance(accountRepository, account, amount, isCredit, session);
+  if (updateResult.isFailure) {
+    await transactionRepository.deleteByIds([saveResult.getValue().id!], IdVO.generateNil());
+    return Result.fail(updateResult.getError());
+  }
+
+  return Result.ok(saveResult.getValue());
+};
+
 export const makeFinancialTransactionService = (
   transactionRepository: ITransactionRepository,
   accountRepository: IAccountRepository,
@@ -102,252 +183,82 @@ export const makeFinancialTransactionService = (
       const transactions: ITransaction[] = [];
 
       for (const payment of input.payments) {
-        const existing = await checkIdempotency(
-          transactionRepository,
-          TransactionSource.ORDER_PAYMENT,
-          input.orderId,
-          payment.accountId,
-        );
-
-        if (existing) {
-          transactions.push(existing);
-          continue;
-        }
-
-        const accountResult = await accountRepository.getById(payment.accountId);
-        if (accountResult.isFailure) {
-          return Result.fail(accountResult.getError());
-        }
-
-        const account = accountResult.getValue() as IAccount | null;
-        if (!account) {
-          return Result.fail(new FinancialIntegrationError(`Account not found: ${payment.accountId}`));
-        }
-
-        const transactionResult = makeTransactionResult({
-          accountId: payment.accountId.toString(),
-          type: TransactionType.CREDIT,
-          amount: payment.amount as number,
-          currency: account.currency.toString(),
-          description: `Order payment - ${input.orderId}`,
-          date: new Date().toISOString(),
-          financialDayId: input.financialDayId.toString(),
+        const result = await executeSingleTransaction(transactionRepository, accountRepository, {
           source: TransactionSource.ORDER_PAYMENT,
-          sourceReferenceId: input.orderId.toString(),
+          sourceReferenceId: input.orderId,
+          accountId: payment.accountId,
+          type: TransactionType.CREDIT,
+          amount: payment.amount,
+          financialDayId: input.financialDayId,
+          description: `Order payment - ${input.orderId}`,
+          isCredit: true,
+          session,
         });
-        if (transactionResult.isFailure) return Result.fail(transactionResult.getError());
-        const transaction = transactionResult.getValue();
 
-        const updateResult = await updateAccountBalance(accountRepository, account, payment.amount, true, session);
-        if (updateResult.isFailure) {
-          return Result.fail(updateResult.getError());
+        if (result.isFailure) {
+          return Result.fail(result.getError());
         }
 
-        const saveResult = await transactionRepository.create(transaction, IdVO.generateNil());
-        if (saveResult.isFailure) {
-          return Result.fail(saveResult.getError());
-        }
-
-        transactions.push(saveResult.getValue());
+        transactions.push(result.getValue());
       }
 
       return Result.ok(transactions);
     },
 
     reverseOrderPayment: async (input: ReverseOrderPaymentInput, session?: mongoose.ClientSession): Promise<Result<ITransaction, FinancialIntegrationError | DatabaseError>> => {
-      const existing = await checkIdempotency(
-        transactionRepository,
-        TransactionSource.ORDER_REFUND,
-        input.orderId,
-        input.accountId,
-      );
-
-      if (existing) {
-        return Result.ok(existing);
-      }
-
-      const accountResult = await accountRepository.getById(input.accountId);
-      if (accountResult.isFailure) {
-        return Result.fail(accountResult.getError());
-      }
-
-      const account = accountResult.getValue() as IAccount | null;
-      if (!account) {
-        return Result.fail(new FinancialIntegrationError(`Account not found: ${input.accountId}`));
-      }
-
-      const transactionResult = makeTransactionResult({
-        accountId: input.accountId.toString(),
-        type: TransactionType.DEBIT,
-        amount: input.amount as number,
-        currency: account.currency.toString(),
-        description: `Order refund - ${input.orderId}`,
-        date: new Date().toISOString(),
-        financialDayId: input.financialDayId.toString(),
+      return executeSingleTransaction(transactionRepository, accountRepository, {
         source: TransactionSource.ORDER_REFUND,
-        sourceReferenceId: input.orderId.toString(),
+        sourceReferenceId: input.orderId,
+        accountId: input.accountId,
+        type: TransactionType.DEBIT,
+        amount: input.amount,
+        financialDayId: input.financialDayId,
+        description: `Order refund - ${input.orderId}`,
+        isCredit: false,
+        session,
       });
-        if (transactionResult.isFailure) return Result.fail(transactionResult.getError());
-        const transaction = transactionResult.getValue();
-
-      const updateResult = await updateAccountBalance(accountRepository, account, input.amount, false, session);
-      if (updateResult.isFailure) {
-        return Result.fail(updateResult.getError());
-      }
-
-      const saveResult = await transactionRepository.create(transaction, IdVO.generateNil());
-      if (saveResult.isFailure) {
-        return Result.fail(saveResult.getError());
-      }
-
-      return Result.ok(saveResult.getValue());
     },
 
     recordExpense: async (input: RecordExpenseInput, session?: mongoose.ClientSession): Promise<Result<ITransaction, FinancialIntegrationError | DatabaseError>> => {
-      const existing = await checkIdempotency(
-        transactionRepository,
-        TransactionSource.EXPENSE,
-        input.expenseId,
-        input.accountId,
-      );
-
-      if (existing) {
-        return Result.ok(existing);
-      }
-
-      const accountResult = await accountRepository.getById(input.accountId);
-      if (accountResult.isFailure) {
-        return Result.fail(accountResult.getError());
-      }
-
-      const account = accountResult.getValue() as IAccount | null;
-      if (!account) {
-        return Result.fail(new FinancialIntegrationError(`Account not found: ${input.accountId}`));
-      }
-
-      const transactionResult = makeTransactionResult({
-        accountId: input.accountId.toString(),
-        type: TransactionType.DEBIT,
-        amount: input.amount as number,
-        currency: account.currency.toString(),
-        description: `Expense - ${input.expenseId}`,
-        date: new Date().toISOString(),
-        financialDayId: input.financialDayId.toString(),
+      return executeSingleTransaction(transactionRepository, accountRepository, {
         source: TransactionSource.EXPENSE,
-        sourceReferenceId: input.expenseId.toString(),
+        sourceReferenceId: input.expenseId,
+        accountId: input.accountId,
+        type: TransactionType.DEBIT,
+        amount: input.amount,
+        financialDayId: input.financialDayId,
+        description: input.description || `Expense - ${input.expenseId}`,
+        isCredit: false,
+        session,
       });
-        if (transactionResult.isFailure) return Result.fail(transactionResult.getError());
-        const transaction = transactionResult.getValue();
-
-      const updateResult = await updateAccountBalance(accountRepository, account, input.amount, false, session);
-      if (updateResult.isFailure) {
-        return Result.fail(updateResult.getError());
-      }
-
-      const saveResult = await transactionRepository.create(transaction, IdVO.generateNil());
-      if (saveResult.isFailure) {
-        return Result.fail(saveResult.getError());
-      }
-
-      return Result.ok(saveResult.getValue());
     },
 
     reverseExpense: async (input: ReverseExpenseInput, session?: mongoose.ClientSession): Promise<Result<ITransaction, FinancialIntegrationError | DatabaseError>> => {
-      const existing = await checkIdempotency(
-        transactionRepository,
-        TransactionSource.EXPENSE_REVERSAL,
-        input.expenseId,
-        input.accountId,
-      );
-
-      if (existing) {
-        return Result.ok(existing);
-      }
-
-      const accountResult = await accountRepository.getById(input.accountId);
-      if (accountResult.isFailure) {
-        return Result.fail(accountResult.getError());
-      }
-
-      const account = accountResult.getValue() as IAccount | null;
-      if (!account) {
-        return Result.fail(new FinancialIntegrationError(`Account not found: ${input.accountId}`));
-      }
-
-      const transactionResult = makeTransactionResult({
-        accountId: input.accountId.toString(),
-        type: TransactionType.CREDIT,
-        amount: input.amount as number,
-        currency: account.currency.toString(),
-        description: `Expense reversal - ${input.expenseId}`,
-        date: new Date().toISOString(),
-        financialDayId: input.financialDayId.toString(),
+      return executeSingleTransaction(transactionRepository, accountRepository, {
         source: TransactionSource.EXPENSE_REVERSAL,
-        sourceReferenceId: input.expenseId.toString(),
+        sourceReferenceId: input.expenseId,
+        accountId: input.accountId,
+        type: TransactionType.CREDIT,
+        amount: input.amount,
+        financialDayId: input.financialDayId,
+        description: input.description || `Expense reversal - ${input.expenseId}`,
+        isCredit: true,
+        session,
       });
-        if (transactionResult.isFailure) return Result.fail(transactionResult.getError());
-        const transaction = transactionResult.getValue();
-
-      const updateResult = await updateAccountBalance(accountRepository, account, input.amount, true, session);
-      if (updateResult.isFailure) {
-        return Result.fail(updateResult.getError());
-      }
-
-      const saveResult = await transactionRepository.create(transaction, IdVO.generateNil());
-      if (saveResult.isFailure) {
-        return Result.fail(saveResult.getError());
-      }
-
-      return Result.ok(saveResult.getValue());
     },
 
     recordDeliveryPayment: async (input: RecordDeliveryPaymentInput, session?: mongoose.ClientSession): Promise<Result<ITransaction, FinancialIntegrationError | DatabaseError>> => {
-      const existing = await checkIdempotency(
-        transactionRepository,
-        TransactionSource.DELIVERY,
-        input.deliveryId,
-        input.accountId,
-      );
-
-      if (existing) {
-        return Result.ok(existing);
-      }
-
-      const accountResult = await accountRepository.getById(input.accountId);
-      if (accountResult.isFailure) {
-        return Result.fail(accountResult.getError());
-      }
-
-      const account = accountResult.getValue() as IAccount | null;
-      if (!account) {
-        return Result.fail(new FinancialIntegrationError(`Account not found: ${input.accountId}`));
-      }
-
-      const transactionResult = makeTransactionResult({
-        accountId: input.accountId.toString(),
-        type: TransactionType.CREDIT,
-        amount: input.amount as number,
-        currency: account.currency.toString(),
-        description: `Delivery ${input.deliveryId} for Order ${input.orderId}`,
-        date: new Date().toISOString(),
-        financialDayId: input.financialDayId.toString(),
+      return executeSingleTransaction(transactionRepository, accountRepository, {
         source: TransactionSource.DELIVERY,
-        sourceReferenceId: input.deliveryId.toString(),
+        sourceReferenceId: input.deliveryId,
+        accountId: input.accountId,
+        type: TransactionType.CREDIT,
+        amount: input.amount,
+        financialDayId: input.financialDayId,
+        description: `Delivery ${input.deliveryId} for Order ${input.orderId}`,
+        isCredit: true,
+        session,
       });
-        if (transactionResult.isFailure) return Result.fail(transactionResult.getError());
-        const transaction = transactionResult.getValue();
-
-      const updateResult = await updateAccountBalance(accountRepository, account, input.amount, true, session);
-      if (updateResult.isFailure) {
-        return Result.fail(updateResult.getError());
-      }
-
-      const saveResult = await transactionRepository.create(transaction, IdVO.generateNil());
-      if (saveResult.isFailure) {
-        return Result.fail(saveResult.getError());
-      }
-
-      return Result.ok(saveResult.getValue());
     },
   };
 };

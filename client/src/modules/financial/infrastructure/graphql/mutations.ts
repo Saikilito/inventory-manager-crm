@@ -11,6 +11,27 @@ export const CREATE_ACCOUNT = gql`
   }
 `;
 
+export const ADJUST_ACCOUNT = gql`
+  mutation adjustAccount(
+    $accountId: ID!
+    $name: String
+    $newBalance: Float
+    $justification: String
+  ) {
+    adjustAccount(
+      accountId: $accountId
+      name: $name
+      newBalance: $newBalance
+      justification: $justification
+    ) {
+      id
+      name
+      currency
+      balance
+    }
+  }
+`;
+
 export const CREATE_TRANSACTION = gql`
   mutation createTransaction(
     $accountId: ID!

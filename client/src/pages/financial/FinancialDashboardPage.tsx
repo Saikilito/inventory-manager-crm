@@ -21,6 +21,7 @@ import { Link } from 'react-router-dom';
 
 // Modals
 import { CreateAccountModal } from './components/CreateAccountModal';
+import { AdjustAccountModal } from './components/AdjustAccountModal';
 import { CreateTransactionDrawer } from './components/CreateTransactionDrawer';
 import { ExchangeRateModal } from './components/ExchangeRateModal';
 import { TransferFundsDrawer } from './components/TransferFundsDrawer';
@@ -235,6 +236,7 @@ export const FinancialDashboardPage: React.FC = () => {
               isDayClosed={computed.isDayClosed}
               onSelectAccount={handlers.handleSelectAccount}
               onOpenTxDrawer={handlers.handleOpenTxDrawer}
+              onOpenAdjustModal={handlers.handleOpenAdjustModal}
             />
 
             {/* 4. Transactions List */}
@@ -253,10 +255,21 @@ export const FinancialDashboardPage: React.FC = () => {
       )}
 
       {/* Account Creation Modal */}
+      {/* New Account Modal */}
       <CreateAccountModal
         isOpen={modals.isAccountModalOpen}
         onClose={() => modals.setIsAccountModalOpen(false)}
         onSubmit={(name, currency, balance) => ploc.createAccount(name, currency, balance)}
+      />
+
+      {/* Adjust Account Modal */}
+      <AdjustAccountModal
+        isOpen={modals.isAdjustModalOpen}
+        onClose={() => modals.setIsAdjustModalOpen(false)}
+        account={modals.adjustAccountTarget}
+        onAdjust={(accountId, name, newBalance, justification) => 
+          ploc.adjustAccount({ accountId, name, newBalance, justification })
+        }
       />
 
       {/* Rate setting Modal */}

@@ -7,6 +7,12 @@ export interface FinancialPloc extends Ploc<FinancialState> {
   changeDate(date: string): Promise<void>;
   selectAccount(accountId: string | null): Promise<void>;
   createAccount(name: string, currency: string, balance?: number): Promise<void>;
+  adjustAccount(input: {
+    accountId: string;
+    name?: string;
+    newBalance?: number;
+    justification?: string;
+  }): Promise<void>;
   createTransaction(input: {
     accountId: string;
     type: string;
@@ -18,7 +24,6 @@ export interface FinancialPloc extends Ploc<FinancialState> {
   }): Promise<void>;
   updateExchangeRate(date: string, rate: number): Promise<void>;
   openDay(date: string): Promise<void>;
-  closeDay(date: string): Promise<void>;
   deleteTransaction(id: string): Promise<void>;
   transferFunds(input: {
     sourceAccountId: string;
@@ -139,6 +144,25 @@ export function makeFinancialPloc(repository: FinancialRepository): FinancialPlo
     }
   };
 
+  const adjustAccount = async (input: {
+    accountId: string;
+    name?: string;
+    newBalance?: number;
+    justification?: string;
+  }) => {
+    const result = await repository.adjustAccount(input);
+
+    if (result.isFailure) {
+      ploc.changeState({
+        ...ploc.state(),
+        kind: FinancialStateKind.ERROR,
+        errorMessage: result.getError().message || 'Error adjusting account',
+      });
+    } else {
+      await load(ploc.state().selectedDate);
+    }
+  };
+
   const createTransaction = async (input: {
     accountId: string;
     type: string;
@@ -193,20 +217,6 @@ export function makeFinancialPloc(repository: FinancialRepository): FinancialPlo
     }
   };
 
-  const closeDay = async (date: string) => {
-    const result = await repository.closeFinancialDay(date);
-
-    if (result.isFailure) {
-      ploc.changeState({
-        ...ploc.state(),
-        kind: FinancialStateKind.ERROR,
-        errorMessage: result.getError().message || 'Error closing financial day',
-      });
-    } else {
-      await load(ploc.state().selectedDate);
-    }
-  };
-
   const transferFunds = async (input: {
     sourceAccountId: string;
     targetAccountId: string;
@@ -253,10 +263,10 @@ export function makeFinancialPloc(repository: FinancialRepository): FinancialPlo
     changeDate,
     selectAccount,
     createAccount,
+    adjustAccount,
     createTransaction,
     updateExchangeRate,
     openDay,
-    closeDay,
     deleteTransaction,
     transferFunds,
   };

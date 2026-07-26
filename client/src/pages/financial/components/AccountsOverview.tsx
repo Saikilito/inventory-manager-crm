@@ -1,6 +1,22 @@
-import React from 'react';
-import { Plus, Wallet } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Wallet } from 'lucide-react';
 import { IAccount } from '@shared-domain/financial/account.entity.js';
+import { SortableAccountCard } from './SortableAccountCard';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+} from '@dnd-kit/sortable';
 
 interface AccountsOverviewProps {
   accounts: IAccount[];
@@ -9,7 +25,10 @@ interface AccountsOverviewProps {
   isDayClosed: boolean;
   onSelectAccount: (id: string) => void;
   onOpenTxDrawer: (acc: IAccount, e?: React.MouseEvent) => void;
+  onOpenAdjustModal: (acc: IAccount, e?: React.MouseEvent) => void;
 }
+
+const LOCAL_STORAGE_KEY = 'financial_accounts_order';
 
 export const AccountsOverview: React.FC<AccountsOverviewProps> = ({
   accounts,
@@ -18,7 +37,71 @@ export const AccountsOverview: React.FC<AccountsOverviewProps> = ({
   isDayClosed,
   onSelectAccount,
   onOpenTxDrawer,
+  onOpenAdjustModal,
 }) => {
+  const [orderedAccounts, setOrderedAccounts] = useState<IAccount[]>([]);
+
+  useEffect(() => {
+    // Load saved order from localStorage
+    const savedOrderJson = localStorage.getItem(LOCAL_STORAGE_KEY);
+    let savedOrder: string[] = [];
+    if (savedOrderJson) {
+      try {
+        savedOrder = JSON.parse(savedOrderJson);
+      } catch (e) {
+        console.error('Failed to parse accounts order from localStorage', e);
+      }
+    }
+
+    if (savedOrder.length > 0 && accounts.length > 0) {
+      // Sort accounts based on saved order array
+      const sorted = [...accounts].sort((a, b) => {
+        const idA = a.id?.toString() || '';
+        const idB = b.id?.toString() || '';
+        const indexA = savedOrder.indexOf(idA);
+        const indexB = savedOrder.indexOf(idB);
+
+        if (indexA === -1 && indexB === -1) return 0;
+        if (indexA === -1) return 1; // Put unknown accounts at the end
+        if (indexB === -1) return -1;
+        return indexA - indexB;
+      });
+      setOrderedAccounts(sorted);
+    } else {
+      setOrderedAccounts(accounts);
+    }
+  }, [accounts]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5, // Requires 5px movement before dragging starts
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setOrderedAccounts((items) => {
+        const oldIndex = items.findIndex((i) => i.id?.toString() === active.id);
+        const newIndex = items.findIndex((i) => i.id?.toString() === over.id);
+
+        const newOrder = arrayMove(items, oldIndex, newIndex);
+        
+        // Save the new order of IDs to localStorage
+        const orderIds = newOrder.map((a) => a.id?.toString() || '');
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(orderIds));
+
+        return newOrder;
+      });
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -33,70 +116,31 @@ export const AccountsOverview: React.FC<AccountsOverviewProps> = ({
           No financial accounts registered yet.
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {accounts.map((acc) => {
-            const isSelected = selectedAccountId === acc.id?.toString();
-            const currency = acc.currency.toString();
-            const balance = acc.balance;
-
-            return (
-              <div
-                key={acc.id?.toString()}
-                onClick={() => onSelectAccount(acc.id!.toString())}
-                className={`group cursor-pointer bg-white dark:bg-stone-900 border p-5 rounded-2xl transition-all flex flex-col justify-between h-40 shadow-sm relative ${
-                  isSelected
-                    ? 'border-emerald-600 ring-2 ring-emerald-500/20'
-                    : 'border-stone-200 dark:border-stone-800 hover:border-stone-300 dark:hover:border-stone-700'
-                }`}
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h4 className="font-bold text-stone-900 dark:text-stone-100 group-hover:text-emerald-600 transition-colors">
-                      {acc.name.toString()}
-                    </h4>
-                    <span className={`inline-flex items-center px-2 py-0.5 mt-1 text-[10px] font-bold uppercase rounded-md ${
-                      currency === 'USD'
-                        ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400'
-                        : 'bg-indigo-50 dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-400'
-                    }`}>
-                      {currency}
-                    </span>
-                  </div>
-                  
-                  {/* Record cashflow action */}
-                  <button
-                    onClick={(e) => onOpenTxDrawer(acc, e)}
-                    disabled={isDayClosed}
-                    className="inline-flex items-center justify-center p-1.5 bg-stone-50 dark:bg-stone-950 text-stone-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 border border-stone-200 dark:border-stone-800 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-stone-500"
-                    title="Record Ledger Transaction"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <div className="mt-4">
-                  <span className="block text-[11px] text-stone-400 dark:text-stone-500 uppercase font-medium tracking-wider">
-                    Balance
-                  </span>
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-2xl font-extrabold text-stone-950 dark:text-stone-50">
-                      {currency === 'USD' ? '$' : 'Bs.'}
-                      {balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    </span>
-                    <span className="text-xs text-stone-400 uppercase font-bold">{currency}</span>
-                  </div>
-
-                  {/* Show converted USD equivalent for VES account */}
-                  {currency === 'VES' && (
-                    <span className="block text-xs font-semibold text-emerald-600 dark:text-emerald-400 mt-1">
-                      ≈ ${(balance / activeRate).toLocaleString('en-US', { minimumFractionDigits: 2 })} USD
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <SortableContext
+              items={orderedAccounts.map(a => a.id?.toString() || '')}
+              strategy={rectSortingStrategy}
+            >
+              {orderedAccounts.map((acc) => (
+                <SortableAccountCard
+                  key={acc.id?.toString()}
+                  account={acc}
+                  isSelected={selectedAccountId === acc.id?.toString()}
+                  activeRate={activeRate}
+                  isDayClosed={isDayClosed}
+                  onSelectAccount={onSelectAccount}
+                  onOpenTxDrawer={onOpenTxDrawer}
+                  onOpenAdjustModal={onOpenAdjustModal}
+                />
+              ))}
+            </SortableContext>
+          </div>
+        </DndContext>
       )}
     </div>
   );

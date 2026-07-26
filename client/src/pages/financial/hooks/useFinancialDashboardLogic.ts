@@ -14,6 +14,8 @@ export function useFinancialDashboardLogic() {
   const navigate = useNavigate();
 
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+  const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
+  const [adjustAccountTarget, setAdjustAccountTarget] = useState<IAccount | null>(null);
   const [isRateModalOpen, setIsRateModalOpen] = useState(false);
   const [isTxDrawerOpen, setIsTxDrawerOpen] = useState(false);
   const [txDrawerAccount, setTxDrawerAccount] = useState<IAccount | null>(null);
@@ -56,6 +58,12 @@ export function useFinancialDashboardLogic() {
     }
   };
 
+  const handleOpenAdjustModal = (acc: IAccount, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setAdjustAccountTarget(acc);
+    setIsAdjustModalOpen(true);
+  };
+
   const handleOpenTxDrawer = (acc: IAccount, e?: React.MouseEvent) => {
     if (e) {
       e.stopPropagation(); // Avoid selecting account if clicking transaction button
@@ -80,10 +88,6 @@ export function useFinancialDashboardLogic() {
     .filter(a => a.currency.toString() === SupportedCurrency.VES)
     .reduce((sum, a) => sum + (a.balance / activeRate), 0);
 
-  const totalVES = state.accounts
-    .filter(a => a.currency.toString() === SupportedCurrency.VES)
-    .reduce((sum, a) => sum + a.balance, 0);
-
   const combinedBalanceUSD = totalUSD + totalVESInUSD;
 
   const isDayOpened = !!state.activeDay;
@@ -96,6 +100,9 @@ export function useFinancialDashboardLogic() {
     modals: {
       isAccountModalOpen,
       setIsAccountModalOpen,
+      isAdjustModalOpen,
+      setIsAdjustModalOpen,
+      adjustAccountTarget,
       isRateModalOpen,
       setIsRateModalOpen,
       isTxDrawerOpen,
@@ -110,9 +117,6 @@ export function useFinancialDashboardLogic() {
     },
     computed: {
       activeRate,
-      totalUSD,
-      totalVESInUSD,
-      totalVES,
       combinedBalanceUSD,
       isDayOpened,
       isDayClosed,
@@ -120,6 +124,7 @@ export function useFinancialDashboardLogic() {
     handlers: {
       adjustDate,
       handleSelectAccount,
+      handleOpenAdjustModal,
       handleOpenTxDrawer,
       handleDeleteTransaction,
     }

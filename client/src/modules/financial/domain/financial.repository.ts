@@ -10,6 +10,12 @@ export interface FinancialRepository {
   getAccounts(): Promise<Result<IAccount[], DomainError>>;
   getTransactions(accountId: string): Promise<Result<ITransaction[], DomainError>>;
   createAccount(name: string, currency: string, balance?: number): Promise<Result<IAccount, DomainError>>;
+  adjustAccount(input: {
+    accountId: string;
+    name?: string;
+    newBalance?: number;
+    justification?: string;
+  }): Promise<Result<IAccount, DomainError>>;
   createTransaction(input: {
     accountId: string;
     type: string;

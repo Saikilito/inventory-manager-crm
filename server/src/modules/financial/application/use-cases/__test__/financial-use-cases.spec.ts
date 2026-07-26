@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- Mock repositories in tests require flexible typing for test isolation */
 import { describe, it, expect } from 'vitest';
-import { Result } from '../../../../../../../shared-domain/src/shared/result.js';
 import { FinancialDayStatus } from '../../../../../../../shared-domain/src/financial/financial-day.entity.js';
 import { IdVO } from '../../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
 import { NonEmptyStringVO } from '../../../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js';

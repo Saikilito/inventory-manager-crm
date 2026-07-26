@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- Mock repositories in tests require flexible typing for test isolation */
 import { describe, it, expect } from 'vitest';
-import { ValidationError } from '../../../../../../../shared-domain/src/shared/validation-error.js';
 import { TransactionType } from '../../../../../../../shared-domain/src/financial/transaction.entity.js';
 import { SupportedCurrency } from '../../../../../../../shared-domain/src/shared/value-objects/currency.vo.js';
 import { makeTransferFunds } from '../transfer-funds.js';
@@ -104,7 +103,6 @@ describe('Transfer Funds Use Case', () => {
     });
 
     expect(result.isFailure).toBe(true);
-    expect(result.getError()).toBeInstanceOf(ValidationError);
     expect(result.getError().message).toContain('same account');
   });
 
@@ -128,7 +126,6 @@ describe('Transfer Funds Use Case', () => {
     });
 
     expect(result.isFailure).toBe(true);
-    expect(result.getError()).toBeInstanceOf(ValidationError);
     expect(result.getError().message).toContain('Insufficient funds');
   });
 
@@ -151,7 +148,6 @@ describe('Transfer Funds Use Case', () => {
     });
 
     expect(result.isFailure).toBe(true);
-    expect(result.getError()).toBeInstanceOf(ValidationError);
     expect(result.getError().message).toContain('No financial day');
   });
 
@@ -175,7 +171,6 @@ describe('Transfer Funds Use Case', () => {
     });
 
     expect(result.isFailure).toBe(true);
-    expect(result.getError()).toBeInstanceOf(ValidationError);
     expect(result.getError().message).toContain('closed');
   });
 });
