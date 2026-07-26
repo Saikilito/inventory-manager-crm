@@ -2,7 +2,7 @@ import { buildToolDeclarations } from './tool-declarations.js';
 import { getHandler } from './tool-handlers/index.js';
 import type { ToolDispatcherDependencies } from './types.js';
 
-export { ToolDispatcherDependencies } from './types.js';
+export type { ToolDispatcherDependencies } from './types.js';
 export { buildToolDeclarations };
 
 export async function dispatchToolCall(

@@ -1,12 +1,19 @@
 import { IKnowledge } from '../../../../../../shared-domain/src/knowledge/knowledge.entity.js';
 import { IKnowledgeRepository } from '../../application/repositories/knowledge.repository.js';
-import { makeMongooseBaseRepository } from '../../../shared/infrastructure/repositories/mongoose-base.repository.js';
-import { IShared } from '../../../../../../shared-domain/src/shared/repository.js';
+import {
+  makeMongooseBaseRepository,
+  toObjectIdIfValid,
+} from '../../../shared/infrastructure/repositories/mongoose-base.repository.js';
+import {
+  CreateEntityInput,
+  UpdateEntityInput,
+  IShared,
+} from '../../../../../../shared-domain/src/shared/repository.js';
 import { NonEmptyStringVO } from '../../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js';
 import { DateTimeVO } from '../../../../../../shared-domain/src/shared/value-objects/date-time.vo.js';
 import KnowledgeModel, { IKnowledgeDocument } from '../knowledge.model.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
-import { DatabaseError } from '../../../../../../shared-domain/src/shared/errors.js';
+import { DatabaseError, createDatabaseError } from '../../../../../../shared-domain/src/shared/errors.js';
 import { doTryResult } from '../../../../../../shared-domain/src/shared/do-try-result.js';
 import {
   KnowledgeCategory,
@@ -82,7 +89,7 @@ const mapToDomain = (doc: IKnowledgeDocument): IKnowledge => {
 };
 
 const mapToDocumentData = (
-  knowledge: Partial<IKnowledge> & Record<string, unknown>,
+  knowledge: CreateEntityInput<IKnowledge> | UpdateEntityInput<IKnowledge>,
 ): Partial<IKnowledgeDocument> => {
   const data: Partial<IKnowledgeDocument> = {};
 
@@ -96,23 +103,20 @@ const mapToDocumentData = (
   if (knowledge.isActive !== undefined) data.isActive = knowledge.isActive;
 
   if (knowledge.metadata) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mongo ObjectId assignment in legacy field shape
     data.metadata = {
       hierarchyLevel: knowledge.metadata.hierarchyLevel.toString(),
       tags: knowledge.metadata.tags || [],
-      createdBy: knowledge.metadata.createdBy.toString() as any,
+      createdBy: toObjectIdIfValid(knowledge.metadata.createdBy.toString()),
       ...(knowledge.metadata.updatedBy
-        ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          { updatedBy: knowledge.metadata.updatedBy.toString() as any }
+        ? { updatedBy: toObjectIdIfValid(knowledge.metadata.updatedBy.toString()) }
         : {}),
       ...(knowledge.metadata.lastVerified
         ? { lastVerified: new Date(knowledge.metadata.lastVerified.toString()) }
         : {}),
       ...(knowledge.metadata.productId
-        ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          { productId: knowledge.metadata.productId.toString() as any }
+        ? { productId: toObjectIdIfValid(knowledge.metadata.productId.toString()) }
         : {}),
-    } as IKnowledgeDocument['metadata'];
+    };
   }
 
   return data;
@@ -121,8 +125,7 @@ const mapToDocumentData = (
 const baseRepository = makeMongooseBaseRepository<IKnowledge, IKnowledgeDocument>({
   model: KnowledgeModel,
   mapToDomain,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mongoose's generic typing for `makeMongooseBaseRepository` requires mapping to domain input which is more permissive than the IKnowledge interface.
-  mapToDocumentData: mapToDocumentData as any,
+  mapToDocumentData,
 });
 
 const textSearch = async (
@@ -213,7 +216,7 @@ export const makeKnowledgeMongooseRepository = (): IKnowledgeRepository => {
     softDeleteByIds,
     findByStatus,
     updateStatus,
-  } as unknown as IKnowledgeRepository;
+  };
 };
 
 // Re-exports kept for downstream consumers that need direct VO construction.

@@ -32,11 +32,12 @@ const resolveJwtSecret = (): string => {
 const __secret = resolveJwtSecret();
 
 const createToken = (
+  id: string,
   email: string,
   secret: string,
   expiresIn: SignOptions["expiresIn"],
 ) => {
-  return jwt.sign({ email }, secret, { expiresIn });
+  return jwt.sign({ id, email }, secret, { expiresIn });
 };
 
 export const makeAuthenticateUser = (
@@ -102,7 +103,7 @@ export const makeAuthenticateUser = (
       );
     }
 
-    const token = createToken(user.email, __secret, "1h");
+    const token = createToken(user.id!.toString(), user.email.toString(), __secret, "1h");
     return Result.ok<AuthenticationResult, Error>({ token });
   };
 };

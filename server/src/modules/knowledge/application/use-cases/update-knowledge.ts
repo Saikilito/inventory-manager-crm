@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { match } from 'ts-pattern';
 import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
-import { DomainError, NotFoundError } from '../../../../../../shared-domain/src/shared/errors.js';
+import { DomainError, NotFoundError, createNotFoundError, createValidationError } from '../../../../../../shared-domain/src/shared/errors.js';
 import { ValidationError } from '../../../../../../shared-domain/src/shared/validation-error.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { ResultComposer } from '../../../../../../shared-domain/src/shared/result-composer.js';
