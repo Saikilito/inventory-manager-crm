@@ -20,7 +20,6 @@ export const AccountsPayablesPage: React.FC = () => {
     supplierFilter,
     setSupplierFilter,
     handlePayAccountsPayable,
-    refetchAccountsPayables,
     totalOutstanding,
     totalPaid,
     accounts,

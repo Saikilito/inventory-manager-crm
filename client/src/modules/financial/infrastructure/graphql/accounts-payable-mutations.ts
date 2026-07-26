@@ -22,23 +22,8 @@ export const PAY_ACCOUNTS_PAYABLE = gql`
         createdAt
         updatedAt
       }
-      transaction {
-        id
-        amount
-        type
-        description
-        accountId
-        createdAt
-      }
-      expense {
-        id
-        amount
-        description
-        category
-        date
-      }
-      success
-      message
+      transactionId
+      expenseId
     }
   }
 `;

@@ -1,5 +1,5 @@
 import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
-import { DomainError } from '../../../../../../shared-domain/src/shared/errors.js';
+import { DomainError, createDatabaseError } from '../../../../../../shared-domain/src/shared/errors.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { IAccountsPayable } from '../../../../../../shared-domain/src/financial/accounts-payable.entity.js';
 import { IAccountsPayableRepository } from '../repositories/accounts-payable.repository.js';
@@ -45,7 +45,7 @@ export const makeGetAccountsPayables = (deps: {
 
       return Result.ok<IAccountsPayable[], DomainError>(payables);
     } catch (error) {
-      return Result.fail(new DomainError(error instanceof Error ? error.message : 'Failed to get accounts payables'));
+      return Result.fail(createDatabaseError(error instanceof Error ? error.message : 'Failed to get accounts payables'));
     }
   };
 };
