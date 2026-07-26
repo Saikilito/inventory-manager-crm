@@ -131,4 +131,3 @@ export const SelectedProductsTable: React.FC<SelectedProductsTableProps> = ({
   );
 };
 
-export default SelectedProductsTable;

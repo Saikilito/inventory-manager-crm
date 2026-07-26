@@ -11,13 +11,13 @@ import Spinkit from '../../components/Spinkit';
 import Alert from '../../components/Alert';
 import { ArrowLeft, ShoppingBag, Store } from 'lucide-react';
 
-import ClientSummary from './components/ClientSummary';
-import SelectedProductsTable from './components/SelectedProductsTable';
-import OrderActionsBar from './components/OrderActionsBar';
+import { ClientSummary } from './components/ClientSummary';
+import { SelectedProductsTable } from './components/SelectedProductsTable';
+import { OrderActionsBar } from './components/OrderActionsBar';
 import { NewClientInlineModal } from './components/NewClientInlineModal';
-import DeliveryFeeSelector from './components/DeliveryFeeSelector';
-import ClientSelector from './components/ClientSelector';
-import ProductSelector from './components/ProductSelector';
+import { DeliveryFeeSelector } from './components/DeliveryFeeSelector';
+import { ClientSelector } from './components/ClientSelector';
+import { ProductSelector } from './components/ProductSelector';
 
 interface CreateOrderPageProps {
   session: {

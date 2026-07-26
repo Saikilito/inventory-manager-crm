@@ -65,4 +65,3 @@ export const ClientSummary: React.FC<ClientSummaryProps> = ({ client }) => {
   );
 };
 
-export default ClientSummary;

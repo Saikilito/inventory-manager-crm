@@ -91,4 +91,3 @@ export const DeliveryFeeSelector: React.FC<DeliveryFeeSelectorProps> = ({
   );
 };
 
-export default DeliveryFeeSelector;

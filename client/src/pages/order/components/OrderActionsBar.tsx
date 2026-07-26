@@ -132,4 +132,3 @@ export const OrderActionsBar: React.FC<OrderActionsBarProps> = ({
   );
 };
 
-export default OrderActionsBar;
