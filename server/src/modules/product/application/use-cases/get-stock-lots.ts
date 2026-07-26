@@ -1,5 +1,5 @@
 import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
-import { DomainError } from '../../../../../../shared-domain/src/shared/errors.js';
+import { DomainError, createDatabaseError } from '../../../../../../shared-domain/src/shared/errors.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { IStockLot } from '../../../../../../shared-domain/src/stock-lot/stock-lot.entity.js';
 import { IStockLotRepository } from '../repositories/stock-lot.repository.js';
@@ -45,7 +45,7 @@ export const makeGetStockLots = (deps: {
 
       return Result.ok<IStockLot[], DomainError>(stockLots);
     } catch (error) {
-      return Result.fail(new DomainError(error instanceof Error ? error.message : 'Failed to get stock lots'));
+      return Result.fail(createDatabaseError(error instanceof Error ? error.message : 'Failed to get stock lots'));
     }
   };
 };

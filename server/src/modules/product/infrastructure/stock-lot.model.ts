@@ -21,7 +21,7 @@ export interface IStockLotDocument extends mongoose.Document {
   paymentMethod: 'CASH' | 'CREDIT';
   transactionId?: mongoose.Types.ObjectId;
   accountsPayableId?: mongoose.Types.ObjectId;
-  status: 'RECEIVED' | 'PARTIAL' | 'PAID';
+  status: 'DRAFT' | 'RECEIVED' | 'PARTIAL' | 'PAID';
   notes?: string;
   contextId?: mongoose.Types.ObjectId;
   createdBy: mongoose.Types.ObjectId;
@@ -54,7 +54,7 @@ const StockLotSchema = new Schema<IStockLotDocument>(
     paymentMethod: { type: String, enum: ['CASH', 'CREDIT'], required: true },
     transactionId: { type: Schema.Types.ObjectId, ref: 'Transaction' },
     accountsPayableId: { type: Schema.Types.ObjectId, ref: 'AccountsPayable' },
-    status: { type: String, enum: ['RECEIVED', 'PARTIAL', 'PAID'], required: true, default: 'RECEIVED' },
+    status: { type: String, enum: ['DRAFT', 'RECEIVED', 'PARTIAL', 'PAID'], required: true, default: 'RECEIVED' },
     notes: { type: String, trim: true },
     contextId: { type: Schema.Types.ObjectId, ref: 'Context' },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },

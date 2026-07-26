@@ -1,21 +1,45 @@
 import { gql } from "@apollo/client";
 
-export const CREATE_STOCK_LOT = gql`
-  mutation createStockLot($input: CreateStockLotInput!) {
-    createStockLot(input: $input) {
+export const UPDATE_STOCK_LOT = gql`
+  mutation updateStockLot($input: UpdateStockLotInput!) {
+    updateStockLot(input: $input) {
+      id: _id
+      supplier
+      purchaseDate
+      items {
+        productId
+        productName
+        quantity
+        unitCost
+        confirmedSellingPrice
+        isNewProduct
+        projectedProfit
+      }
+      paymentMethod
+      transactionId
+      accountsPayableId
+      status
+      contextId
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const COMPLETE_STOCK_LOT = gql`
+  mutation completeStockLot($stockLotId: ID!, $accountId: ID) {
+    completeStockLot(stockLotId: $stockLotId, accountId: $accountId) {
       stockLot {
-        id
+        id: _id
         supplier
         purchaseDate
         items {
-          id
+          productId
           productName
           quantity
           unitCost
-          suggestedSellingPrice
           confirmedSellingPrice
           isNewProduct
-          productId
           projectedProfit
         }
         paymentMethod
@@ -26,30 +50,59 @@ export const CREATE_STOCK_LOT = gql`
         createdAt
         updatedAt
       }
-      transaction {
-        id
-        amount
-        type
-        description
-        accountId
-        createdAt
-      }
-      accountsPayable {
-        id
-        stockLotId
-        supplier
-        totalAmount
-        remainingBalance
-        status
-      }
-      productsUpdated {
-        id
+      accountsPayableId
+      createdProducts {
+        id: _id
         name
-        costPrice
+        costPrice: purchasePrice
         stock
       }
-      success
-      message
+      updatedProducts {
+        id: _id
+        name
+        costPrice: purchasePrice
+        stock
+      }
+    }
+  }
+`;
+export const CREATE_STOCK_LOT = gql`
+  mutation createStockLot($input: CreateStockLotInput!) {
+    createStockLot(input: $input) {
+      stockLot {
+        id: _id
+        supplier
+        purchaseDate
+        items {
+          productId
+          productName
+          quantity
+          unitCost
+          confirmedSellingPrice
+          isNewProduct
+          projectedProfit
+        }
+        paymentMethod
+        transactionId
+        accountsPayableId
+        status
+        contextId
+        createdAt
+        updatedAt
+      }
+      accountsPayableId
+      createdProducts {
+        id: _id
+        name
+        costPrice: purchasePrice
+        stock
+      }
+      updatedProducts {
+        id: _id
+        name
+        costPrice: purchasePrice
+        stock
+      }
     }
   }
 `;

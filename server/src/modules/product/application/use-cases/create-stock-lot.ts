@@ -1,24 +1,44 @@
 import mongoose from 'mongoose';
 import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
 import { DomainError } from '../../../../../../shared-domain/src/shared/errors.js';
+import {
+  createDatabaseError,
+  createValidationError,
+  createNotFoundError,
+} from '../../../../../../shared-domain/src/shared/errors.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
 import { DateOnlyVO } from '../../../../../../shared-domain/src/shared/value-objects/date-only.vo.js';
 import { NonEmptyStringVO } from '../../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js';
 import { IProduct, makeProduct } from '../../../../../../shared-domain/src/product/product.entity.js';
-import { IStockLot, makeStockLot, makeStockLotItem } from '../../../../../../shared-domain/src/stock-lot/stock-lot.entity.js';
-import { IAccountsPayable, makeAccountsPayable } from '../../../../../../shared-domain/src/financial/accounts-payable.entity.js';
-import { makeTransaction, ITransaction } from '../../../../../../shared-domain/src/financial/transaction.entity.js';
+import {
+  IStockLot,
+  makeStockLot,
+  makeStockLotItem,
+} from '../../../../../../shared-domain/src/stock-lot/stock-lot.entity.js';
+import {
+  IAccountsPayable,
+  makeAccountsPayable,
+} from '../../../../../../shared-domain/src/financial/accounts-payable.entity.js';
+import {
+  makeTransactionResult,
+  ITransaction,
+} from '../../../../../../shared-domain/src/financial/transaction.entity.js';
 import { IProductRepository } from '../repositories/product.repository.js';
 import { IStockLotRepository } from '../repositories/stock-lot.repository.js';
-import { IAccountRepository, ITransactionRepository, IFinancialDayRepository } from '../../../financial/application/repositories/financial.repository.js';
+import {
+  IAccountRepository,
+  ITransactionRepository,
+  IFinancialDayRepository,
+} from '../../../financial/application/repositories/financial.repository.js';
 import { IAccountsPayableRepository } from '../../../financial/application/repositories/accounts-payable.repository.js';
 import { makeFindOrOpenFinancialDay } from '../../../financial/application/services/find-or-open-financial-day.js';
 import { AccountModel } from '../../../financial/infrastructure/financial.model.js';
-import { atomicIncrementStock } from './atomic-stock-update.js';
+import { applyStockLotProductUpdates } from './atomic-stock-update.js';
 import { z } from 'zod';
 
 const StockLotItemInputSchema = z.object({
+  productId: z.string().optional(),
   productName: z.string().min(1, 'Product name is required'),
   quantity: z.number().min(0, 'Quantity must be non-negative'),
   unitCost: z.number().positive('Unit cost must be positive'),
@@ -33,6 +53,8 @@ const CreateStockLotInputSchema = z.object({
   accountId: z.string().optional(),
   notes: z.string().optional(),
   contextId: z.string().optional(),
+  userId: z.string().min(1, 'User ID is required'),
+  status: z.enum(['DRAFT', 'RECEIVED', 'PARTIAL', 'PAID']).optional().default('RECEIVED'),
 });
 
 export type CreateStockLotInput = z.infer<typeof CreateStockLotInputSchema>;
@@ -64,67 +86,59 @@ export const makeCreateStockLot = (deps: {
   financialDayRepository: IFinancialDayRepository;
   accountsPayableRepository: IAccountsPayableRepository;
 }): CreateStockLot => {
-  const { 
-    productRepository, 
-    stockLotRepository, 
+  const {
+    productRepository,
+    stockLotRepository,
     accountRepository,
     transactionRepository,
     financialDayRepository,
     accountsPayableRepository,
   } = deps;
 
-  const findOrOpenFinancialDay = makeFindOrOpenFinancialDay(
-    financialDayRepository,
-    accountRepository,
-  );
+  const findOrOpenFinancialDay = makeFindOrOpenFinancialDay(financialDayRepository, accountRepository);
 
-  /**
-   * Processes all items, creating new products or updating existing ones
-   */
   const processItems = async (
     items: z.infer<typeof StockLotItemInputSchema>[],
+    userId: string,
     contextId?: string,
   ): Promise<Result<ProductProcessingResult[], DomainError>> => {
     const results: ProductProcessingResult[] = [];
 
     for (const item of items) {
-      const allProductsResult = await productRepository.getAll({
-        where: {
-          fields: contextId
-            ? [
-                { 
-                  field: NonEmptyStringVO.create('contextId'), 
-                  operator: '=' as const, 
-                  value: contextId 
-                },
-              ]
-            : [],
-        },
-      });
+      let existingProduct: IProduct | undefined;
 
-      if (allProductsResult.isFailure) {
-        return Result.fail(allProductsResult.getError());
+      if (item.productId) {
+        const productResult = await productRepository.getById(IdVO.create(item.productId));
+        if (!productResult.isFailure && productResult.getValue()) {
+          existingProduct = productResult.getValue()!;
+        }
       }
 
-      const allProducts = allProductsResult.getValue().items;
-      const normalizedName = item.productName.trim().toLowerCase();
-      const existingProduct = allProducts.find(
-        (p: IProduct) => p.name.toString().trim().toLowerCase() === normalizedName,
-      );
+      if (!existingProduct) {
+        const allProductsResult = await productRepository.getAll({
+          where: {
+            fields: contextId
+              ? [
+                  {
+                    field: NonEmptyStringVO.create('contextId'),
+                    operator: '=' as const,
+                    value: contextId,
+                  },
+                ]
+              : [],
+          },
+        });
 
-      if (existingProduct) {
-        // Update existing product with atomic increment
-        const updateResult = await atomicIncrementStock(
-          existingProduct.id!.toString(),
-          item.quantity,
-          item.unitCost,
-          productRepository,
-        );
-
-        if (updateResult.isFailure) {
-          return Result.fail(updateResult.getError());
+        if (allProductsResult.isFailure) {
+          return Result.fail(allProductsResult.getError());
         }
 
+        const allProducts = allProductsResult.getValue().items;
+        const normalizedName = item.productName.trim().toLowerCase();
+        existingProduct = allProducts.find((p: IProduct) => p.name.toString().trim().toLowerCase() === normalizedName);
+      }
+
+      if (existingProduct) {
         results.push({
           productId: existingProduct.id!.toString(),
           productName: item.productName,
@@ -132,7 +146,7 @@ export const makeCreateStockLot = (deps: {
           unitCost: item.unitCost,
           confirmedSellingPrice: item.confirmedSellingPrice,
           isNewProduct: false,
-          entity: updateResult.getValue(),
+          entity: existingProduct,
         });
       } else {
         // Create new product
@@ -140,27 +154,18 @@ export const makeCreateStockLot = (deps: {
           name: item.productName,
           purchasePrice: item.unitCost,
           sellingPrice: item.confirmedSellingPrice,
-          stock: item.quantity,
+          stock: 0, // IMPORTANT: Set stock to 0 initially. Will be incremented later inside the transaction.
           contextId,
         });
 
-        const createResult = await productRepository.create(newProduct, IdVO.generateNil());
-        if (createResult.isFailure) {
-          return Result.fail(createResult.getError());
-        }
-
-        const created = Array.isArray(createResult.getValue())
-          ? (createResult.getValue() as IProduct[])[0]
-          : createResult.getValue() as IProduct;
-
         results.push({
-          productId: created.id!.toString(),
+          productId: new mongoose.Types.ObjectId().toHexString(), // Pre-generate ID for the transaction
           productName: item.productName,
           quantity: item.quantity,
           unitCost: item.unitCost,
           confirmedSellingPrice: item.confirmedSellingPrice,
           isNewProduct: true,
-          entity: created,
+          entity: newProduct,
         });
       }
     }
@@ -171,17 +176,52 @@ export const makeCreateStockLot = (deps: {
   return async (input: CreateStockLotInput) => {
     const validationResult = CreateStockLotInputSchema.safeParse(input);
     if (!validationResult.success) {
-      return Result.fail(new DomainError(`Validation failed: ${validationResult.error.message}`));
+      return Result.fail(createValidationError(`Validation failed: ${validationResult.error.message}`));
     }
 
     const validatedInput = validationResult.data;
 
     if (validatedInput.paymentMethod === 'CASH' && !validatedInput.accountId) {
-      return Result.fail(new DomainError('Account ID is required for CASH payment'));
+      return Result.fail(createDatabaseError('Account ID is required for CASH payment'));
     }
 
-    // Process items first (outside transaction - products can be created/updated independently)
-    const productsResult = await processItems(validatedInput.items, validatedInput.contextId);
+    if (validatedInput.status === 'DRAFT') {
+      const stockLotItems = validatedInput.items.map((item) =>
+        makeStockLotItem({
+          productId: undefined,
+          productName: item.productName,
+          quantity: item.quantity,
+          unitCost: item.unitCost,
+          confirmedSellingPrice: item.confirmedSellingPrice,
+          isNewProduct: false,
+        }),
+      );
+
+      const stockLot = makeStockLot({
+        supplier: validatedInput.supplier,
+        purchaseDate: validatedInput.purchaseDate,
+        items: stockLotItems,
+        paymentMethod: validatedInput.paymentMethod,
+        status: 'DRAFT',
+        notes: validatedInput.notes,
+        contextId: validatedInput.contextId,
+      });
+
+      const saveResult = await stockLotRepository.create(stockLot, IdVO.create(validatedInput.userId));
+      if (saveResult.isFailure) {
+        return Result.fail(saveResult.getError());
+      }
+
+      const saved = saveResult.getValue() as IStockLot;
+
+      return Result.ok<CreateStockLotOutput, DomainError>({
+        stockLot: saved,
+        createdProducts: [],
+        updatedProducts: [],
+      });
+    }
+
+    const productsResult = await processItems(validatedInput.items, validatedInput.userId, validatedInput.contextId);
     if (productsResult.isFailure) {
       return Result.fail(productsResult.getError());
     }
@@ -199,97 +239,82 @@ export const makeCreateStockLot = (deps: {
       }),
     );
 
-    // Start transaction for financial operations
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
     try {
       if (validatedInput.paymentMethod === 'CASH') {
-        // CASH payment flow
         const accountResult = await accountRepository.getById(IdVO.create(validatedInput.accountId!));
         if (accountResult.isFailure || !accountResult.getValue()) {
-          await session.abortTransaction();
-          return Result.fail(new DomainError('Account not found'));
+          return Result.fail(createNotFoundError('Account not found'));
         }
 
         const account = accountResult.getValue()!;
         const dateStr = DateOnlyVO.create(validatedInput.purchaseDate);
-        
+
         const dayResult = await findOrOpenFinancialDay(dateStr.toString());
         if (dayResult.isFailure) {
-          await session.abortTransaction();
           return Result.fail(dayResult.getError());
         }
 
         const financialDay = dayResult.getValue();
 
-        // Create transaction
+        const generatedStockLotId = new mongoose.Types.ObjectId().toHexString();
+        const generatedTransactionId = new mongoose.Types.ObjectId().toHexString();
+
         const stockLot = makeStockLot({
+          id: generatedStockLotId,
           supplier: validatedInput.supplier,
           purchaseDate: validatedInput.purchaseDate,
           items: stockLotItems,
           paymentMethod: 'CASH',
+          transactionId: generatedTransactionId,
           notes: validatedInput.notes,
           contextId: validatedInput.contextId,
         });
 
-        const transaction = makeTransaction({
+        const transactionResult = makeTransactionResult({
+          id: generatedTransactionId,
           accountId: validatedInput.accountId!,
           type: 'DEBIT',
-          amount: Number(stockLot.totalCost),
+          amount: Number(stockLot.totalCost.toString()),
           currency: account.currency.toString(),
           description: `[Compra Stock] ${validatedInput.supplier}`,
           date: dateStr.toString(),
           financialDayId: financialDay.id!.toString(),
+          source: 'STOCK_PURCHASE',
+          sourceReferenceId: generatedStockLotId,
         });
 
-        const saveTxResult = await transactionRepository.create(transaction, IdVO.generateNil());
+        if (transactionResult.isFailure) {
+          return Result.fail(transactionResult.getError());
+        }
+
+        const transaction = transactionResult.getValue();
+
+        const saveTxResult = await transactionRepository.create(transaction, IdVO.create(validatedInput.userId));
         if (saveTxResult.isFailure) {
-          await session.abortTransaction();
           return Result.fail(saveTxResult.getError());
         }
 
-        const savedTx = Array.isArray(saveTxResult.getValue()) 
-          ? (saveTxResult.getValue() as ITransaction[])[0] 
-          : saveTxResult.getValue() as ITransaction;
-        const transactionId = savedTx.id?.toString();
-
-        // Atomic balance update using $inc
         const balanceUpdateResult = await AccountModel.updateOne(
           { _id: new mongoose.Types.ObjectId(validatedInput.accountId!) },
           { $inc: { balance: -Number(stockLot.totalCost) } },
-        ).session(session).exec();
+        ).exec();
 
         if (balanceUpdateResult.modifiedCount === 0) {
-          await session.abortTransaction();
-          return Result.fail(new DomainError('Failed to update account balance'));
+          return Result.fail(createDatabaseError('Failed to update account balance'));
         }
 
-        // Create stock lot with transaction reference
-        const stockLotWithTransaction = makeStockLot({
-          supplier: validatedInput.supplier,
-          purchaseDate: validatedInput.purchaseDate,
-          items: stockLotItems,
-          paymentMethod: 'CASH',
-          transactionId,
-          notes: validatedInput.notes,
-          contextId: validatedInput.contextId,
-        });
-
-        const saveResult = await stockLotRepository.create(stockLotWithTransaction, IdVO.generateNil());
+        const saveResult = await stockLotRepository.create(stockLot, IdVO.create(validatedInput.userId));
         if (saveResult.isFailure) {
-          await session.abortTransaction();
           return Result.fail(saveResult.getError());
         }
 
-        const saved = Array.isArray(saveResult.getValue()) 
-          ? (saveResult.getValue() as IStockLot[])[0] 
-          : saveResult.getValue() as IStockLot;
+        const saved = saveResult.getValue() as IStockLot;
 
-        await session.commitTransaction();
-
-        const createdProducts = products.filter((p) => p.isNewProduct && p.entity).map((p) => p.entity!);
-        const updatedProducts = products.filter((p) => !p.isNewProduct && p.entity).map((p) => p.entity!);
+        const { createdProducts, updatedProducts } = await applyStockLotProductUpdates(
+          products,
+          validatedInput.userId,
+          productRepository,
+        );
 
         return Result.ok<CreateStockLotOutput, DomainError>({
           stockLot: saved,
@@ -297,7 +322,6 @@ export const makeCreateStockLot = (deps: {
           updatedProducts,
         });
       } else {
-        // CREDIT payment flow - create StockLot first, then AccountsPayable
         const stockLot = makeStockLot({
           supplier: validatedInput.supplier,
           purchaseDate: validatedInput.purchaseDate,
@@ -307,23 +331,16 @@ export const makeCreateStockLot = (deps: {
           contextId: validatedInput.contextId,
         });
 
-        const saveStockLotResult = await stockLotRepository.create(stockLot, IdVO.generateNil());
+        const saveStockLotResult = await stockLotRepository.create(stockLot, IdVO.create(validatedInput.userId));
         if (saveStockLotResult.isFailure) {
-          await session.abortTransaction();
           return Result.fail(saveStockLotResult.getError());
         }
 
-        const savedStockLot = Array.isArray(saveStockLotResult.getValue()) 
-          ? (saveStockLotResult.getValue() as IStockLot[])[0] 
-          : saveStockLotResult.getValue() as IStockLot;
+        const savedStockLot = saveStockLotResult.getValue() as IStockLot;
 
         const stockLotId = savedStockLot.id!.toString();
 
-        // Create AccountsPayable with stockLotId
-        const totalAmount = stockLotItems.reduce(
-          (sum, item) => sum + Number(item.unitCost) * Number(item.quantity), 
-          0
-        );
+        const totalAmount = stockLotItems.reduce((sum, item) => sum + Number(item.unitCost) * Number(item.quantity), 0);
 
         const accountsPayable = makeAccountsPayable({
           supplier: validatedInput.supplier,
@@ -333,35 +350,31 @@ export const makeCreateStockLot = (deps: {
         });
 
         const savePayableResult = await accountsPayableRepository.create(
-          accountsPayable, 
-          IdVO.generateNil()
+          accountsPayable,
+          IdVO.create(validatedInput.userId),
         );
         if (savePayableResult.isFailure) {
-          await session.abortTransaction();
           return Result.fail(savePayableResult.getError());
         }
 
-        const savedPayable = Array.isArray(savePayableResult.getValue())
-          ? (savePayableResult.getValue() as IAccountsPayable[])[0]
-          : savePayableResult.getValue() as IAccountsPayable;
+        const savedPayable = savePayableResult.getValue() as IAccountsPayable;
 
         const accountsPayableId = savedPayable.id!.toString();
 
-        // Update StockLot with accountsPayableId
         const updateStockLotResult = await stockLotRepository.updateById(
           IdVO.create(stockLotId),
-          { accountsPayableId },
-          IdVO.generateNil(),
+          { accountsPayableId: IdVO.create(accountsPayableId) },
+          IdVO.create(validatedInput.userId),
         );
         if (updateStockLotResult.isFailure) {
-          await session.abortTransaction();
           return Result.fail(updateStockLotResult.getError());
         }
 
-        await session.commitTransaction();
-
-        const createdProducts = products.filter((p) => p.isNewProduct && p.entity).map((p) => p.entity!);
-        const updatedProducts = products.filter((p) => !p.isNewProduct && p.entity).map((p) => p.entity!);
+        const { createdProducts, updatedProducts } = await applyStockLotProductUpdates(
+          products,
+          validatedInput.userId,
+          productRepository,
+        );
 
         return Result.ok<CreateStockLotOutput, DomainError>({
           stockLot: savedStockLot,
@@ -371,11 +384,8 @@ export const makeCreateStockLot = (deps: {
         });
       }
     } catch (error) {
-      await session.abortTransaction();
       const message = error instanceof Error ? error.message : 'Unknown error during stock lot creation';
-      return Result.fail(new DomainError(message));
-    } finally {
-      session.endSession();
+      return Result.fail(createDatabaseError(message));
     }
   };
 };

@@ -1,22 +1,26 @@
 import React from "react";
-import { Calendar, Package, DollarSign, CreditCard, TrendingUp } from "lucide-react";
+import { Calendar, Package, DollarSign, TrendingUp } from "lucide-react";
 import type { StockLot } from "../../../modules/product/infrastructure/graphql/stock-lot-types";
 
 interface StockLotsTableProps {
   filteredStockLots: StockLot[];
-  getProductNameById: (productId: string) => string;
+  onReceiveDraft?: (stockLotId: string) => void;
+  onEditDraft?: (stockLot: StockLot) => void;
 }
 
 export const StockLotsTable: React.FC<StockLotsTableProps> = ({
   filteredStockLots,
-  getProductNameById,
+  onReceiveDraft,
+  onEditDraft,
 }) => {
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
+      DRAFT: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/30",
       RECEIVED: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/30",
       CANCELLED: "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/20 dark:text-red-400 dark:border-red-900/30",
     };
     const labels: Record<string, string> = {
+      DRAFT: "Draft",
       RECEIVED: "Received",
       CANCELLED: "Cancelled",
     };
@@ -139,10 +143,41 @@ export const StockLotsTable: React.FC<StockLotsTableProps> = ({
             </div>
 
             {/* Footer */}
-            <div className="p-4 border-t border-stone-200 dark:border-stone-800 bg-stone-50/50 dark:bg-stone-950/20">
+            <div className="p-4 border-t border-stone-200 dark:border-stone-800 bg-stone-50/50 dark:bg-stone-950/20 flex items-center justify-between">
               <p className="text-[10px] text-stone-400 dark:text-stone-500">
                 Created {new Date(lot.createdAt).toLocaleString()}
               </p>
+              <div className="flex items-center gap-2">
+                {lot.status === 'DRAFT' && onEditDraft && (
+                  <button
+                    onClick={() => onEditDraft(lot)}
+                    className="px-3 py-1 bg-stone-200 dark:bg-stone-800 text-stone-700 dark:text-stone-300 text-xs font-semibold rounded-lg hover:bg-stone-300 dark:hover:bg-stone-700 transition-colors shadow-sm"
+                  >
+                    Edit
+                  </button>
+                )}
+                {lot.status === 'DRAFT' && onReceiveDraft && (() => {
+                  const lotDate = new Date(lot.purchaseDate);
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  const isFuture = lotDate > today;
+                  
+                  return (
+                    <button
+                      onClick={() => onReceiveDraft(lot.id)}
+                      disabled={isFuture}
+                      title={isFuture ? "Cannot receive future stock lots yet" : "Mark as received"}
+                      className={`px-3 py-1 text-xs font-semibold rounded-lg transition-colors shadow-sm ${
+                        isFuture 
+                          ? "bg-stone-100 dark:bg-stone-800/50 text-stone-400 dark:text-stone-500 cursor-not-allowed" 
+                          : "bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 hover:bg-stone-800 dark:hover:bg-white/90"
+                      }`}
+                    >
+                      Receive Stock
+                    </button>
+                  );
+                })()}
+              </div>
             </div>
           </div>
         );

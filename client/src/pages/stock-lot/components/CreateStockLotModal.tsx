@@ -1,31 +1,16 @@
-import React, { useState } from "react";
-import { X, Plus, Trash2 } from "lucide-react";
+import React, { useState, useMemo } from "react";
 import type { CreateStockLotInput } from "../../../modules/product/infrastructure/graphql/stock-lot-types";
-
-interface ProductShape {
-  id: string;
-  name: string;
-  costPrice: number;
-  stock: number;
-}
-
-interface CreateStockLotModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (input: CreateStockLotInput) => Promise<any>;
-  loading: boolean;
-  products: ProductShape[];
-}
-
-interface StockLotItemInput {
-  productName: string;
-  quantity: string;
-  unitCost: string;
-  suggestedSellingPrice: string;
-  confirmedSellingPrice: string;
-  isNewProduct: boolean;
-  selectedProductId: string;
-}
+import type {
+  CreateStockLotModalProps,
+  PaymentSplit,
+  StockLotItemInput,
+  StockLotInitialItem,
+} from "./stockLotModalTypes";
+import { LotGeneralDetails } from "./LotGeneralDetails";
+import { LotFormItems } from "./LotFormItems";
+import { LotPaymentSection } from "./LotPaymentSection";
+import { LotModalHeader } from "./LotModalHeader";
+import { LotModalFooter } from "./LotModalFooter";
 
 export const CreateStockLotModal: React.FC<CreateStockLotModalProps> = ({
   isOpen,
@@ -33,20 +18,26 @@ export const CreateStockLotModal: React.FC<CreateStockLotModalProps> = ({
   onSubmit,
   loading,
   products,
+  accounts,
+  contexts,
+  initialData,
+  selectedDate,
 }) => {
   const [supplier, setSupplier] = useState("");
+  const [contextId, setContextId] = useState("");
   const [purchaseDate, setPurchaseDate] = useState(() => {
+    if (selectedDate) return selectedDate;
     const today = new Date();
-    return today.toISOString().split("T")[0];
+    const offset = today.getTimezoneOffset() * 60000;
+    return new Date(today.getTime() - offset).toISOString().split("T")[0];
   });
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "CREDIT">("CASH");
-  const [accountId, setAccountId] = useState("");
+  const [payments, setPayments] = useState<PaymentSplit[]>([{ accountId: "", amount: "" }]);
   const [items, setItems] = useState<StockLotItemInput[]>([
     {
       productName: "",
       quantity: "",
       unitCost: "",
-      suggestedSellingPrice: "",
       confirmedSellingPrice: "",
       isNewProduct: false,
       selectedProductId: "",
@@ -54,18 +45,64 @@ export const CreateStockLotModal: React.FC<CreateStockLotModalProps> = ({
   ]);
   const [error, setError] = useState<string | null>(null);
 
+  React.useEffect(() => {
+    if (isOpen) {
+      if (initialData) {
+        setSupplier(initialData.supplier || "");
+        setContextId(initialData.contextId || "");
+        
+        let dateStr = "";
+        if (initialData.purchaseDate) {
+          const d = new Date(initialData.purchaseDate + 'T00:00:00');
+          dateStr = !isNaN(d.getTime()) ? initialData.purchaseDate : initialData.purchaseDate;
+        } else {
+          dateStr = selectedDate || new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split("T")[0];
+        }
+        setPurchaseDate(dateStr || new Date().toISOString().split("T")[0]);
+        setPaymentMethod(initialData.paymentMethod || "CASH");
+        
+        if (initialData.items && initialData.items.length > 0) {
+          setItems(
+            initialData.items.map((item: StockLotInitialItem) => ({
+              productName: item.productName || "",
+              quantity: item.quantity?.toString() || "",
+              unitCost: item.unitCost?.toString() || "",
+              confirmedSellingPrice: item.confirmedSellingPrice?.toString() || "",
+              isNewProduct: item.isNewProduct || false,
+              selectedProductId: item.productId || "",
+            }))
+          );
+        } else {
+          setItems([{ productName: "", quantity: "", unitCost: "", confirmedSellingPrice: "", isNewProduct: false, selectedProductId: "" }]);
+        }
+      } else {
+        setSupplier("");
+        setContextId("");
+        const localDateStr = selectedDate || new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split("T")[0];
+        setPurchaseDate(localDateStr);
+        setPaymentMethod("CASH");
+        setPayments([{ accountId: "", amount: "" }]);
+        setItems([{ productName: "", quantity: "", unitCost: "", confirmedSellingPrice: "", isNewProduct: false, selectedProductId: "" }]);
+      }
+    }
+  }, [isOpen, initialData, selectedDate]);
+
+  const totalCost = useMemo(() => {
+    return items.reduce((sum, item) => {
+      const q = parseFloat(item.quantity) || 0;
+      const c = parseFloat(item.unitCost) || 0;
+      return sum + (q * c);
+    }, 0);
+  }, [items]);
+
+  const totalPayments = useMemo(() => {
+    return payments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+  }, [payments]);
+
   const handleAddItem = () => {
     setItems([
       ...items,
-      {
-        productName: "",
-        quantity: "",
-        unitCost: "",
-        suggestedSellingPrice: "",
-        confirmedSellingPrice: "",
-        isNewProduct: false,
-        selectedProductId: "",
-      },
+      { productName: "", quantity: "", unitCost: "", confirmedSellingPrice: "", isNewProduct: false, selectedProductId: "" },
     ]);
   };
 
@@ -77,9 +114,8 @@ export const CreateStockLotModal: React.FC<CreateStockLotModalProps> = ({
 
   const handleItemChange = (index: number, field: keyof StockLotItemInput, value: string | boolean) => {
     const newItems = [...items];
-    (newItems[index] as any)[field] = value;
+    (newItems[index] as unknown as Record<keyof StockLotItemInput, string | boolean>)[field] = value;
     
-    // If selecting an existing product, auto-fill details
     if (field === "selectedProductId" && value) {
       const product = products.find((p) => p.id === value);
       if (product) {
@@ -89,7 +125,6 @@ export const CreateStockLotModal: React.FC<CreateStockLotModalProps> = ({
       }
     }
     
-    // If typing product name that matches existing product
     if (field === "productName") {
       const existingProduct = products.find(
         (p) => p.name.toLowerCase().trim() === (value as string).toLowerCase().trim()
@@ -106,24 +141,40 @@ export const CreateStockLotModal: React.FC<CreateStockLotModalProps> = ({
     setItems(newItems);
   };
 
+  const handleAddPayment = () => {
+    const remaining = Math.max(0, totalCost - totalPayments);
+    setPayments([...payments, { accountId: "", amount: remaining > 0 ? remaining.toFixed(2) : "" }]);
+  };
+
+  const handleRemovePayment = (index: number) => {
+    if (payments.length > 1) {
+      setPayments(payments.filter((_, i) => i !== index));
+    }
+  };
+
+  const handlePaymentChange = (index: number, field: keyof PaymentSplit, value: string) => {
+    const newPayments = [...payments];
+    newPayments[index][field] = value;
+    setPayments(newPayments);
+  };
+
+  const handleClose = () => {
+    setSupplier("");
+    setContextId("");
+    setPurchaseDate(new Date().toISOString().split("T")[0]);
+    setPaymentMethod("CASH");
+    setPayments([{ accountId: "", amount: "" }]);
+    setItems([{ productName: "", quantity: "", unitCost: "", confirmedSellingPrice: "", isNewProduct: false, selectedProductId: "" }]);
+    setError(null);
+    onClose();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!supplier.trim()) {
-      setError("Supplier name is required");
-      return;
-    }
-
-    if (!purchaseDate) {
-      setError("Purchase date is required");
-      return;
-    }
-
-    if (paymentMethod === "CASH" && !accountId) {
-      setError("Account is required for CASH payment");
-      return;
-    }
+    if (!supplier.trim()) return setError("Supplier name is required");
+    if (!purchaseDate) return setError("Purchase date is required");
 
     const validItems = items.filter(
       (item) =>
@@ -133,313 +184,149 @@ export const CreateStockLotModal: React.FC<CreateStockLotModalProps> = ({
         parseFloat(item.confirmedSellingPrice) > 0
     );
 
-    if (validItems.length === 0) {
-      setError("At least one valid item is required");
-      return;
+    if (validItems.length === 0) return setError("At least one valid item is required");
+
+    let parsedPayments: { accountId: string; amount: number }[] = [];
+    if (paymentMethod === "CASH") {
+      parsedPayments = payments
+        .filter(p => p.accountId)
+        .map(p => ({ accountId: p.accountId, amount: parseFloat(p.amount) || 0 }));
+
+      if (parsedPayments.length === 0) return setError("At least one valid payment account is required for CASH payment");
+
+      const paymentSum = parsedPayments.reduce((sum, p) => sum + p.amount, 0);
+      
+      if (Math.abs(paymentSum - totalCost) > 0.01) {
+        if (parsedPayments.length === 1) {
+          parsedPayments[0].amount = totalCost;
+        } else {
+          return setError(`Total payments ($${paymentSum.toFixed(2)}) must equal total cost ($${totalCost.toFixed(2)})`);
+        }
+      }
     }
 
-    const input: CreateStockLotInput = {
+    const input: CreateStockLotInput & { id?: string } = {
       supplier: supplier.trim(),
       purchaseDate,
       paymentMethod,
       items: validItems.map((item) => ({
+        productId: item.selectedProductId || undefined,
         productName: item.productName.trim(),
         quantity: parseFloat(item.quantity),
         unitCost: parseFloat(item.unitCost),
-        suggestedSellingPrice: item.suggestedSellingPrice ? parseFloat(item.suggestedSellingPrice) : undefined,
         confirmedSellingPrice: parseFloat(item.confirmedSellingPrice),
-        isNewProduct: item.isNewProduct,
       })),
-      accountId: paymentMethod === "CASH" ? accountId : undefined,
+      accountId: paymentMethod === "CASH" && parsedPayments.length === 1 ? parsedPayments[0].accountId : undefined,
+      contextId: contextId ? contextId : undefined,
+      status: "RECEIVED",
     };
 
-    const result = await onSubmit(input);
-    if (result?.success) {
+    if (initialData?.id) input.id = initialData.id;
+
+    const result = await onSubmit(input, parsedPayments.length > 1 ? parsedPayments : undefined);
+    if (result && result.stockLot) {
       handleClose();
+    } else if (result && result.message) {
+      setError(result.message);
     }
   };
 
-  const handleClose = () => {
-    setSupplier("");
-    setPurchaseDate(new Date().toISOString().split("T")[0]);
-    setPaymentMethod("CASH");
-    setAccountId("");
-    setItems([
-      {
-        productName: "",
-        quantity: "",
-        unitCost: "",
-        suggestedSellingPrice: "",
-        confirmedSellingPrice: "",
-        isNewProduct: false,
-        selectedProductId: "",
-      },
-    ]);
+  const handleDraftSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setError(null);
-    onClose();
+
+    if (!supplier.trim()) return setError("Supplier name is required");
+    if (!purchaseDate) return setError("Purchase date is required");
+
+    const validItems = items.filter(
+      (item) =>
+        item.productName.trim() &&
+        parseFloat(item.quantity) > 0 &&
+        parseFloat(item.unitCost) > 0 &&
+        parseFloat(item.confirmedSellingPrice) > 0
+    );
+
+    if (validItems.length === 0) return setError("At least one valid item is required to save a draft");
+
+    const input: CreateStockLotInput & { id?: string } = {
+      supplier: supplier.trim(),
+      purchaseDate,
+      paymentMethod,
+      items: validItems.map((item) => ({
+        productId: item.selectedProductId || undefined,
+        productName: item.productName.trim(),
+        quantity: parseFloat(item.quantity),
+        unitCost: parseFloat(item.unitCost),
+        confirmedSellingPrice: parseFloat(item.confirmedSellingPrice),
+      })),
+      accountId: paymentMethod === "CASH" && payments[0]?.accountId ? payments[0].accountId : undefined,
+      contextId: contextId ? contextId : undefined,
+      status: "DRAFT",
+    };
+
+    if (initialData?.id) input.id = initialData.id;
+
+    const result = await onSubmit(input, undefined);
+    if (result && result.stockLot) {
+      handleClose();
+    } else if (result && result.message) {
+      setError(result.message);
+    }
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-stone-900 rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="p-6 border-b border-stone-200 dark:border-stone-800 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-stone-900 dark:text-stone-100">
-            Create Stock Lot
-          </h2>
-          <button
-            onClick={handleClose}
-            className="p-2 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg transition-colors"
-          >
-            <X className="w-5 h-5 text-stone-500" />
-          </button>
-        </div>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 sm:p-6">
+      <div className="bg-white dark:bg-stone-900 rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col border border-stone-200 dark:border-stone-800">
+        <LotModalHeader initialData={initialData} onClose={handleClose} />
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
-          {error && (
-            <div className="bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400 p-3 rounded-lg text-sm">
-              {error}
-            </div>
-          )}
-
-          {/* Supplier */}
-          <div>
-            <label className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-2">
-              Supplier Name *
-            </label>
-            <input
-              type="text"
-              value={supplier}
-              onChange={(e) => setSupplier(e.target.value)}
-              placeholder="e.g., TechSupply Co"
-              className="w-full px-3 py-2 border border-stone-200 dark:border-stone-800 rounded-lg bg-white dark:bg-stone-950 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        <form id="stock-lot-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6">
+          <div className="max-w-4xl mx-auto space-y-8">
+            <LotGeneralDetails
+              supplier={supplier}
+              setSupplier={setSupplier}
+              contextId={contextId}
+              setContextId={setContextId}
+              purchaseDate={purchaseDate}
+              setPurchaseDate={setPurchaseDate}
+              contexts={contexts}
             />
-          </div>
 
-          {/* Purchase Date */}
-          <div>
-            <label className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-2">
-              Purchase Date *
-            </label>
-            <input
-              type="date"
-              value={purchaseDate}
-              onChange={(e) => setPurchaseDate(e.target.value)}
-              className="w-full px-3 py-2 border border-stone-200 dark:border-stone-800 rounded-lg bg-white dark:bg-stone-950 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            <hr className="border-stone-100 dark:border-stone-800/60" />
+
+            <LotFormItems
+              items={items}
+              products={products}
+              totalCost={totalCost}
+              handleAddItem={handleAddItem}
+              handleRemoveItem={handleRemoveItem}
+              handleItemChange={handleItemChange}
             />
-          </div>
 
-          {/* Payment Method */}
-          <div>
-            <label className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-2">
-              Payment Method *
-            </label>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setPaymentMethod("CASH")}
-                className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-all ${
-                  paymentMethod === "CASH"
-                    ? "bg-green-600 text-white"
-                    : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400"
-                }`}
-              >
-                💵 Cash
-              </button>
-              <button
-                type="button"
-                onClick={() => setPaymentMethod("CREDIT")}
-                className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-all ${
-                  paymentMethod === "CREDIT"
-                    ? "bg-blue-600 text-white"
-                    : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400"
-                }`}
-              >
-                💳 Credit
-              </button>
-            </div>
-          </div>
+            <hr className="border-stone-100 dark:border-stone-800/60" />
 
-          {/* Account (for CASH payment) */}
-          {paymentMethod === "CASH" && (
-            <div>
-              <label className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-2">
-                Payment Account *
-              </label>
-              <input
-                type="text"
-                value={accountId}
-                onChange={(e) => setAccountId(e.target.value)}
-                placeholder="Account ID"
-                className="w-full px-3 py-2 border border-stone-200 dark:border-stone-800 rounded-lg bg-white dark:bg-stone-950 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          )}
-
-          {/* Items */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <label className="block text-sm font-semibold text-stone-700 dark:text-stone-300">
-                Items *
-              </label>
-              <button
-                type="button"
-                onClick={handleAddItem}
-                className="px-3 py-1.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1"
-              >
-                <Plus className="w-4 h-4" />
-                Add Item
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              {items.map((item, index) => (
-                <div
-                  key={index}
-                  className="p-4 border border-stone-200 dark:border-stone-800 rounded-lg space-y-3 bg-stone-50 dark:bg-stone-950/20"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-stone-500 uppercase tracking-wide">
-                      Item #{index + 1}
-                    </span>
-                    {items.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveItem(index)}
-                        className="p-1 hover:bg-red-100 dark:hover:bg-red-950/20 rounded transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4 text-red-600" />
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Product Selection */}
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-600 dark:text-stone-400 mb-1">
-                      Select Existing Product
-                    </label>
-                    <select
-                      value={item.selectedProductId}
-                      onChange={(e) => handleItemChange(index, "selectedProductId", e.target.value)}
-                      className="w-full px-2 py-1.5 text-sm border border-stone-200 dark:border-stone-800 rounded-lg bg-white dark:bg-stone-950 text-stone-900 dark:text-stone-100"
-                    >
-                      <option value="">-- Or type product name below --</option>
-                      {products.map((product) => (
-                        <option key={product.id} value={product.id}>
-                          {product.name} (Stock: {product.stock.toFixed(2)}, Cost: ${product.costPrice.toFixed(2)})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Product Name */}
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-600 dark:text-stone-400 mb-1">
-                      Product Name *
-                    </label>
-                    <input
-                      type="text"
-                      value={item.productName}
-                      onChange={(e) => handleItemChange(index, "productName", e.target.value)}
-                      placeholder="Product name"
-                      className="w-full px-2 py-1.5 text-sm border border-stone-200 dark:border-stone-800 rounded-lg bg-white dark:bg-stone-950 text-stone-900 dark:text-stone-100"
-                    />
-                    {item.productName && (
-                      <p className="text-[10px] mt-1 font-semibold text-blue-600">
-                        {item.isNewProduct ? "✨ New product" : "📦 Existing product"}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Quantity & Cost */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-stone-600 dark:text-stone-400 mb-1">
-                        Quantity *
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={item.quantity}
-                        onChange={(e) => handleItemChange(index, "quantity", e.target.value)}
-                        placeholder="0.00"
-                        className="w-full px-2 py-1.5 text-sm border border-stone-200 dark:border-stone-800 rounded-lg bg-white dark:bg-stone-950 text-stone-900 dark:text-stone-100"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-stone-600 dark:text-stone-400 mb-1">
-                        Unit Cost *
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={item.unitCost}
-                        onChange={(e) => handleItemChange(index, "unitCost", e.target.value)}
-                        placeholder="0.00"
-                        className="w-full px-2 py-1.5 text-sm border border-stone-200 dark:border-stone-800 rounded-lg bg-white dark:bg-stone-950 text-stone-900 dark:text-stone-100"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Selling Prices */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-stone-600 dark:text-stone-400 mb-1">
-                        Suggested Price
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={item.suggestedSellingPrice}
-                        onChange={(e) => handleItemChange(index, "suggestedSellingPrice", e.target.value)}
-                        placeholder="0.00"
-                        className="w-full px-2 py-1.5 text-sm border border-stone-200 dark:border-stone-800 rounded-lg bg-white dark:bg-stone-950 text-stone-900 dark:text-stone-100"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-stone-600 dark:text-stone-400 mb-1">
-                        Confirmed Price *
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={item.confirmedSellingPrice}
-                        onChange={(e) => handleItemChange(index, "confirmedSellingPrice", e.target.value)}
-                        placeholder="0.00"
-                        className="w-full px-2 py-1.5 text-sm border border-stone-200 dark:border-stone-800 rounded-lg bg-white dark:bg-stone-950 text-stone-900 dark:text-stone-100"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <LotPaymentSection
+              paymentMethod={paymentMethod}
+              setPaymentMethod={setPaymentMethod}
+              payments={payments}
+              accounts={accounts}
+              totalCost={totalCost}
+              totalPayments={totalPayments}
+              handleAddPayment={handleAddPayment}
+              handleRemovePayment={handleRemovePayment}
+              handlePaymentChange={handlePaymentChange}
+            />
           </div>
         </form>
 
-        {/* Footer */}
-        <div className="p-6 border-t border-stone-200 dark:border-stone-800 flex items-center justify-end gap-3">
-          <button
-            type="button"
-            onClick={handleClose}
-            className="px-4 py-2 text-stone-600 dark:text-stone-400 font-semibold hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? "Creating..." : "Create Stock Lot"}
-          </button>
-        </div>
+        <LotModalFooter
+          error={error}
+          loading={loading}
+          purchaseDate={purchaseDate}
+          handleClose={handleClose}
+          handleDraftSubmit={handleDraftSubmit}
+        />
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import React from "react";
 import { Package, TrendingUp, DollarSign } from "lucide-react";
 import Spinkit from "../../components/Spinkit";
 import Alert from "../../components/Alert";
+import { DateNavigator } from "../../components/ui/DateNavigator";
 import { useStockLotsLogic } from "./hooks/useStockLotsLogic";
 import { StockLotsTable } from "./components/StockLotsTable";
 import { CreateStockLotModal } from "./components/CreateStockLotModal";
@@ -18,16 +19,42 @@ export const StockLotsPage: React.FC = () => {
     setStatusFilter,
     supplierFilter,
     setSupplierFilter,
+    selectedDate,
+    setSelectedDate,
     handleCreateStockLot,
-    getProductNameById,
-    refetchStockLots,
+    handleCompleteDraft,
     totalPurchaseValue,
     totalProjectedProfit,
     products,
-    clients,
+    accounts,
+    contexts,
   } = useStockLotsLogic();
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [editingDraft, setEditingDraft] = useState<any>(undefined);
+
+  const openCreateModal = () => {
+    setEditingDraft(undefined);
+    setIsCreateModalOpen(true);
+  };
+
+  const openEditModal = (draft: any) => {
+    setEditingDraft(draft);
+    setIsCreateModalOpen(true);
+  };
+
+  // Calculate counts for the status tabs based on current date and supplier filters
+  const baseFilteredLots = stockLots.filter((lot) => {
+    const matchesDate = lot.purchaseDate === selectedDate;
+    const matchesSupplier = !supplierFilter || lot.supplier.toLowerCase().includes(supplierFilter.toLowerCase());
+    return matchesDate && matchesSupplier;
+  });
+
+  const tabCounts = {
+    RECEIVED: baseFilteredLots.filter((l) => l.status === "RECEIVED").length,
+    DRAFT: baseFilteredLots.filter((l) => l.status === "DRAFT").length,
+    ALL: baseFilteredLots.length,
+  };
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-8">
@@ -43,7 +70,7 @@ export const StockLotsPage: React.FC = () => {
           </p>
         </div>
         <button
-          onClick={() => setIsCreateModalOpen(true)}
+          onClick={openCreateModal}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2"
         >
           <Package className="w-4 h-4" />
@@ -52,6 +79,65 @@ export const StockLotsPage: React.FC = () => {
       </div>
 
       {successMessage && <Alert message={successMessage} type="success" />}
+
+      {/* Filters Bar */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-stone-50/50 dark:bg-stone-900/40 p-4 rounded-xl border border-stone-200 dark:border-stone-800/80">
+        <div className="flex flex-wrap items-center gap-4 flex-1">
+          {/* Status Filters */}
+          <div className="flex flex-wrap gap-1.5 items-center">
+            <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mr-1">
+              Status:
+            </span>
+            {[
+              { label: "Received", value: "RECEIVED" },
+              { label: "Draft", value: "DRAFT" },
+              { label: "All", value: "ALL" },
+            ].map((tab) => {
+              const count = tabCounts[tab.value as keyof typeof tabCounts];
+              return (
+                <button
+                  key={tab.value}
+                  onClick={() => setStatusFilter(tab.value)}
+                  className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                    statusFilter === tab.value
+                      ? "bg-stone-950 text-white dark:bg-white dark:text-stone-950 shadow-sm"
+                      : "bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 border border-stone-200 dark:border-stone-800/60"
+                  }`}
+                >
+                  {tab.label}
+                  {count > 0 && (
+                    <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${
+                      statusFilter === tab.value 
+                        ? "bg-stone-800 dark:bg-stone-200" 
+                        : "bg-stone-100 dark:bg-stone-800"
+                    }`}>
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Supplier Search */}
+          <div className="flex items-center gap-2 max-w-sm w-full">
+            <input
+              type="text"
+              placeholder="Search supplier..."
+              value={supplierFilter}
+              onChange={(e) => setSupplierFilter(e.target.value)}
+              className="w-full px-3 py-1.5 text-sm border border-stone-200 dark:border-stone-800 rounded-lg bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center">
+          <DateNavigator
+            selectedDate={selectedDate}
+            onChangeDate={setSelectedDate}
+          />
+        </div>
+      </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -98,46 +184,6 @@ export const StockLotsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Filters Bar */}
-      {stockLots.length > 0 && (
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-stone-50/50 dark:bg-stone-900/40 p-4 rounded-xl border border-stone-200 dark:border-stone-800/80">
-          {/* Status Filters */}
-          <div className="flex flex-wrap gap-1.5 items-center">
-            <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mr-1">
-              Status:
-            </span>
-            {[
-              { label: "All", value: "ALL" },
-              { label: "Received", value: "RECEIVED" },
-              { label: "Cancelled", value: "CANCELLED" },
-            ].map((tab) => (
-              <button
-                key={tab.value}
-                onClick={() => setStatusFilter(tab.value)}
-                className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                  statusFilter === tab.value
-                    ? "bg-stone-950 text-white dark:bg-white dark:text-stone-950 shadow-sm"
-                    : "bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 border border-stone-200 dark:border-stone-800/60"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Supplier Search */}
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              placeholder="Search supplier..."
-              value={supplierFilter}
-              onChange={(e) => setSupplierFilter(e.target.value)}
-              className="px-3 py-1.5 text-sm border border-stone-200 dark:border-stone-800 rounded-lg bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-        </div>
-      )}
-
       {/* Loading State */}
       {loadingStockLots && (
         <div className="flex justify-center items-center py-12">
@@ -151,7 +197,7 @@ export const StockLotsPage: React.FC = () => {
           <Package className="w-12 h-12 text-stone-300 dark:text-stone-700 mx-auto mb-4" />
           <p className="text-stone-500 dark:text-stone-400 text-sm">No stock lots found</p>
           <button
-            onClick={() => setIsCreateModalOpen(true)}
+            onClick={openCreateModal}
             className="mt-4 px-4 py-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
           >
             Create your first stock lot
@@ -163,7 +209,8 @@ export const StockLotsPage: React.FC = () => {
       {!loadingStockLots && filteredStockLots.length > 0 && (
         <StockLotsTable
           filteredStockLots={filteredStockLots}
-          getProductNameById={getProductNameById}
+          onReceiveDraft={handleCompleteDraft}
+          onEditDraft={openEditModal}
         />
       )}
 
@@ -174,6 +221,10 @@ export const StockLotsPage: React.FC = () => {
         onSubmit={handleCreateStockLot}
         loading={creatingStockLot}
         products={products}
+        accounts={accounts}
+        contexts={contexts}
+        initialData={editingDraft}
+        selectedDate={selectedDate}
       />
     </div>
   );
