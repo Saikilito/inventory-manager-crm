@@ -130,14 +130,10 @@ export const mapWhereFieldsToMongooseQuery = (fields?: WhereField[]): Record<str
       const key = Object.keys(condition)[0];
 
       if (key === '$or' || key === '$and') {
-        if (!query[key]) {
-          query[key] = [];
+        if (!query.$and) {
+          query.$and = [];
         }
-        if (Array.isArray(condition[key])) {
-          (query[key] as unknown[]).push(...(condition[key] as unknown[]));
-        } else {
-          (query[key] as unknown[]).push(condition[key]);
-        }
+        query.$and.push(condition);
       } else if (
         query[key] !== undefined &&
         typeof query[key] === 'object' &&
@@ -150,10 +146,10 @@ export const mapWhereFieldsToMongooseQuery = (fields?: WhereField[]): Record<str
         Object.assign(query, condition);
       }
     } else if (conditions.length > 1) {
-      if (!query.$or) {
-        query.$or = [];
+      if (!query.$and) {
+        query.$and = [];
       }
-      query.$or.push(...conditions);
+      query.$and.push({ $or: conditions });
     }
   }
 
@@ -221,7 +217,8 @@ export const makeMongooseBaseRepository = <T, Doc extends mongoose.Document>({
     ): Promise<Result<R | null, DatabaseError>> {
       return doTryResult(
         async () => {
-          let query = model.findById(id);
+          const objectId = toObjectIdIfValid(id.toString());
+          let query = model.findById(objectId);
           if (relations && relations.length > 0) {
             for (const rel of relations) {
               query = query.populate(rel.toString()) as unknown as typeof query;
@@ -309,7 +306,7 @@ export const makeMongooseBaseRepository = <T, Doc extends mongoose.Document>({
     ): Promise<Result<boolean, DatabaseError>> {
       return doTryResult(
         async () => {
-          const filter: Record<string, unknown> = { _id: id.toString() };
+          const filter: Record<string, unknown> = { _id: toObjectIdIfValid(id.toString()) };
           for (const [key, value] of Object.entries(where)) {
             const docKey = key === 'id' ? '_id' : key;
             filter[docKey] = value;
@@ -331,7 +328,8 @@ export const makeMongooseBaseRepository = <T, Doc extends mongoose.Document>({
     async deleteByIds(ids: IShared.VO.Id[], _deletedBy: IShared.VO.Id): Promise<Result<void, DatabaseError>> {
       return doTryResult(
         async () => {
-          await model.deleteMany({ _id: { $in: ids } }).exec();
+          const objectIds = ids.map((id) => toObjectIdIfValid(id.toString()));
+          await model.deleteMany({ _id: { $in: objectIds } }).exec();
         },
         (err) => createDatabaseError(err.message),
       );

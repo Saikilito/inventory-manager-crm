@@ -1,5 +1,5 @@
 import { UseCase } from './use-case.js';
-import { DomainError, NotFoundError } from './errors.js';
+import { DomainError, NotFoundError, createNotFoundError } from './errors.js';
 import { Result } from './result.js';
 import { IdVO, Id } from './value-objects/id.vo.js';
 

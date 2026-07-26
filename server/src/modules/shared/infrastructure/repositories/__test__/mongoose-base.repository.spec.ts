@@ -44,7 +44,8 @@ describe('mongoose-base.repository', () => {
         { field: 'clientId' as any, value: validObjectId, operator: '=' },
       ];
       const result = mapWhereFieldsToMongooseQuery(fields);
-      expect(result.clientId).toBeInstanceOf(mongoose.Types.ObjectId);
+      const $or = (result.$and as any)[0].$or;
+      expect($or[1].clientId).toBeInstanceOf(mongoose.Types.ObjectId);
     });
 
     it('should convert valid ObjectId strings to ObjectId for nested Id fields (e.g., items.productId)', () => {
@@ -110,9 +111,13 @@ describe('mongoose-base.repository', () => {
         { field: ['firstName', 'lastName'] as any, value: 'John', operator: '=' },
       ];
       expect(mapWhereFieldsToMongooseQuery(fields)).toEqual({
-        $or: [
-          { firstName: 'John' },
-          { lastName: 'John' },
+        $and: [
+          {
+            $or: [
+              { firstName: 'John' },
+              { lastName: 'John' },
+            ],
+          },
         ],
       });
     });

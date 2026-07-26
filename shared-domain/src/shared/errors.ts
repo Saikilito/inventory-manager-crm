@@ -1,5 +1,8 @@
-export interface DomainError extends Error {
-  name: string;
+export class DomainError extends Error {
+  constructor(message: string, name = 'DomainError') {
+    super(message);
+    this.name = name;
+  }
 }
 
 export const createDomainError = (message: string, name = 'DomainError'): DomainError => {
@@ -12,74 +15,89 @@ export const isDomainError = (error: unknown): error is DomainError => {
   return error instanceof Error && !!error.name && error.name.endsWith('Error');
 };
 
-export interface NotFoundError extends DomainError {
-  name: 'NotFoundError';
+export class NotFoundError extends DomainError {
+  constructor(message: string) {
+    super(message, 'NotFoundError');
+  }
 }
 
 export const createNotFoundError = (message: string): NotFoundError => {
-  return createDomainError(message, 'NotFoundError') as NotFoundError;
+  return new NotFoundError(message);
 }
 
-export interface ConflictError extends DomainError {
-  name: 'ConflictError';
+export class ConflictError extends DomainError {
+  constructor(message: string) {
+    super(message, 'ConflictError');
+  }
 }
 
 export const createConflictError = (message: string): ConflictError => {
-  return createDomainError(message, 'ConflictError') as ConflictError;
+  return new ConflictError(message);
 }
 
-export interface DatabaseError extends DomainError {
-  name: 'DatabaseError';
+export class DatabaseError extends DomainError {
+  constructor(message: string) {
+    super(message, 'DatabaseError');
+  }
 }
 
 export const createDatabaseError = (message: string): DatabaseError => {
-  return createDomainError(message, 'DatabaseError') as DatabaseError;
+  return new DatabaseError(message);
 }
 
-export interface UnauthorizedError extends DomainError {
-  name: 'UnauthorizedError';
+export class UnauthorizedError extends DomainError {
+  constructor(message: string) {
+    super(message, 'UnauthorizedError');
+  }
 }
 
 export const createUnauthorizedError = (message: string): UnauthorizedError => {
-  return createDomainError(message, 'UnauthorizedError') as UnauthorizedError;
+  return new UnauthorizedError(message);
 }
 
-export interface SchemaIntegrityError extends DomainError {
-  name: 'SchemaIntegrityError';
+export class SchemaIntegrityError extends DomainError {
+  constructor(message: string) {
+    super(message, 'SchemaIntegrityError');
+  }
 }
 
 export const createSchemaIntegrityError = (message: string): SchemaIntegrityError => {
-  return createDomainError(message, 'SchemaIntegrityError') as SchemaIntegrityError;
+  return new SchemaIntegrityError(message);
 }
 
-export interface ContextInUseError extends DomainError {
-  name: 'ContextInUseError';
+export class ContextInUseError extends DomainError {
+  constructor(message: string) {
+    super(message, 'ContextInUseError');
+  }
 }
 
 export const createContextInUseError = (message: string): ContextInUseError => {
-  return createDomainError(message, 'ContextInUseError') as ContextInUseError;
+  return new ContextInUseError(message);
 }
 
-export interface FinancialIntegrationError extends DomainError {
-  name: 'FinancialIntegrationError';
+export class FinancialIntegrationError extends DomainError {
+  constructor(message: string, name = 'FinancialIntegrationError') {
+    super(message, name);
+  }
 }
 
-export const createFinancialIntegrationError = (message: string): FinancialIntegrationError => {
-  return createDomainError(message, 'FinancialIntegrationError') as FinancialIntegrationError;
-}
-
-export interface TransactionExistsError extends FinancialIntegrationError {
-  name: 'TransactionExistsError';
-}
-
-export const createTransactionExistsError = (source: string, referenceId: string): TransactionExistsError => {
-  return createDomainError(`Transaction already exists for ${source}:${referenceId}`, 'TransactionExistsError') as TransactionExistsError;
-}
-
-export interface ReconciliationError extends FinancialIntegrationError {
-  name: 'ReconciliationError';
+export class ReconciliationError extends FinancialIntegrationError {
+  constructor(message: string) {
+    super(message, 'ReconciliationError');
+  }
 }
 
 export const createReconciliationError = (message: string): ReconciliationError => {
-  return createDomainError(message, 'ReconciliationError') as ReconciliationError;
+  return new ReconciliationError(message);
+}
+
+
+export class ValidationError extends DomainError {
+  constructor(message: string) {
+    super(message, 'ValidationError');
+  }
+}
+
+export const createValidationError = (message: string): ValidationError => {
+  return new ValidationError(message);
 }

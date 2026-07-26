@@ -33,3 +33,53 @@ export function makePloc<S>(initialState: S): Ploc<S> {
     },
   };
 }
+
+export interface PlocSaveState {
+  isSaving: boolean;
+  errorMessage?: string;
+}
+
+export interface ExecutePlocSaveOptions<
+  S extends PlocSaveState,
+  R extends { isFailure: boolean; getError: () => { message?: string } }
+> {
+  ploc: Ploc<S>;
+  saveFn: () => Promise<R>;
+  onSuccess: (result: R) => void | Promise<void>;
+  modalResetFields?: Partial<S>;
+  defaultErrorMessage?: string;
+}
+
+export async function executePlocSave<
+  S extends PlocSaveState,
+  R extends { isFailure: boolean; getError: () => { message?: string } }
+>(options: ExecutePlocSaveOptions<S, R>): Promise<boolean> {
+  const { ploc, saveFn, onSuccess, modalResetFields, defaultErrorMessage = 'Error saving' } = options;
+
+  ploc.changeState((current) => ({
+    ...current,
+    isSaving: true,
+    errorMessage: undefined,
+  }));
+
+  const result = await saveFn();
+
+  if (result.isFailure) {
+    ploc.changeState((current) => ({
+      ...current,
+      isSaving: false,
+      errorMessage: result.getError().message || defaultErrorMessage,
+    }));
+    return false;
+  }
+
+  ploc.changeState((current) => ({
+    ...current,
+    isSaving: false,
+    errorMessage: undefined,
+    ...modalResetFields,
+  }));
+
+  await onSuccess(result);
+  return true;
+}
