@@ -209,9 +209,14 @@ export const FixedExpensesTab: React.FC<FixedExpensesTabProps> = ({
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
                           <button
-                            onClick={() => onDeleteTemplate(tpl.id as string, String(tpl.name))}
+                            onClick={() => {
+                              if (tpl.id) {
+                                onDeleteTemplate(tpl.id, String(tpl.name));
+                              }
+                            }}
                             className="p-1 text-rose-400 hover:text-rose-600"
                             title="Delete template"
+                            disabled={!tpl.id}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>

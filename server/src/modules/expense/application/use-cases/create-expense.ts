@@ -6,7 +6,7 @@ import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { ResultComposer } from '../../../../../../shared-domain/src/shared/result-composer.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
 import { zodNonEmptyString, zodOptionalNullableIdString, zodPositiveNumber, zodOptionalIdString } from '../../../../../../shared-domain/src/shared/zod-schemas.js';
-import { makeExpense, ExpenseCategory, ExpenseReferenceType, IExpense } from '../../../../../../shared-domain/src/expense/expense.entity.js';
+import { makeExpense, ExpenseCategory, ExpenseReferenceType, IExpense, attachTransactionToExpense } from '../../../../../../shared-domain/src/expense/expense.entity.js';
 import { IExpenseRepository } from '../repositories/expense.repository.js';
 import { CreateEntityInput } from '../../../../../../shared-domain/src/shared/repository.js';
 import { RecordExpenseUseCase } from '../../../financial/application/use-cases/record-expense.js';
@@ -66,34 +66,32 @@ export const makeCreateExpense = (
     const savedExpense = composerResult.getValue().save as IExpense;
 
     // Create financial transaction if accountId is provided
+    let finalExpenseEntity = savedExpense;
+
     if (recordExpense && input.accountId && savedExpense.id) {
       const txResult = await recordExpense({
         expenseId: savedExpense.id.toString(),
         accountId: input.accountId,
         amount: Number(savedExpense.amount),
+        description: `Expense - ${input.description}`,
       });
 
-      if (!txResult.isFailure && txResult.getValue()) {
+      if (txResult.isFailure) {
+        console.error('[CreateExpense] Transaction recording failed:', txResult.getError());
+        await expenseRepository.deleteByIds([savedExpense.id], IdVO.generateNil());
+        return Result.fail(txResult.getError());
+      }
+
+      if (txResult.getValue()?.id) {
         // Update expense with transactionId
-        const transactionId = txResult.getValue().id;
-        const updatedExpense = makeExpense({
-          id: savedExpense.id?.toString(),
-          amount: Number(savedExpense.amount),
-          description: String(savedExpense.description),
-          category: String(savedExpense.category),
-          contextId: savedExpense.contextId?.toString(),
-          referenceId: savedExpense.referenceId?.toString(),
-          referenceType: savedExpense.referenceType?.toString(),
-          accountId: input.accountId,
-          transactionId: transactionId?.toString(),
-          createdAt: savedExpense.createdAt?.toString(),
-          updatedAt: new Date().toISOString(),
-        });
+        const transactionId = txResult.getValue().id!;
+        const updatedExpense = attachTransactionToExpense(savedExpense, transactionId);
         
         await expenseRepository.updateById(savedExpense.id!, updatedExpense, IdVO.generateNil());
+        finalExpenseEntity = updatedExpense;
       }
     }
 
-    return Result.ok<IExpense, DomainError>(savedExpense);
+    return Result.ok<IExpense, DomainError>(finalExpenseEntity);
   };
 };

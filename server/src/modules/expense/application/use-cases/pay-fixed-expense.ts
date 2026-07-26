@@ -1,16 +1,16 @@
 import { z } from 'zod';
 import { UseCase } from '../../../../../../shared-domain/src/shared/use-case.js';
-import { DomainError, NotFoundError, createNotFoundError, createDomainError } from '../../../../../../shared-domain/src/shared/errors.js';
-import { ValidationError, createValidationError } from '../../../../../../shared-domain/src/shared/validation-error.js';
+import { DomainError, createNotFoundError, createDomainError } from '../../../../../../shared-domain/src/shared/errors.js';
+import { createValidationError } from '../../../../../../shared-domain/src/shared/validation-error.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
 import { zodIdString, zodOptionalNullableIdString, zodPositiveNumber, zodBillingMonth, zodOptionalIdString } from '../../../../../../shared-domain/src/shared/zod-schemas.js';
 import { makeFixedExpensePayment, IFixedExpensePayment } from '../../../../../../shared-domain/src/expense/fixed-expense.entity.js';
-import { makeExpense, IExpense } from '../../../../../../shared-domain/src/expense/expense.entity.js';
+import { makeExpense, IExpense, attachTransactionToExpense } from '../../../../../../shared-domain/src/expense/expense.entity.js';
 import { IFixedExpenseRepository, IFixedExpensePaymentRepository } from '../repositories/fixed-expense.repository.js';
 import { IExpenseRepository } from '../repositories/expense.repository.js';
 import { CreateEntityInput } from '../../../../../../shared-domain/src/shared/repository.js';
-import { FinancialTransactionService } from '../../../financial/application/services/financial-transaction.service.js';
+import { RecordExpenseUseCase } from '../../../financial/application/use-cases/record-expense.js';
 
 export const PayFixedExpenseSchema = z.object({
   fixedExpenseId: zodIdString,
@@ -28,7 +28,7 @@ export const makePayFixedExpense = (
   fixedExpenseRepository: IFixedExpenseRepository,
   fixedExpensePaymentRepository: IFixedExpensePaymentRepository,
   expenseRepository: IExpenseRepository,
-  financialTransactionService?: FinancialTransactionService,
+  recordExpense?: RecordExpenseUseCase,
 ): PayFixedExpense => {
   return async (input: PayFixedExpenseInput) => {
     const parseResult = PayFixedExpenseSchema.safeParse(input);
@@ -79,14 +79,26 @@ export const makePayFixedExpense = (
     const createdLedgerExpense = createLedgerResult.getValue();
 
     // Create financial transaction if accountId is provided
-    if (financialTransactionService && input.accountId && createdLedgerExpense.id) {
-      const txResult = await financialTransactionService.recordExpense({
-        expenseId: createdLedgerExpense.id,
-        accountId: IdVO.create(input.accountId),
-        amount: createdLedgerExpense.amount,
-        financialDayId: IdVO.generateNil(),
+    if (recordExpense && input.accountId && createdLedgerExpense.id) {
+      const txResult = await recordExpense({
+        expenseId: createdLedgerExpense.id.toString(),
+        accountId: input.accountId,
+        amount: Number(createdLedgerExpense.amount),
+        description: `Expense - ${template.name.toString()}`,
       });
 
+      if (txResult.isFailure) {
+        console.error('[PayFixedExpense] Failed to record transaction:', txResult.getError());
+        await expenseRepository.deleteByIds([createdLedgerExpense.id], IdVO.generateNil());
+        return Result.fail(txResult.getError());
+      }
+
+      if (txResult.getValue()?.id) {
+        // Update ledger expense with transactionId
+        const transactionId = txResult.getValue().id!;
+        const updatedLedgerExpense = attachTransactionToExpense(createdLedgerExpense, transactionId);
+        await expenseRepository.updateById(createdLedgerExpense.id!, updatedLedgerExpense, IdVO.generateNil());
+      }
     }
 
     const payment = makeFixedExpensePayment({

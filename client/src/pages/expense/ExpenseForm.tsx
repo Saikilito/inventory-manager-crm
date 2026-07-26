@@ -9,6 +9,7 @@ import {
 import { GET_ALL_CONTEXTS } from "@modules/context/infrastructure/graphql/queries";
 import { PRODUCTS_QUERY } from "@modules/product/infrastructure/graphql/queries";
 import { GET_USERS } from "@modules/auth/infrastructure/graphql/queries";
+import { GET_ACCOUNTS } from "@modules/financial/infrastructure/graphql/queries";
 
 const expenseFormSchema = z.object({
   amount: z.number().gt(0, "Amount must be a positive number"),
@@ -17,6 +18,7 @@ const expenseFormSchema = z.object({
   contextId: z.string().optional().nullable(),
   referenceType: z.string().optional().nullable(),
   referenceId: z.string().optional().nullable(),
+  accountId: z.string().optional().nullable(),
 });
 
 interface ExpenseFormProps {
@@ -28,6 +30,7 @@ interface ExpenseFormProps {
     contextId?: string;
     referenceId?: string;
     referenceType?: string;
+    accountId?: string;
   }) => void;
   onCancel: () => void;
   isSaving?: boolean;
@@ -55,6 +58,9 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
   const [referenceId, setReferenceId] = useState(
     expense && expense.referenceId ? String(expense.referenceId) : "",
   );
+  const [accountId, setAccountId] = useState(
+    expense && expense.accountId ? String(expense.accountId) : "",
+  );
 
   // Validation errors
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -64,13 +70,17 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
     GET_ALL_CONTEXTS,
     { fetchPolicy: "cache-and-network" },
   );
+  const { data: accountsData, loading: loadingAccounts } = useQuery(
+    GET_ACCOUNTS,
+    { fetchPolicy: "cache-and-network" },
+  );
   const { data: productsData, loading: loadingProducts } = useQuery(
     PRODUCTS_QUERY,
     {
       variables: { limit: 100, offset: 0 },
     },
   );
-  const { data: usersData } = useQuery(GET_USERS);
+  const { data: usersData, loading: loadingUsers } = useQuery(GET_USERS);
 
   useEffect(() => {
     if (!expense || String(expense.referenceType) !== referenceType) {
@@ -89,6 +99,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
       contextId: contextId || undefined,
       referenceType: referenceType || undefined,
       referenceId: referenceId || undefined,
+      accountId: accountId || undefined,
     });
 
     if (!validationResult.success) {
@@ -109,6 +120,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
       contextId: contextId || undefined,
       referenceType: referenceType || undefined,
       referenceId: referenceId || undefined,
+      accountId: accountId || undefined,
     });
   };
 
@@ -207,7 +219,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
         {/* Context Association */}
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-semibold text-stone-700 dark:text-stone-300">
@@ -231,27 +243,53 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
           </select>
         </div>
 
-        {/* Reference Type */}
+        {/* Financial Account */}
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-semibold text-stone-700 dark:text-stone-300">
-            Link/Reference Type (Optional)
+            Financial Account (Optional)
           </label>
           <select
-            name="referenceType"
+            name="accountId"
             className="h-11 px-4 rounded-lg bg-stone-50 dark:bg-stone-950 border border-stone-300 dark:border-stone-800 hover:border-stone-400 dark:hover:border-stone-700 text-stone-950 dark:text-stone-50 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-stone-950 dark:focus:ring-stone-100"
-            value={referenceType}
-            onChange={(e) => setReferenceType(e.target.value)}
+            value={accountId}
+            onChange={(e) => setAccountId(e.target.value)}
+            disabled={loadingAccounts}
           >
-            <option value="">None</option>
-            {refTypes
-              .filter(t => t !== 'FIXED_EXPENSE') // Hide FIXED_EXPENSE from manual selection
-              .map((t) => (
-              <option key={t} value={t}>
-                {t === "PRODUCT" ? "Product" : "Seller/User"}
-              </option>
-            ))}
+            <option value="">Unassigned (No Account)</option>
+            {accountsData?.getAccounts?.map(
+              (acc: { _id?: string; id?: string; name: string; currency: string }) => {
+                const accId = acc.id || acc._id;
+                return (
+                  <option key={accId} value={accId}>
+                    {acc.name} ({acc.currency})
+                  </option>
+                );
+              },
+            )}
           </select>
         </div>
+      </div>
+
+      <div className="flex flex-col gap-1.5 mb-8">
+        {/* Reference Type */}
+        <label className="text-sm font-semibold text-stone-700 dark:text-stone-300">
+          Link/Reference Type (Optional)
+        </label>
+        <select
+          name="referenceType"
+          className="h-11 px-4 rounded-lg bg-stone-50 dark:bg-stone-950 border border-stone-300 dark:border-stone-800 hover:border-stone-400 dark:hover:border-stone-700 text-stone-950 dark:text-stone-50 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-stone-950 dark:focus:ring-stone-100"
+          value={referenceType}
+          onChange={(e) => setReferenceType(e.target.value)}
+        >
+          <option value="">None</option>
+          {refTypes
+            .filter(t => t !== 'FIXED_EXPENSE') // Hide FIXED_EXPENSE from manual selection
+            .map((t) => (
+            <option key={t} value={t}>
+              {t === "PRODUCT" ? "Product" : "Seller/User"}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Dynamic Polymorphic Link Selector */}

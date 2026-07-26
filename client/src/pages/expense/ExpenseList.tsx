@@ -8,6 +8,7 @@ import { ExpenseFilters } from './components/ExpenseFilters';
 import { ExpenseTable } from './components/ExpenseTable';
 import { FixedExpensesTab } from './components/FixedExpensesTab';
 import { FixedExpenseTemplateModal } from './components/FixedExpenseTemplateModal';
+import { FixedExpensePaymentModal } from '@modules/expense/presentation/components/FixedExpensePaymentModal';
 import { IExpense } from '@shared-domain/expense/expense.entity';
 import { IFixedExpense } from '@shared-domain/expense/fixed-expense.entity';
 import { useExpenseListLogic } from './hooks/useExpenseListLogic';
@@ -60,6 +61,7 @@ export const ExpenseList: React.FC = () => {
     pendingToggleItem,
     confirmToggleChecklistPayment,
     cancelToggleChecklistPayment,
+    isProcessingPayment,
     getCategoryBadgeClass,
     getCategoryLabel
   } = useExpenseListLogic();
@@ -160,6 +162,7 @@ export const ExpenseList: React.FC = () => {
             searchQuery={searchQuery}
             startDate={startDate}
             endDate={endDate}
+            contextMap={contextsData?.getAllContexts ? new Map(contextsData.getAllContexts.map((c: any) => [c.id, c.name])) : new Map()}
             getCategoryBadgeClass={getCategoryBadgeClass}
             getCategoryLabel={getCategoryLabel}
             formatCurrency={formatCurrency}
@@ -234,7 +237,16 @@ export const ExpenseList: React.FC = () => {
         />
       )}
 
-      {pendingToggleItem && (
+      {pendingToggleItem && !pendingToggleItem.payment?.isPaid && (
+        <FixedExpensePaymentModal
+          fixedExpense={pendingToggleItem.fixedExpense}
+          onConfirm={confirmToggleChecklistPayment}
+          onCancel={cancelToggleChecklistPayment}
+          isProcessing={isProcessingPayment}
+        />
+      )}
+
+      {pendingToggleItem && pendingToggleItem.payment?.isPaid && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
           <div className="relative w-full max-w-md bg-white dark:bg-stone-900 rounded-2xl shadow-xl overflow-hidden border border-stone-200 dark:border-stone-800 p-6 text-center">
             <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-amber-100 dark:bg-amber-900/30 mb-4">
@@ -243,25 +255,25 @@ export const ExpenseList: React.FC = () => {
             <h3 className="text-lg leading-6 font-bold text-stone-900 dark:text-stone-50">Confirmar acción</h3>
             <div className="mt-2">
               <p className="text-sm text-stone-500 dark:text-stone-400">
-                {pendingToggleItem.payment?.isPaid
-                  ? `¿Estás seguro de que deseas desmarcar el pago de "${pendingToggleItem.fixedExpense.name}"? Esto eliminará el registro del pago.`
-                  : `¿Estás seguro de que deseas marcar como pagado "${pendingToggleItem.fixedExpense.name}"? Esto creará un nuevo registro de pago.`}
+                ¿Estás seguro de que deseas desmarcar el pago de "{pendingToggleItem.fixedExpense.name}"? Esto eliminará el registro del pago.
               </p>
             </div>
             <div className="mt-6 flex justify-center gap-3">
               <button
                 type="button"
                 onClick={cancelToggleChecklistPayment}
-                className="inline-flex justify-center w-full sm:w-auto px-4 py-2 text-sm font-semibold text-stone-700 bg-white border border-stone-300 rounded-xl hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-stone-500 dark:bg-stone-800 dark:text-stone-300 dark:border-stone-700 dark:hover:bg-stone-700 transition-colors"
+                disabled={isProcessingPayment}
+                className="inline-flex justify-center w-full sm:w-auto px-4 py-2 text-sm font-semibold text-stone-700 bg-white border border-stone-300 rounded-xl hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-stone-500 dark:bg-stone-800 dark:text-stone-300 dark:border-stone-700 dark:hover:bg-stone-700 transition-colors disabled:opacity-50"
               >
                 Cancelar
               </button>
               <button
                 type="button"
-                onClick={confirmToggleChecklistPayment}
-                className="inline-flex justify-center w-full sm:w-auto px-4 py-2 text-sm font-semibold text-white bg-emerald-600 border border-transparent rounded-xl hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
+                onClick={() => confirmToggleChecklistPayment()}
+                disabled={isProcessingPayment}
+                className="inline-flex justify-center w-full sm:w-auto px-4 py-2 text-sm font-semibold text-white bg-emerald-600 border border-transparent rounded-xl hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors disabled:opacity-50"
               >
-                Confirmar
+                {isProcessingPayment ? 'Procesando...' : 'Confirmar'}
               </button>
             </div>
           </div>

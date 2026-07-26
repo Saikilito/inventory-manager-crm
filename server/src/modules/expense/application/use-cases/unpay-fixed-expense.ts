@@ -5,7 +5,7 @@ import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
 import { zodIdString, zodBillingMonth } from '../../../../../../shared-domain/src/shared/zod-schemas.js';
 import { IFixedExpensePaymentRepository } from '../repositories/fixed-expense.repository.js';
-import { IExpenseRepository } from '../repositories/expense.repository.js';
+import { DeleteExpense } from './delete-expense.js';
 
 export const UnpayFixedExpenseSchema = z.object({
   fixedExpenseId: zodIdString,
@@ -18,7 +18,7 @@ export type UnpayFixedExpense = UseCase<UnpayFixedExpenseInput, boolean, DomainE
 
 export const makeUnpayFixedExpense = (
   fixedExpensePaymentRepository: IFixedExpensePaymentRepository,
-  expenseRepository: IExpenseRepository
+  deleteExpenseUseCase: DeleteExpense
 ): UnpayFixedExpense => {
   return async (input: UnpayFixedExpenseInput) => {
     const parseResult = UnpayFixedExpenseSchema.safeParse(input);
@@ -41,12 +41,15 @@ export const makeUnpayFixedExpense = (
     }
 
     if (payment.generatedExpenseId) {
-      const deleteExpenseResult = await expenseRepository.deleteByIds(
-        [payment.generatedExpenseId],
-        IdVO.generateNil()
-      );
+      // Use the deleteExpense UseCase to ensure financial transactions are reversed
+      const deleteExpenseResult = await deleteExpenseUseCase(payment.generatedExpenseId.toString());
       if (deleteExpenseResult.isFailure) {
-        return Result.fail(deleteExpenseResult.getError());
+        const error = deleteExpenseResult.getError();
+        // If the expense is already gone, don't block the unpay action. It was likely deleted directly from the general ledger.
+        if (error.name !== 'NotFoundError') {
+          return Result.fail(error);
+        }
+        console.warn(`Expense ${payment.generatedExpenseId} already deleted or not found. Proceeding to delete payment registry.`);
       }
     }
 

@@ -15,6 +15,13 @@ interface GQLExpense {
   contextId?: string;
   referenceId?: string;
   referenceType?: string;
+  accountId?: string;
+  account?: {
+    id?: string;
+    _id?: string;
+    name: string;
+    currency: string;
+  };
   createdAt?: string;
   updatedAt?: string;
 }
@@ -40,6 +47,8 @@ export function makeApolloExpenseRepository(apolloClient: ApolloClient<Normalize
       contextId: gqlExpense.contextId,
       referenceId: gqlExpense.referenceId,
       referenceType: gqlExpense.referenceType,
+      accountId: gqlExpense.accountId,
+      accountName: gqlExpense.account?.name,
       createdAt: gqlExpense.createdAt,
       updatedAt: gqlExpense.updatedAt,
     });
@@ -101,6 +110,7 @@ export function makeApolloExpenseRepository(apolloClient: ApolloClient<Normalize
                 contextId: expense.contextId ? String(expense.contextId) : undefined,
                 referenceId: expense.referenceId ? String(expense.referenceId) : undefined,
                 referenceType: expense.referenceType ? String(expense.referenceType) : undefined,
+                accountId: expense.accountId ? String(expense.accountId) : undefined,
               },
             },
           });
@@ -125,6 +135,7 @@ export function makeApolloExpenseRepository(apolloClient: ApolloClient<Normalize
                 contextId: expense.contextId ? String(expense.contextId) : undefined,
                 referenceId: expense.referenceId ? String(expense.referenceId) : undefined,
                 referenceType: expense.referenceType ? String(expense.referenceType) : undefined,
+                accountId: expense.accountId ? String(expense.accountId) : undefined,
               },
             },
           });

@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Result } from '../../../../../../../shared-domain/src/shared/result.js';
 import { IdVO } from '../../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
-import { makeFixedExpense, makeFixedExpensePayment, IFixedExpense, IFixedExpensePayment } from '../../../../../../../shared-domain/src/expense/fixed-expense.entity.js';
 import { ExpenseCategory } from '../../../../../../../shared-domain/src/expense/expense.entity.js';
 import { makeCreateFixedExpense } from '../create-fixed-expense.js';
 import { makeUpdateFixedExpense } from '../update-fixed-expense.js';
@@ -52,15 +51,6 @@ const makeMockFixedExpenseRepository = () => {
         store.delete(id.toString());
       }
       return Result.ok(undefined);
-    },
-
-    async dissociateByContextId(contextId: any): Promise<Result<void, any>> {
-      for (const [id, expense] of store.entries()) {
-        if (expense.contextId?.toString() === contextId.toString()) {
-          store.set(id, { ...expense, contextId: null });
-        }
-      }
-      return Result.ok(undefined);
     }
   };
 };
@@ -69,10 +59,6 @@ const makeMockFixedExpensePaymentRepository = () => {
   const store = new Map<string, any>();
 
   return {
-    async getById(id: any): Promise<Result<any, any>> {
-      return Result.ok(store.get(id.toString()) || null);
-    },
-
     async getByMonthAndExpense(fixedExpenseId: any, billingMonth: string): Promise<Result<any, any>> {
       const payments = Array.from(store.values());
       const payment = payments.find(p => p.fixedExpenseId.toString() === fixedExpenseId.toString() && p.billingMonth === billingMonth);
@@ -180,9 +166,14 @@ describe('Fixed Expense Use Cases', () => {
     const paymentRepo = makeMockFixedExpensePaymentRepository();
     const expenseRepo = makeMockExpenseRepository();
 
+    const mockDeleteExpenseUseCase = async (id: string) => {
+      await expenseRepo.deleteByIds([id]);
+      return Result.ok(true);
+    };
+
     const createUseCase = makeCreateFixedExpense(fixedRepo as any);
     const payUseCase = makePayFixedExpense(fixedRepo as any, paymentRepo as any, expenseRepo as any);
-    const unpayUseCase = makeUnpayFixedExpense(paymentRepo as any, expenseRepo as any);
+    const unpayUseCase = makeUnpayFixedExpense(paymentRepo as any, mockDeleteExpenseUseCase as any);
     const checklistUseCase = makeGetFixedExpensePayments(fixedRepo as any, paymentRepo as any);
 
     // 1. Create active fixed expense template

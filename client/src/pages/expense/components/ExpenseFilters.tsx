@@ -2,6 +2,7 @@ import React from 'react';
 import { Calendar, Search } from 'lucide-react';
 import { PeriodType } from '@utils/period-utils';
 import { PeriodNavigator } from '../../../components/ui/PeriodNavigator';
+import { ExpenseCategory } from '@shared-domain/expense/expense.entity';
 
 interface ContextItem {
   _id: string;

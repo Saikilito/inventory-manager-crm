@@ -170,7 +170,7 @@ export function makeApolloFixedExpenseRepository(
       );
     },
 
-    payFixedExpense: async (fixedExpenseId, billingMonth, amountPaid, contextId) => {
+    payFixedExpense: async (fixedExpenseId, billingMonth, amountPaid, contextId, accountId) => {
       return doTryResult(
         async (): Promise<IFixedExpensePayment> => {
           const { data } = await apolloClient.mutate<{ payFixedExpense: GQLFixedExpensePayment }>({
@@ -181,6 +181,7 @@ export function makeApolloFixedExpenseRepository(
                 billingMonth,
                 amountPaid,
                 contextId: contextId ? String(contextId) : undefined,
+                accountId: accountId ? String(accountId) : undefined,
               },
             },
           });

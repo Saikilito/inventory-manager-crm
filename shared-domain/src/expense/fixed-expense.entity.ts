@@ -2,12 +2,12 @@ import { Id, IdVO } from '../shared/value-objects/id.vo.js';
 import { NonEmptyString, NonEmptyStringVO } from '../shared/value-objects/non-empty-string.vo.js';
 import { PositiveNumber, PositiveNumberVO } from '../shared/value-objects/positive-number.vo.js';
 import { DateTime, DateTimeVO } from '../shared/value-objects/date-time.vo.js';
-import { ExpenseCategory } from './expense.entity.js';
+import { ExpenseCategory, ExpenseCategoryVO, ExpenseCategoryType } from './expense.entity.js';
 
 export interface IFixedExpense {
   id?: Id;
   name: NonEmptyString;
-  category: ExpenseCategory;
+  category: ExpenseCategoryType;
   amount: PositiveNumber;
   isActive: boolean;
   contextId?: Id;
@@ -39,7 +39,7 @@ export const makeFixedExpense = (props: {
   return {
     id: props.id ? IdVO.create(props.id) : undefined,
     name: NonEmptyStringVO.create(props.name),
-    category: props.category as ExpenseCategory,
+    category: ExpenseCategoryVO.create(props.category),
     amount: PositiveNumberVO.create(props.amount),
     isActive: props.isActive !== false,
     contextId: props.contextId ? IdVO.create(props.contextId) : undefined,

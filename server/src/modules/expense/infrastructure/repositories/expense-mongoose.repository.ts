@@ -5,7 +5,7 @@ import ExpenseModel, { IExpenseDocument } from '../expense.model.js';
 import { makeMongooseBaseRepository } from '../../../shared/infrastructure/repositories/mongoose-base.repository.js';
 import { Id } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
-import { DatabaseError } from '../../../../../../shared-domain/src/shared/errors.js';
+import { DatabaseError, createDatabaseError } from '../../../../../../shared-domain/src/shared/errors.js';
 import { doTryResult } from '../../../../../../shared-domain/src/shared/do-try-result.js';
 
 const mapToDomain = (doc: IExpenseDocument): IExpense => {

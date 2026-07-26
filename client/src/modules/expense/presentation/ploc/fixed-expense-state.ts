@@ -17,7 +17,6 @@ export interface FixedExpenseState {
   contextId: string;
   selectedTemplate?: IFixedExpense;
   showTemplateModal: boolean;
-  showDeleteConfirm: boolean;
   isSaving: boolean;
   errorMessage?: string;
 }
@@ -33,7 +32,6 @@ export const fixedExpenseInitialState: FixedExpenseState = {
   contextId: '',
   selectedTemplate: undefined,
   showTemplateModal: false,
-  showDeleteConfirm: false,
   isSaving: false,
   errorMessage: undefined,
 };

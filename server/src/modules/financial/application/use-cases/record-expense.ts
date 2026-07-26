@@ -15,6 +15,7 @@ export interface RecordExpenseInput {
   accountId: string;
   amount: number;
   date?: string;
+  description?: string;
 }
 
 export type RecordExpenseUseCase = UseCase<RecordExpenseInput, ITransaction, DomainError>;
@@ -44,6 +45,7 @@ export const makeRecordExpenseUseCase = (
       accountId: IdVO.create(input.accountId),
       amount: PositiveNumberVO.create(input.amount),
       financialDayId: financialDay.id!,
+      description: input.description,
     });
 
     if (result.isFailure) {

@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { Result } from '../../../../../../../shared-domain/src/shared/result.js';
 import { IdVO } from '../../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
-import { makeExpense, ExpenseCategory, ExpenseReferenceType, IExpense } from '../../../../../../../shared-domain/src/expense/expense.entity.js';
+import { ExpenseCategory } from '../../../../../../../shared-domain/src/expense/expense.entity.js';
 import { makeCreateExpense } from '../create-expense.js';
 import { makeGetExpense } from '../get-expense.js';
 import { makeGetAllExpenses } from '../get-all-expenses.js';
@@ -51,15 +51,6 @@ const makeMockExpenseRepository = () => {
     async deleteByIds(ids: any[]): Promise<Result<void, any>> {
       for (const id of ids) {
         store.delete(id.toString());
-      }
-      return Result.ok(undefined);
-    },
-
-    async dissociateByContextId(contextId: any): Promise<Result<void, any>> {
-      for (const [id, expense] of store.entries()) {
-        if (expense.contextId?.toString() === contextId.toString()) {
-          store.set(id, { ...expense, contextId: null });
-        }
       }
       return Result.ok(undefined);
     }
@@ -145,5 +136,102 @@ describe('Expense Use Cases', () => {
     await deleteExpense(created.id!.toString());
     const deletedRes = await getExpense(created.id!.toString());
     expect(deletedRes.isFailure).toBe(true);
+  });
+});
+
+// ============================================================================
+// Bidirectional Sync Tests: Expense → Finance (Direction 1)
+// ============================================================================
+
+describe('Expense Deletion with Financial Reversal (Bidirectional Sync)', () => {
+  it('should call reverseExpense when expense has accountId and reverseExpense use case is provided', async () => {
+    const repo = makeMockExpenseRepository();
+    const mockReverseExpense = vi.fn().mockResolvedValue(Result.ok({ id: IdVO.generate() }));
+
+    const deleteExpense = makeDeleteExpense(repo as any, mockReverseExpense as any);
+
+    // Create expense with accountId
+    const expense = (await repo.create({
+      amount: 500,
+      description: 'Test expense',
+      category: ExpenseCategory.UTILITIES,
+      accountId: IdVO.create('550e8400-e29b-41d4-a716-446655440011'),
+    })).getValue();
+
+    await deleteExpense(expense.id!.toString());
+
+    // Verify reverseExpense was called
+    expect(mockReverseExpense).toHaveBeenCalledTimes(1);
+    expect(mockReverseExpense).toHaveBeenCalledWith(
+      expect.objectContaining({
+        expenseId: expect.anything(),
+        amount: expect.anything(),
+        accountId: expect.anything(),
+      })
+    );
+  });
+
+  it('should NOT call reverseExpense when expense has no accountId', async () => {
+    const repo = makeMockExpenseRepository();
+    const mockReverseExpense = vi.fn().mockResolvedValue(Result.ok({ id: IdVO.generate() }));
+
+    const deleteExpense = makeDeleteExpense(repo as any, mockReverseExpense as any);
+
+    // Create expense WITHOUT accountId
+    const expense = (await repo.create({
+      amount: 200,
+      description: 'Test expense without account',
+      category: ExpenseCategory.OTHER,
+    })).getValue();
+
+    await deleteExpense(expense.id!.toString());
+
+    // Verify reverseExpense was NOT called
+    expect(mockReverseExpense).not.toHaveBeenCalled();
+  });
+
+  it('should NOT call reverseExpense when reverseExpense is not provided', async () => {
+    const repo = makeMockExpenseRepository();
+
+    // Create deleteExpense WITHOUT reverseExpense
+    const deleteExpense = makeDeleteExpense(repo as any, undefined);
+
+    // Create expense with accountId
+    const expense = (await repo.create({
+      amount: 300,
+      description: 'Test expense',
+      category: ExpenseCategory.UTILITIES,
+      accountId: IdVO.create('550e8400-e29b-41d4-a716-446655440012'),
+    })).getValue();
+
+    await deleteExpense(expense.id!.toString());
+
+    // Expense should be deleted (no error thrown)
+    const deletedRes = await repo.getById(expense.id!);
+    expect(deletedRes.getValue()).toBeNull();
+  });
+
+  it('should NOT delete expense when reversal fails', async () => {
+    const repo = makeMockExpenseRepository();
+    const mockReverseExpense = vi.fn().mockResolvedValue(Result.fail(new Error('Reversal failed')));
+
+    const deleteExpense = makeDeleteExpense(repo as any, mockReverseExpense as any);
+
+    // Create expense with accountId
+    const expense = (await repo.create({
+      amount: 500,
+      description: 'Test expense',
+      category: ExpenseCategory.UTILITIES,
+      accountId: IdVO.create('550e8400-e29b-41d4-a716-446655440013'),
+    })).getValue();
+
+    const result = await deleteExpense(expense.id!.toString());
+
+    // Delete should fail
+    expect(result.isFailure).toBe(true);
+
+    // Expense should still exist
+    const existingRes = await repo.getById(expense.id!);
+    expect(existingRes.getValue()).not.toBeNull();
   });
 });

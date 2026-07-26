@@ -94,7 +94,7 @@ export default {
 
     payFixedExpense: async (
       _parent: unknown,
-      { input }: { input: { fixedExpenseId: string; billingMonth: string; amountPaid: number; contextId?: string } },
+      { input }: { input: { fixedExpenseId: string; billingMonth: string; amountPaid: number; contextId?: string; accountId?: string } },
       { container }: IApolloContext
     ) => {
       const result = await container.expense.payFixedExpense(input);

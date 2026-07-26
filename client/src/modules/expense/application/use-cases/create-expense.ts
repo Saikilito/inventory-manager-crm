@@ -1,14 +1,24 @@
 import { ExpenseRepository } from '../../domain/expense.repository.js';
 import { Result } from '@shared-domain/shared/result.js';
-import { IExpense } from '@shared-domain/expense/expense.entity.js';
+import { makeExpense } from '@shared-domain/expense/expense.entity.js';
 import { DomainError } from '@shared-domain/shared/errors.js';
 
+export interface CreateExpenseDto {
+  amount: number;
+  description: string;
+  category: string;
+  contextId?: string;
+  referenceId?: string;
+  referenceType?: string;
+  accountId?: string;
+}
+
 export interface CreateExpenseUseCase {
-  execute(expense: IExpense): Promise<Result<boolean, DomainError>>;
+  execute(dto: CreateExpenseDto): Promise<Result<boolean, DomainError>>;
 }
 
 export function makeCreateExpenseUseCase(repository: ExpenseRepository): CreateExpenseUseCase {
   return {
-    execute: (expense) => repository.create(expense),
+    execute: (dto) => repository.create(makeExpense(dto)),
   };
 }

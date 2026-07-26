@@ -24,6 +24,8 @@ type Expense {
   contextId: ID
   referenceId: ID
   referenceType: ExpenseReferenceType
+  accountId: ID
+  account: Account
   createdAt: String
   updatedAt: String
 }
@@ -45,6 +47,7 @@ input CreateExpenseInput {
   contextId: ID
   referenceId: ID
   referenceType: ExpenseReferenceType
+  accountId: ID
 }
 
 input UpdateExpenseInput {
@@ -55,6 +58,7 @@ input UpdateExpenseInput {
   contextId: ID
   referenceId: ID
   referenceType: ExpenseReferenceType
+  accountId: ID
 }
 
 type Mutation {

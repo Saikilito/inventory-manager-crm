@@ -11,6 +11,7 @@ interface ExpenseTableProps {
   searchQuery: string;
   startDate: string;
   endDate: string;
+  contextMap: Map<string, string>;
   getCategoryBadgeClass: (cat: string) => string;
   getCategoryLabel: (cat: string) => string;
   formatCurrency: (amount: number) => string;
@@ -26,6 +27,7 @@ export const ExpenseTable: React.FC<ExpenseTableProps> = ({
   searchQuery,
   startDate,
   endDate,
+  contextMap,
   getCategoryBadgeClass,
   getCategoryLabel,
   formatCurrency,
@@ -92,6 +94,7 @@ export const ExpenseTable: React.FC<ExpenseTableProps> = ({
                         <th scope="col" className="px-6 py-3.5 text-left text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Description</th>
                         <th scope="col" className="px-6 py-3.5 text-left text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Category</th>
                         <th scope="col" className="px-6 py-3.5 text-left text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Context</th>
+                        <th scope="col" className="px-6 py-3.5 text-left text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Account</th>
                         <th scope="col" className="px-6 py-3.5 text-left text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Type</th>
                         <th scope="col" className="px-6 py-3.5 text-left text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Date</th>
                         <th scope="col" className="px-6 py-3.5 text-right text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Amount</th>
@@ -118,6 +121,15 @@ export const ExpenseTable: React.FC<ExpenseTableProps> = ({
                               </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-500 dark:text-stone-400 font-medium">{contextName}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-600 dark:text-stone-300 font-medium">
+                              {item.accountName ? (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/70 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800/40">
+                                  {String(item.accountName)}
+                                </span>
+                              ) : (
+                                <span className="text-stone-400 dark:text-stone-500 italic text-xs">Unassigned</span>
+                              )}
+                            </td>
                             <td className="px-6 py-4 whitespace-nowrap text-xs">
                               <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider border ${typeBadgeClass}`}>
                                 {typeLabel}

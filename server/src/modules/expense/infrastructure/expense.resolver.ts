@@ -11,12 +11,29 @@ const mapToGql = (expense: IExpense) => {
     contextId: expense.contextId?.toString() || null,
     referenceId: expense.referenceId?.toString() || null,
     referenceType: expense.referenceType || null,
+    accountId: expense.accountId?.toString() || null,
     createdAt: expense.createdAt?.toString() || null,
     updatedAt: expense.updatedAt?.toString() || null,
   };
 };
 
 export default {
+  Expense: {
+    account: async (parent: { accountId?: string }, _args: unknown, { container }: IApolloContext) => {
+      if (!parent.accountId) return null;
+      const accResult = await container.financial.accountRepository.getById(parent.accountId);
+      if (accResult.isFailure || !accResult.getValue()) return null;
+      const acc = accResult.getValue();
+      return {
+        id: acc.id?.toString(),
+        _id: acc.id?.toString(),
+        name: acc.name?.toString(),
+        currency: acc.currency?.toString(),
+        balance: acc.balance,
+      };
+    },
+  },
+
   Query: {
     getExpense: async (
       _parent: unknown,
@@ -65,6 +82,7 @@ export default {
           contextId?: string;
           referenceId?: string;
           referenceType?: ExpenseReferenceType;
+          accountId?: string;
         };
       },
       { container }: IApolloContext,
@@ -89,6 +107,7 @@ export default {
           contextId?: string;
           referenceId?: string;
           referenceType?: ExpenseReferenceType;
+          accountId?: string;
         };
       },
       { container }: IApolloContext,

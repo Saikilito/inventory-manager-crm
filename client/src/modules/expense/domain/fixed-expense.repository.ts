@@ -14,6 +14,6 @@ export interface FixedExpenseRepository {
   createTemplate(fe: IFixedExpense): Promise<Result<IFixedExpense, DomainError>>;
   updateTemplate(fe: IFixedExpense): Promise<Result<IFixedExpense, DomainError>>;
   deleteTemplate(id: Id): Promise<Result<boolean, DomainError>>;
-  payFixedExpense(fixedExpenseId: Id, billingMonth: string, amountPaid: number, contextId?: Id): Promise<Result<IFixedExpensePayment, DomainError>>;
+  payFixedExpense(fixedExpenseId: Id, billingMonth: string, amountPaid: number, contextId?: Id, accountId?: Id): Promise<Result<IFixedExpensePayment, DomainError>>;
   unpayFixedExpense(fixedExpenseId: Id, billingMonth: string): Promise<Result<boolean, DomainError>>;
 }

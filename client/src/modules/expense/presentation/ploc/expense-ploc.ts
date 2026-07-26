@@ -1,10 +1,10 @@
-import { makePloc, Ploc } from '@modules/shared/presentation/ploc/ploc';
+import { makePloc, Ploc, executePlocSave } from '@modules/shared/presentation/ploc/ploc';
 import { expenseInitialState, ExpenseState, ExpenseStateKind } from './expense-state';
 import { GetExpensesUseCase } from '../../application/use-cases/get-expenses';
 import { CreateExpenseUseCase } from '../../application/use-cases/create-expense';
 import { UpdateExpenseUseCase } from '../../application/use-cases/update-expense';
 import { DeleteExpenseUseCase } from '../../application/use-cases/delete-expense';
-import { IExpense, makeExpense } from '@shared-domain/expense/expense.entity';
+import { IExpense } from '@shared-domain/expense/expense.entity';
 import { IdVO } from '@shared-domain/shared/value-objects/id.vo';
 import { PositiveNumberVO } from '@shared-domain/shared/value-objects/positive-number.vo';
 import { NonNegativeNumberVO } from '@shared-domain/shared/value-objects/non-negative-number.vo';
@@ -21,9 +21,8 @@ export interface ExpensePloc extends Ploc<ExpenseState> {
     contextId?: string;
     referenceId?: string;
     referenceType?: string;
+    accountId?: string;
   }): Promise<boolean>;
-  openDeleteConfirm(expense: IExpense): void;
-  closeDeleteConfirm(): void;
   confirmDelete(id: string): Promise<void>;
 }
 
@@ -126,60 +125,36 @@ export function makeExpensePloc(
     contextId?: string;
     referenceId?: string;
     referenceType?: string;
+    accountId?: string;
   }): Promise<boolean> => {
     const current = ploc.state();
-    ploc.changeState({ ...current, isSaving: true, errorMessage: undefined });
-
     const isEdit = !!current.selectedExpense;
-    const expenseToSave = makeExpense({
-      id: current.selectedExpense?.id ? String(current.selectedExpense.id) : undefined,
+    const dto = {
       amount: expenseData.amount,
       description: expenseData.description,
       category: expenseData.category,
       contextId: expenseData.contextId || undefined,
       referenceId: expenseData.referenceId || undefined,
       referenceType: expenseData.referenceType || undefined,
-    });
+      accountId: expenseData.accountId || undefined,
+    };
 
-    const result = isEdit
-      ? await updateExpense.execute(expenseToSave)
-      : await createExpense.execute(expenseToSave);
-
-    if (result.isFailure) {
-      ploc.changeState({
-        ...ploc.state(),
-        isSaving: false,
-        errorMessage: result.getError().message || 'Error saving expense',
-      });
-      return false;
-    } else {
-      ploc.changeState({
-        ...ploc.state(),
-        isSaving: false,
+    return executePlocSave({
+      ploc,
+      saveFn: () => isEdit
+        ? updateExpense.execute({
+            id: String(current.selectedExpense!.id),
+            ...dto,
+          })
+        : createExpense.execute(dto),
+      modalResetFields: {
         showFormModal: false,
         selectedExpense: undefined,
-        errorMessage: undefined,
-      });
-      await load(current.currentPage, current.limit, current.contextId, current.category);
-      return true;
-    }
-  };
-
-  const openDeleteConfirm = (expense: IExpense) => {
-    ploc.changeState({
-      ...ploc.state(),
-      selectedExpense: expense,
-      showDeleteConfirm: true,
-      errorMessage: undefined,
-    });
-  };
-
-  const closeDeleteConfirm = () => {
-    ploc.changeState({
-      ...ploc.state(),
-      showDeleteConfirm: false,
-      selectedExpense: undefined,
-      errorMessage: undefined,
+      },
+      defaultErrorMessage: 'Error saving expense',
+      onSuccess: async () => {
+        await load(current.currentPage, current.limit, current.contextId, current.category);
+      },
     });
   };
 
@@ -196,7 +171,6 @@ export function makeExpensePloc(
     } else {
       ploc.changeState({
         ...ploc.state(),
-        showDeleteConfirm: false,
         selectedExpense: undefined,
         errorMessage: undefined,
       });
@@ -211,8 +185,6 @@ export function makeExpensePloc(
     openEdit,
     closeForm,
     save,
-    openDeleteConfirm,
-    closeDeleteConfirm,
     confirmDelete,
   };
 }

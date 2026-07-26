@@ -12,6 +12,12 @@ export const GET_ALL_EXPENSES = gql`
         contextId
         referenceId
         referenceType
+        accountId
+        account {
+          id
+          name
+          currency
+        }
         createdAt
         updatedAt
       }
@@ -31,6 +37,13 @@ export const GET_SINGLE_EXPENSE = gql`
       contextId
       referenceId
       referenceType
+      accountId
+      account {
+        id
+        _id
+        name
+        currency
+      }
       createdAt
       updatedAt
     }

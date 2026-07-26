@@ -15,6 +15,7 @@ export interface ReverseExpenseInput {
   amount: number;
   accountId: string;
   date?: string;
+  description?: string;
 }
 
 export type ReverseExpenseUseCase = UseCase<ReverseExpenseInput, ITransaction, DomainError>;
@@ -44,6 +45,7 @@ export const makeReverseExpenseUseCase = (
       accountId: IdVO.create(input.accountId),
       amount: PositiveNumberVO.create(input.amount),
       financialDayId: financialDay.id!,
+      description: input.description,
     });
 
     if (result.isFailure) {

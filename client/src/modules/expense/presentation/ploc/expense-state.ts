@@ -17,7 +17,6 @@ export interface CommonExpenseState {
   category: string;
   selectedExpense?: IExpense;
   showFormModal: boolean;
-  showDeleteConfirm: boolean;
   isSaving: boolean;
   errorMessage?: string;
 }
@@ -56,7 +55,6 @@ export const expenseInitialState: ExpenseState = {
   category: '',
   selectedExpense: undefined,
   showFormModal: false,
-  showDeleteConfirm: false,
   isSaving: false,
   errorMessage: undefined,
 };

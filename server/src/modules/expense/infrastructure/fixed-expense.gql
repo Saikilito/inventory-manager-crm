@@ -44,6 +44,7 @@ input PayFixedExpenseInput {
   billingMonth: String!
   amountPaid: Float!
   contextId: ID
+  accountId: ID
 }
 
 input UnpayFixedExpenseInput {

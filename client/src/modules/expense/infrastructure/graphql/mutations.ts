@@ -11,6 +11,12 @@ export const CREATE_EXPENSE = gql`
       contextId
       referenceId
       referenceType
+      accountId
+      account {
+        id
+        name
+        currency
+      }
       createdAt
       updatedAt
     }
@@ -28,6 +34,12 @@ export const UPDATE_EXPENSE = gql`
       contextId
       referenceId
       referenceType
+      accountId
+      account {
+        id
+        name
+        currency
+      }
       createdAt
       updatedAt
     }

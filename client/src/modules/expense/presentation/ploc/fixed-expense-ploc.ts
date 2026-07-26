@@ -1,4 +1,4 @@
-import { makePloc, Ploc } from '@modules/shared/presentation/ploc/ploc';
+import { makePloc, Ploc, executePlocSave } from '@modules/shared/presentation/ploc/ploc';
 import { fixedExpenseInitialState, FixedExpenseState, FixedExpenseStateKind } from './fixed-expense-state.js';
 import { FixedExpenseRepository } from '../../domain/fixed-expense.repository.js';
 import { makeFixedExpense, IFixedExpense } from '@shared-domain/expense/fixed-expense.entity.js';
@@ -7,7 +7,6 @@ import { IdVO } from '@shared-domain/shared/value-objects/id.vo.js';
 export interface FixedExpensePloc extends Ploc<FixedExpenseState> {
   load(billingMonth?: string, contextId?: string): Promise<void>;
   changeBillingMonth(billingMonth: string): Promise<void>;
-  changeContext(contextId: string): Promise<void>;
   openCreate(): void;
   openEdit(template: IFixedExpense): void;
   closeTemplateModal(): void;
@@ -18,10 +17,8 @@ export interface FixedExpensePloc extends Ploc<FixedExpenseState> {
     isActive: boolean;
     contextId?: string;
   }): Promise<boolean>;
-  openDeleteConfirm(template: IFixedExpense): void;
-  closeDeleteConfirm(): void;
-  confirmDelete(id: string): Promise<void>;
-  payFixedExpense(fixedExpenseId: string, amountPaid: number): Promise<void>;
+  confirmDelete(id: string): Promise<boolean>;
+  payFixedExpense(fixedExpenseId: string, amountPaid: number, accountId?: string): Promise<void>;
   unpayFixedExpense(fixedExpenseId: string): Promise<void>;
 }
 
@@ -86,11 +83,6 @@ export function makeFixedExpensePloc(
     await load(billingMonth, current.contextId);
   };
 
-  const changeContext = async (contextId: string) => {
-    const current = ploc.state();
-    await load(current.selectedBillingMonth, contextId);
-  };
-
   const openCreate = () => {
     ploc.changeState({
       ...ploc.state(),
@@ -126,8 +118,6 @@ export function makeFixedExpensePloc(
     contextId?: string;
   }): Promise<boolean> => {
     const current = ploc.state();
-    ploc.changeState({ ...current, isSaving: true, errorMessage: undefined });
-
     const isEdit = !!current.selectedTemplate;
     const templateToSave = makeFixedExpense({
       id: current.selectedTemplate?.id ? String(current.selectedTemplate.id) : undefined,
@@ -138,49 +128,23 @@ export function makeFixedExpensePloc(
       contextId: templateData.contextId || undefined,
     });
 
-    const result = isEdit
-      ? await fixedExpenseRepository.updateTemplate(templateToSave)
-      : await fixedExpenseRepository.createTemplate(templateToSave);
-
-    if (result.isFailure) {
-      ploc.changeState({
-        ...ploc.state(),
-        isSaving: false,
-        errorMessage: result.getError().message || 'Error saving template',
-      });
-      return false;
-    } else {
-      ploc.changeState({
-        ...ploc.state(),
-        isSaving: false,
+    return executePlocSave({
+      ploc,
+      saveFn: () => isEdit
+        ? fixedExpenseRepository.updateTemplate(templateToSave)
+        : fixedExpenseRepository.createTemplate(templateToSave),
+      modalResetFields: {
         showTemplateModal: false,
         selectedTemplate: undefined,
-        errorMessage: undefined,
-      });
-      await load(current.selectedBillingMonth, current.contextId);
-      return true;
-    }
-  };
-
-  const openDeleteConfirm = (template: IFixedExpense) => {
-    ploc.changeState({
-      ...ploc.state(),
-      selectedTemplate: template,
-      showDeleteConfirm: true,
-      errorMessage: undefined,
+      },
+      defaultErrorMessage: 'Error saving template',
+      onSuccess: async () => {
+        await load(current.selectedBillingMonth, current.contextId);
+      },
     });
   };
 
-  const closeDeleteConfirm = () => {
-    ploc.changeState({
-      ...ploc.state(),
-      showDeleteConfirm: false,
-      selectedTemplate: undefined,
-      errorMessage: undefined,
-    });
-  };
-
-  const confirmDelete = async (id: string) => {
+  const confirmDelete = async (id: string): Promise<boolean> => {
     const current = ploc.state();
     const idVO = IdVO.create(id);
     const result = await fixedExpenseRepository.deleteTemplate(idVO);
@@ -190,27 +154,30 @@ export function makeFixedExpensePloc(
         ...ploc.state(),
         errorMessage: result.getError().message || 'Error deleting template',
       });
+      return false;
     } else {
       ploc.changeState({
         ...ploc.state(),
-        showDeleteConfirm: false,
         selectedTemplate: undefined,
         errorMessage: undefined,
       });
       await load(current.selectedBillingMonth, current.contextId);
+      return true;
     }
   };
 
-  const payFixedExpense = async (fixedExpenseId: string, amountPaid: number) => {
+  const payFixedExpense = async (fixedExpenseId: string, amountPaid: number, accountId?: string) => {
     const current = ploc.state();
     const fixedExpenseIdVO = IdVO.create(fixedExpenseId);
     const contextIdVO = current.contextId ? IdVO.create(current.contextId) : undefined;
+    const accountIdVO = accountId ? IdVO.create(accountId) : undefined;
 
     const result = await fixedExpenseRepository.payFixedExpense(
       fixedExpenseIdVO,
       current.selectedBillingMonth,
       amountPaid,
-      contextIdVO
+      contextIdVO,
+      accountIdVO
     );
 
     if (result.isFailure) {
@@ -246,13 +213,10 @@ export function makeFixedExpensePloc(
     ...ploc,
     load,
     changeBillingMonth,
-    changeContext,
     openCreate,
     openEdit,
     closeTemplateModal,
     saveTemplate,
-    openDeleteConfirm,
-    closeDeleteConfirm,
     confirmDelete,
     payFixedExpense,
     unpayFixedExpense,
