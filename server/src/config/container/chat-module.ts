@@ -22,6 +22,7 @@ import { makeAssignAgentToSession } from '../../modules/chat/application/use-cas
 import { makeSendWhisperToAgent } from '../../modules/chat/application/use-cases/send-whisper-to-agent.use-case.js';
 import { makeCreateClient } from '../../modules/client/application/use-cases/create-client.js';
 import { makeOrderMongooseRepository } from '../../modules/order/infrastructure/repositories/order-mongoose.repository.js';
+import { makeDeliveryMongooseRepository } from '../../modules/delivery/infrastructure/repositories/delivery-mongoose.repository.js';
 import { makeRecalculateClientRating } from '../../modules/client/application/use-cases/recalculate-client-rating.js';
 import { makeCreateOrder } from '../../modules/order/application/use-cases/create-order.js';
 import { makeDeliveryMongooseRepository } from '../../modules/delivery/infrastructure/repositories/delivery-mongoose.repository.js';
@@ -55,10 +56,14 @@ export interface ChatSubContainer {
   llmAdapter: ReturnType<typeof makeGeminiLlmAdapter>;
 }
 
+export interface IPubSub {
+  publish(triggerName: string, payload: unknown): Promise<void>;
+}
+
 export interface ChatModuleDependencies {
   productRepository: IProductRepository;
   clientRepository: IClientRepository;
-  pubSubInstance: unknown;
+  pubSubInstance: IPubSub;
   knowledgeRepository: IKnowledgeRepository;
   config: Pick<IConfig, 'knowledgeInjectionEnabled' | 'knowledgeInjectionTopN' | 'knowledgeInjectionTokenBudget'>;
 }
@@ -73,9 +78,9 @@ export const buildChatModule = (deps: ChatModuleDependencies): ChatSubContainer 
 
   const createClient = makeCreateClient(clientRepository);
   const orderRepository = makeOrderMongooseRepository();
-  const recalculateClientRating = makeRecalculateClientRating(clientRepository, orderRepository);
   const deliveryRepository = makeDeliveryMongooseRepository();
-  const createOrder = makeCreateOrder(
+  const recalculateClientRating = makeRecalculateClientRating(clientRepository, orderRepository);
+    const createOrder = makeCreateOrder(
     orderRepository,
     productRepository,
     recalculateClientRating,
@@ -83,7 +88,7 @@ export const buildChatModule = (deps: ChatModuleDependencies): ChatSubContainer 
     deliveryRepository,
   );
   const calculateDeliveryFee = makeCalculateDeliveryFee(knowledgeRepository);
-  const logUnsatisfiedDemand = makeLogUnsatisfiedDemand({ unsatisfiedDemandRepository });
+  const logUnsatisfiedDemand = makeLogUnsatisfiedDemand(unsatisfiedDemandRepository);
 
   const cognitiveRouter = makeCognitiveRouter({
     textSearch: (query, category) => knowledgeRepository.textSearch(query, category),
@@ -101,10 +106,10 @@ export const buildChatModule = (deps: ChatModuleDependencies): ChatSubContainer 
     knowledgeInjector,
     config,
   });
-  const whatsAppGateway = makeBaileysGateway({ baileysAuthRepository, pubSubInstance: pubSub as never });
+  const whatsAppGateway = makeBaileysGateway({ baileysAuthRepository, chatMessageRepository });
 
   const checkWorkingHours = makeCheckWorkingHours();
-  const handoverToHuman = makeHandoverToHuman({ chatSessionRepository, pubSubInstance: pubSub as never });
+  const handoverToHuman = makeHandoverToHuman({ chatSessionRepository, whatsAppGateway, pubSub });
 
   const processIncomingMessage = makeProcessIncomingMessage({
     chatSessionRepository,
@@ -114,9 +119,8 @@ export const buildChatModule = (deps: ChatModuleDependencies): ChatSubContainer 
     llmAdapter,
     clientRepository,
     checkWorkingHours,
-    logUnsatisfiedDemand,
-    pubSubInstance: pubSub as never,
-    calculateDeliveryFee,
+    handoverToHuman,
+    pubSub,
   });
 
   const initializeWhatsApp = makeInitializeWhatsApp({ whatsAppGateway, processIncomingMessage });
@@ -129,14 +133,13 @@ export const buildChatModule = (deps: ChatModuleDependencies): ChatSubContainer 
   const assignAgentToSession = makeAssignAgentToSession({
     chatSessionRepository,
     agentRepository,
-    pubSubInstance: pubSub as never,
+    pubSub,
   });
   const sendWhisperToAgent = makeSendWhisperToAgent({
     chatSessionRepository,
     chatMessageRepository,
-    agentRepository,
     llmAdapter,
-    pubSubInstance: pubSub as never,
+    pubSub,
   });
 
   return {

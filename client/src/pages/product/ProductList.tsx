@@ -8,10 +8,33 @@ import { Paginator } from "@components/Paginator";
 import { ProductsStateKind } from "@modules/product/presentation/ploc/products-state";
 import { GET_ALL_CONTEXTS } from "@modules/product/infrastructure/graphql/queries";
 import type { GQLContext } from "@modules/context/infrastructure/graphql/types";
-import { DELETION_SUCCESS_TIMEOUT_MS, PRODUCT_MESSAGES } from "@modules/product/domain/product.constants";
-import { calculateStockValue, calculatePotentialProfit } from "@shared-domain/product/product-calculations";
-import { Plus, Layers } from "lucide-react";
-import Alert from "../../components/Alert";
+import {
+  STOCK_THRESHOLD_LOW,
+  STOCK_THRESHOLD_MEDIUM,
+  MARGIN_THRESHOLD_GOOD,
+  MARGIN_THRESHOLD_OK,
+  DELETION_SUCCESS_TIMEOUT_MS,
+  PRODUCT_MESSAGES,
+} from "@modules/product/domain/product.constants";
+import {
+  calculateProfit,
+  calculateProfitMargin,
+  calculateStockValue,
+  calculatePotentialProfit,
+} from "@shared-domain/product/product-calculations";
+import {
+  Plus,
+  Edit,
+  Info,
+  Trash2,
+  CheckCircle2,
+  AlertTriangle,
+  Layers,
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Boxes,
+} from "lucide-react";import Alert from "../../components/Alert";
 import Spinkit from "../../components/Spinkit";
 import { ProductFilters } from "./components/ProductFilters";
 import { ProductSummaryCards } from "./components/ProductSummaryCards";
@@ -70,6 +93,13 @@ export const ProductList: React.FC = () => {
           >
             <Layers className="w-4 h-4 mr-2" />
             Contexts
+          </Link>
+          <Link
+            to="/stock-lots"
+            className="inline-flex items-center justify-center h-11 px-5 rounded-xl text-sm font-medium text-stone-700 dark:text-stone-200 bg-white dark:bg-stone-800 border border-stone-300 dark:border-stone-700 hover:bg-stone-50 dark:hover:bg-stone-750 active:bg-stone-100 dark:active:bg-stone-700 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-stone-950"
+          >
+            <Boxes className="w-4 h-4 mr-2" />
+            Stock Lots
           </Link>
           <Link
             to="/products/new"

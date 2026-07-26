@@ -81,12 +81,41 @@ type ReconciliationReport {
 type CloseFinancialDayResult {
   financialDay: FinancialDay!
   reconciliationReport: ReconciliationReport
+
+type PaymentRecord {
+  id: ID!
+  amount: Float!
+  accountId: ID!
+  transactionId: ID!
+  expenseId: ID!
+  paidAt: String!
+}
+
+type AccountsPayable {
+  id: ID!
+  stockLotId: ID!
+  supplier: String!
+  totalAmount: Float!
+  remainingBalance: Float!
+  payments: [PaymentRecord!]!
+  status: String!
+  contextId: ID
+  createdAt: String!
+  updatedAt: String!
+}
+
+type PayAccountsPayablePayload {
+  accountsPayable: AccountsPayable!
+  transactionId: ID!
+  expenseId: ID!
 }
 
 type Query {
   getFinancialDayByDate(date: String): FinancialDayResult!
   getAccounts: [Account!]!
   getTransactions(accountId: ID!): [Transaction!]!
+  accountsPayables(status: String, supplierName: String, contextId: ID): [AccountsPayable!]!
+  accountsPayable(id: ID!): AccountsPayable
 }
 
 type Mutation {
@@ -114,4 +143,9 @@ type Mutation {
     description: String
     date: String
   ): Boolean!
+  payAccountsPayable(
+    accountsPayableId: ID!
+    amount: Float!
+    accountId: ID!
+  ): PayAccountsPayablePayload!
 }

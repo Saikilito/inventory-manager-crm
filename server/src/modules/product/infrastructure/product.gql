@@ -19,11 +19,47 @@ type ProductStats {
   averageMargin: Float!
 }
 
+type StockLotItem {
+  productId: ID
+  productName: String!
+  quantity: Float!
+  unitCost: Float!
+  confirmedSellingPrice: Float!
+  isNewProduct: Boolean!
+  projectedProfit: Float
+}
+
+type StockLot {
+  _id: ID!
+  supplier: String!
+  purchaseDate: String!
+  items: [StockLotItem!]!
+  totalCost: Float!
+  projectedProfit: Float
+  paymentMethod: String!
+  transactionId: ID
+  accountsPayableId: ID
+  status: String!
+  notes: String
+  contextId: ID
+  createdAt: String!
+  updatedAt: String!
+}
+
+type CreateStockLotPayload {
+  stockLot: StockLot!
+  accountsPayableId: ID
+  createdProducts: [Product!]!
+  updatedProducts: [Product!]!
+}
+
 type Query {
   getAllProducts(limit: Int, offset: Int, contextId: ID): [Product]!
   getProduct(_id: ID!): Product!
   totalProducts: Int
   productStats(contextId: ID): ProductStats!
+  stockLots(contextId: ID, supplierName: String, status: String): [StockLot!]!
+  stockLot(id: ID!): StockLot
 }
 
 input ProductInput {
@@ -35,8 +71,26 @@ input ProductInput {
   contextId: ID
 }
 
+input StockLotItemInput {
+  productName: String!
+  quantity: Float!
+  unitCost: Float!
+  confirmedSellingPrice: Float!
+}
+
+input CreateStockLotInput {
+  supplier: String!
+  purchaseDate: String!
+  items: [StockLotItemInput!]!
+  paymentMethod: String!
+  accountId: ID
+  notes: String
+  contextId: ID
+}
+
 type Mutation {
   setProduct(input: ProductInput!): Product!
   updateProduct(input: ProductInput!): Product!
   deleteProduct(_id: ID!): Boolean!
+  createStockLot(input: CreateStockLotInput!): CreateStockLotPayload!
 }
