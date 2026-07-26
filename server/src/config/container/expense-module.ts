@@ -17,6 +17,9 @@ import { UnpayFixedExpense, makeUnpayFixedExpense } from '../../modules/expense/
 
 import { RecordExpenseUseCase } from '../../modules/financial/application/use-cases/record-expense.js';
 import { ReverseExpenseUseCase } from '../../modules/financial/application/use-cases/reverse-expense.js';
+import { FinancialTransactionService } from '../../modules/financial/application/services/financial-transaction.service.js';
+import { IFinancialDayRepository } from '../../modules/financial/application/repositories/financial.repository.js';
+import { IAccountRepository } from '../../modules/financial/application/repositories/financial.repository.js';
 
 export interface ExpenseSubContainer {
   getExpense: GetExpense;
@@ -39,6 +42,9 @@ export const buildExpenseModule = (deps: {
   fixedExpensePaymentRepository?: IFixedExpensePaymentRepository;
   recordExpense?: RecordExpenseUseCase;
   reverseExpense?: ReverseExpenseUseCase;
+  financialTransactionService?: FinancialTransactionService;
+  financialDayRepository?: IFinancialDayRepository;
+  accountRepository?: IAccountRepository;
 }): ExpenseSubContainer => {
   const expenseRepository = deps.expenseRepository ?? makeExpenseMongooseRepository();
   const fixedExpenseRepository = deps.fixedExpenseRepository ?? makeFixedExpenseMongooseRepository();
@@ -50,13 +56,28 @@ export const buildExpenseModule = (deps: {
     getAllExpenses: makeGetAllExpenses(expenseRepository),
     createExpense: makeCreateExpense(expenseRepository, deps.recordExpense),
     updateExpense: makeUpdateExpense(expenseRepository, deps.recordExpense, deps.reverseExpense),
-    deleteExpense: makeDeleteExpense(expenseRepository),
+    deleteExpense: makeDeleteExpense(
+      expenseRepository,
+      deps.reverseExpense,
+      fixedExpensePaymentRepository
+    ),
     getAllFixedExpenses: makeGetAllFixedExpenses(fixedExpenseRepository),
     getFixedExpensePayments: makeGetFixedExpensePayments(fixedExpenseRepository, fixedExpensePaymentRepository),
     createFixedExpense: makeCreateFixedExpense(fixedExpenseRepository),
     updateFixedExpense: makeUpdateFixedExpense(fixedExpenseRepository),
     deleteFixedExpense: makeDeleteFixedExpense(fixedExpenseRepository),
-    payFixedExpense: makePayFixedExpense(fixedExpenseRepository, fixedExpensePaymentRepository, expenseRepository),
-    unpayFixedExpense: makeUnpayFixedExpense(fixedExpensePaymentRepository, expenseRepository),
+    payFixedExpense: makePayFixedExpense(
+      fixedExpenseRepository,
+      fixedExpensePaymentRepository,
+      expenseRepository,
+      deps.recordExpense,
+    ),
+    unpayFixedExpense: makeUnpayFixedExpense(
+      fixedExpensePaymentRepository,
+      makeDeleteExpense(
+        expenseRepository,
+        deps.reverseExpense
+      )
+    ),
   };
 };

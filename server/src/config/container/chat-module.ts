@@ -25,7 +25,6 @@ import { makeOrderMongooseRepository } from '../../modules/order/infrastructure/
 import { makeDeliveryMongooseRepository } from '../../modules/delivery/infrastructure/repositories/delivery-mongoose.repository.js';
 import { makeRecalculateClientRating } from '../../modules/client/application/use-cases/recalculate-client-rating.js';
 import { makeCreateOrder } from '../../modules/order/application/use-cases/create-order.js';
-import { makeDeliveryMongooseRepository } from '../../modules/delivery/infrastructure/repositories/delivery-mongoose.repository.js';
 import { IProductRepository } from '../../modules/product/application/repositories/product.repository.js';
 import { IClientRepository } from '../../modules/client/application/repositories/client.repository.js';
 import { IKnowledgeRepository } from '../../modules/knowledge/application/repositories/knowledge.repository.js';

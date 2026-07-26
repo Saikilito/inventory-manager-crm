@@ -173,6 +173,9 @@ export const makeContainer = (overrides: ContainerDependencies = {}): Container 
       overrides.fixedExpensePaymentRepository ?? makeFixedExpensePaymentMongooseRepository(),
     recordExpense: financial.recordExpense,
     reverseExpense: financial.reverseExpense,
+    financialTransactionService: financial.financialTransactionService,
+    financialDayRepository,
+    accountRepository,
   });
 
   const delivery = buildDeliveryModule({

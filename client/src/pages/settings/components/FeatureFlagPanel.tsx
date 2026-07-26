@@ -58,6 +58,21 @@ export const FeatureFlagPanel: React.FC = () => {
 
   return (
     <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl p-8 shadow-sm">
+      <div className="flex items-start gap-4 mb-6">
+        <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 dark:text-indigo-400 rounded-xl">
+          <Sliders className="w-6 h-6" />
+        </div>
+        <div>
+          <h2 className="text-xl font-bold tracking-tight text-stone-900 dark:text-stone-50">
+            Feature Flags & Modules
+          </h2>
+          <p className="text-sm text-stone-500 dark:text-stone-400 mt-1.5 leading-relaxed">
+            Dynamically toggle application modules. Disabling a feature hides its navigations and strictly restricts
+            module routes instantly for all users.
+          </p>
+        </div>
+      </div>
+
       <div className="pt-6 border-t border-stone-200 dark:border-stone-800 flex items-center justify-between">
         <div className="space-y-1 pr-4">
           <h3 className="text-base font-bold text-stone-900 dark:text-stone-50 flex items-center gap-2">
@@ -94,21 +109,6 @@ export const FeatureFlagPanel: React.FC = () => {
               }`}
             />
           </button>
-        </div>
-
-        <div className="flex items-start gap-4 mb-6">
-          <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 dark:text-indigo-400 rounded-xl">
-            <Sliders className="w-6 h-6" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold tracking-tight text-stone-900 dark:text-stone-50">
-              Feature Flags & Modules
-            </h2>
-            <p className="text-sm text-stone-500 dark:text-stone-400 mt-1.5 leading-relaxed">
-              Dynamically toggle application modules. Disabling a feature hides its navigations and strictly restricts
-              module routes instantly for all users.
-            </p>
-          </div>
         </div>
       </div>
     </div>
