@@ -72,6 +72,7 @@ input ProductInput {
 }
 
 input StockLotItemInput {
+  productId: ID
   productName: String!
   quantity: Float!
   unitCost: Float!
@@ -86,6 +87,18 @@ input CreateStockLotInput {
   accountId: ID
   notes: String
   contextId: ID
+  status: String
+}
+
+input UpdateStockLotInput {
+  id: ID!
+  supplier: String!
+  purchaseDate: String!
+  items: [StockLotItemInput!]!
+  paymentMethod: String!
+  accountId: ID
+  notes: String
+  contextId: ID
 }
 
 type Mutation {
@@ -93,4 +106,6 @@ type Mutation {
   updateProduct(input: ProductInput!): Product!
   deleteProduct(_id: ID!): Boolean!
   createStockLot(input: CreateStockLotInput!): CreateStockLotPayload!
+  updateStockLot(input: UpdateStockLotInput!): StockLot!
+  completeStockLot(stockLotId: ID!, accountId: ID): CreateStockLotPayload!
 }

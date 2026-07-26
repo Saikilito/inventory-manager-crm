@@ -29,6 +29,25 @@ interface CreateStockLotInput {
   supplier: string;
   purchaseDate: string;
   items: Array<{
+    productId?: string;
+    productName: string;
+    quantity: number;
+    unitCost: number;
+    confirmedSellingPrice: number;
+  }>;
+  paymentMethod: string;
+  accountId?: string;
+  notes?: string;
+  contextId?: string;
+  status?: string;
+}
+
+interface UpdateStockLotInput {
+  id: string;
+  supplier: string;
+  purchaseDate: string;
+  items: Array<{
+    productId?: string;
     productName: string;
     quantity: number;
     unitCost: number;
@@ -217,10 +236,58 @@ export default {
       return !result.isFailure;
     },
 
-    createStockLot: async (_parent: unknown, { input }: { input: CreateStockLotInput }, { container }: IContext) => {
-      const result = await container.product.createStockLot({
+    createStockLot: async (_parent: unknown, { input }: { input: CreateStockLotInput }, context: IContext) => {
+      const user = await context.token() as { id: string } | null;
+      if (!user?.id) {
+        throw new Error('Unauthorized');
+      }
+
+      const result = await context.container.product.createStockLot({
         ...input,
+        status: input.status as 'DRAFT' | 'RECEIVED' | 'PARTIAL' | 'PAID' | undefined || 'RECEIVED',
         paymentMethod: input.paymentMethod as 'CASH' | 'CREDIT',
+        userId: user.id,
+      });
+      if (result.isFailure) {
+        throw result.getError();
+      }
+      const output = result.getValue();
+      return {
+        stockLot: mapStockLotToGql(output.stockLot),
+        accountsPayableId: output.accountsPayableId || null,
+        createdProducts: output.createdProducts.map(mapToGql),
+        updatedProducts: output.updatedProducts.map(mapToGql),
+      };
+    },
+
+    updateStockLot: async (_parent: unknown, { input }: { input: UpdateStockLotInput }, context: IContext) => {
+      const user = await context.token() as { id: string } | null;
+      if (!user?.id) {
+        throw new Error('Unauthorized');
+      }
+
+      const result = await context.container.product.updateStockLot({
+        ...input,
+        status: 'DRAFT', // Adding missing status field required by UpdateStockLotInput internal type if any
+        paymentMethod: input.paymentMethod as 'CASH' | 'CREDIT',
+        userId: user.id,
+      });
+      if (result.isFailure) {
+        throw result.getError();
+      }
+      return mapStockLotToGql(result.getValue());
+    },
+
+    completeStockLot: async (_parent: unknown, { stockLotId, accountId }: { stockLotId: string, accountId?: string }, context: IContext) => {
+      const user = await context.token() as { id: string } | null;
+      if (!user?.id) {
+        throw new Error('Unauthorized');
+      }
+
+      const result = await context.container.product.completeStockLot({
+        stockLotId,
+        accountId,
+        userId: user.id,
       });
       if (result.isFailure) {
         throw result.getError();

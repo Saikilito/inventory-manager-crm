@@ -9,30 +9,16 @@ import { ProductsStateKind } from "@modules/product/presentation/ploc/products-s
 import { GET_ALL_CONTEXTS } from "@modules/product/infrastructure/graphql/queries";
 import type { GQLContext } from "@modules/context/infrastructure/graphql/types";
 import {
-  STOCK_THRESHOLD_LOW,
-  STOCK_THRESHOLD_MEDIUM,
-  MARGIN_THRESHOLD_GOOD,
-  MARGIN_THRESHOLD_OK,
   DELETION_SUCCESS_TIMEOUT_MS,
   PRODUCT_MESSAGES,
 } from "@modules/product/domain/product.constants";
 import {
-  calculateProfit,
-  calculateProfitMargin,
   calculateStockValue,
   calculatePotentialProfit,
 } from "@shared-domain/product/product-calculations";
 import {
   Plus,
-  Edit,
-  Info,
-  Trash2,
-  CheckCircle2,
-  AlertTriangle,
   Layers,
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
   Boxes,
 } from "lucide-react";import Alert from "../../components/Alert";
 import Spinkit from "../../components/Spinkit";

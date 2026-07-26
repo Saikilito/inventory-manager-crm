@@ -23,6 +23,7 @@ export const makeProductMongooseRepository = (): IProductRepository => {
     mapToDomain,
     mapToDocumentData: (product) => {
       const data: Record<string, unknown> = {};
+      if (product.id) data._id = new mongoose.Types.ObjectId(product.id.toString());
       if (product.name !== undefined) data.name = product.name;
       if (product.purchasePrice !== undefined) data.purchasePrice = product.purchasePrice;
       if (product.sellingPrice !== undefined) data.sellingPrice = product.sellingPrice;

@@ -17,6 +17,7 @@ export interface CreateProductInput {
   description?: string;
   sku?: string;
   unitOfMeasure?: string;
+  userId?: string;
 }
 
 export type CreateProduct = UseCase<CreateProductInput, IProduct, DomainError>;
@@ -41,7 +42,7 @@ export const makeCreateProduct = (deps: {
           }),
         ),
       )
-      .useResult('save', ({ product }) => productRepository.create(product, IdVO.generateNil()))
+      .useResult('save', ({ product }) => productRepository.create(product, input.userId ? IdVO.create(input.userId) : IdVO.generateNil()))
       .run();
 
     if (composerResult.isFailure) {

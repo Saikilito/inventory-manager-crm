@@ -9,7 +9,7 @@ import { ValidationError, createValidationError } from '../shared/validation-err
 export const PRICE_DECIMAL_PRECISION = 2;
 export const QUANTITY_DECIMAL_PRECISION = 4;
 
-export const PRODUCT_DEFAULT_PRICE_FALLBACK = 1.00;
+export const PRODUCT_DEFAULT_PRICE_FALLBACK = 1.0;
 
 export interface IProductPresentation {
   packagingType: PackagingType;
@@ -73,10 +73,28 @@ export const makeProduct = (props: {
     unitOfMeasure: (props.unitOfMeasure as UnitOfMeasure) || UnitOfMeasure.UNIT,
     contextId: props.contextId ? IdVO.create(props.contextId) : undefined,
     customAttributes: props.customAttributes,
-    presentation: props.presentation ? {
-      packagingType: (props.presentation.packagingType as PackagingType) || PackagingType.UNIT,
-      contentSize: PositiveNumberVO.create(Number(Number(props.presentation.contentSize).toFixed(QUANTITY_DECIMAL_PRECISION))),
-      contentUom: (props.presentation.contentUom as UnitOfMeasure) || UnitOfMeasure.UNIT,
-    } : undefined,
+    presentation: props.presentation
+      ? {
+          packagingType: (props.presentation.packagingType as PackagingType) || PackagingType.UNIT,
+          contentSize: PositiveNumberVO.create(
+            Number(Number(props.presentation.contentSize).toFixed(QUANTITY_DECIMAL_PRECISION)),
+          ),
+          contentUom: (props.presentation.contentUom as UnitOfMeasure) || UnitOfMeasure.UNIT,
+        }
+      : undefined,
   };
+};
+
+export const calculateWeightedAveragePrice = (
+  currentPrice: number,
+  currentStock: number,
+  lotUnitCost: number,
+  lotQuantity: number,
+): number => {
+  if (currentStock === 0) {
+    return Number(lotUnitCost.toFixed(PRICE_DECIMAL_PRECISION));
+  }
+
+  const newPrice = (currentPrice * currentStock + lotUnitCost * lotQuantity) / (currentStock + lotQuantity);
+  return Number(newPrice.toFixed(PRICE_DECIMAL_PRECISION));
 };

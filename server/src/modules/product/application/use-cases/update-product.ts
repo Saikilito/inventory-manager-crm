@@ -13,6 +13,7 @@ export interface UpdateProductInput {
   sellingPrice?: number;
   stock?: number;
   contextId?: string;
+  userId?: string;
 }
 
 export type UpdateProduct = UseCase<UpdateProductInput, IProduct, DomainError>;
@@ -47,7 +48,7 @@ export const makeUpdateProduct = (productRepository: IProductRepository): Update
 
     const { updated } = composerResult.getValue() as { updated: IProduct };
 
-    const saveResult = await productRepository.updateById(IdVO.create(input.id), updated, IdVO.generateNil());
+    const saveResult = await productRepository.updateById(IdVO.create(input.id), updated, input.userId ? IdVO.create(input.userId) : IdVO.generateNil());
     if (saveResult.isFailure) {
       return Result.fail(saveResult.getError());
     }
