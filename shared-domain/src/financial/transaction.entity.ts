@@ -4,9 +4,10 @@ import { Currency, CurrencyVO } from '../shared/value-objects/currency.vo.js';
 import { PositiveNumber, PositiveNumberVO } from '../shared/value-objects/positive-number.vo.js';
 import { DateTime, DateTimeVO } from '../shared/value-objects/date-time.vo.js';
 import { DateOnly, DateOnlyVO } from '../shared/value-objects/date-only.vo.js';
-import { TransactionSource, TransactionSourceVO, TransactionSourceType } from './transaction-source.vo.js';
+import { TransactionSource, TransactionSourceVO, type TransactionSourceType } from './transaction-source.vo.js';
 
 import { Result } from '../shared/result.js';
+import { ResultComposer } from '../shared/result-composer.js';
 import { ValidationError, createValidationError } from '../shared/validation-error.js';
 
 export const TransactionType = {
@@ -43,59 +44,76 @@ export const makeTransactionResult = (props: {
   sourceReferenceId?: string;
   createdAt?: string;
 }): Result<ITransaction, ValidationError> => {
-  if (!props.type || typeof props.type !== 'string') {
-    return Result.fail(createValidationError('Transaction type must be a non-empty string'));
+  const composerResult = ResultComposer.start()
+    .useResult('typeCheck', () => {
+      if (!props.type || typeof props.type !== 'string') {
+        return Result.fail(createValidationError('Transaction type must be a non-empty string'));
+      }
+      const parsedType = props.type.toUpperCase() as TransactionType;
+      if (parsedType !== TransactionType.CREDIT && parsedType !== TransactionType.DEBIT) {
+        return Result.fail(createValidationError(`Unsupported transaction type: ${props.type}`));
+      }
+      return Result.ok(parsedType);
+    })
+    .useResult('source', () =>
+      TransactionSourceVO.createResult(props.source || TransactionSource.MANUAL),
+    )
+    .useResult('sourceRefCheck', ({ source }) => {
+      if (source !== TransactionSource.MANUAL) {
+        if (!props.sourceReferenceId || props.sourceReferenceId.trim().length === 0) {
+          return Result.fail(
+            createValidationError(`sourceReferenceId is required when transaction source is ${source}`),
+          );
+        }
+      }
+      return Result.ok(true);
+    })
+    .useResult('id', () => (props.id ? IdVO.createResult(props.id) : Result.ok(undefined)))
+    .useResult('accountId', () => IdVO.createResult(props.accountId))
+    .useResult('amount', () => PositiveNumberVO.createResult(props.amount))
+    .useResult('currency', () => CurrencyVO.createResult(props.currency))
+    .useResult('description', () => NonEmptyStringVO.createResult(props.description))
+    .useResult('date', () => DateOnlyVO.createResult(props.date))
+    .useResult('financialDayId', () => IdVO.createResult(props.financialDayId))
+    .useResult('sourceReferenceId', () =>
+      props.sourceReferenceId ? IdVO.createResult(props.sourceReferenceId) : Result.ok(undefined),
+    )
+    .useResult('createdAt', () =>
+      props.createdAt
+        ? DateTimeVO.createResult(props.createdAt)
+        : DateTimeVO.createResult(new Date()),
+    )
+    .runSync<ValidationError>();
+
+  if (composerResult.isFailure) {
+    return Result.fail(composerResult.getError());
   }
-  const parsedType = props.type.toUpperCase() as TransactionType;
-  if (parsedType !== TransactionType.CREDIT && parsedType !== TransactionType.DEBIT) {
-    return Result.fail(createValidationError(`Unsupported transaction type: ${props.type}`));
-  }
 
-  // Default to MANUAL for legacy transactions without source
-  const sourceResult = TransactionSourceVO.createResult(props.source || TransactionSource.MANUAL);
-  if (sourceResult.isFailure) return Result.fail(sourceResult.getError());
-
-  const idResult = props.id ? IdVO.createResult(props.id) : undefined;
-  if (idResult && idResult.isFailure) return Result.fail(idResult.getError());
-
-  const accountIdResult = IdVO.createResult(props.accountId);
-  if (accountIdResult.isFailure) return Result.fail(accountIdResult.getError());
-
-  const amountResult = PositiveNumberVO.createResult(props.amount);
-  if (amountResult.isFailure) return Result.fail(amountResult.getError());
-
-  const currencyResult = CurrencyVO.createResult(props.currency);
-  if (currencyResult.isFailure) return Result.fail(currencyResult.getError());
-
-  const descriptionResult = NonEmptyStringVO.createResult(props.description);
-  if (descriptionResult.isFailure) return Result.fail(descriptionResult.getError());
-
-  const dateResult = DateOnlyVO.createResult(props.date);
-  if (dateResult.isFailure) return Result.fail(dateResult.getError());
-
-  const financialDayIdResult = IdVO.createResult(props.financialDayId);
-  if (financialDayIdResult.isFailure) return Result.fail(financialDayIdResult.getError());
-
-  const sourceReferenceIdResult = props.sourceReferenceId ? IdVO.createResult(props.sourceReferenceId) : undefined;
-  if (sourceReferenceIdResult && sourceReferenceIdResult.isFailure)
-    return Result.fail(sourceReferenceIdResult.getError());
-
-  const createdAtResult = props.createdAt
-    ? DateTimeVO.createResult(props.createdAt)
-    : DateTimeVO.createResult(new Date());
-  if (createdAtResult.isFailure) return Result.fail(createdAtResult.getError());
+  const {
+    id,
+    accountId,
+    typeCheck: parsedType,
+    amount,
+    currency,
+    description,
+    date,
+    financialDayId,
+    source,
+    sourceReferenceId,
+    createdAt,
+  } = composerResult.getValue();
 
   return Result.ok({
-    id: idResult?.getValue(),
-    accountId: accountIdResult.getValue(),
+    id,
+    accountId,
     type: parsedType,
-    amount: amountResult.getValue(),
-    currency: currencyResult.getValue(),
-    description: descriptionResult.getValue(),
-    date: dateResult.getValue(),
-    financialDayId: financialDayIdResult.getValue(),
-    source: sourceResult.getValue(),
-    sourceReferenceId: sourceReferenceIdResult?.getValue(),
-    createdAt: createdAtResult.getValue(),
+    amount,
+    currency,
+    description,
+    date,
+    financialDayId,
+    source,
+    sourceReferenceId,
+    createdAt,
   });
 };

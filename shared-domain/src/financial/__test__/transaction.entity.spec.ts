@@ -58,5 +58,32 @@ describe('Transaction Entity', () => {
     it('should fail for invalid UUIDs', () => {
       expect(makeTransactionResult({ ...baseProps, accountId: 'not-a-uuid' }).isFailure).toBe(true);
     });
+
+    it('should require sourceReferenceId when source is non-MANUAL', () => {
+      const result = makeTransactionResult({
+        ...baseProps,
+        type: TransactionType.CREDIT,
+        source: 'ORDER_PAYMENT',
+      });
+      expect(result.isFailure).toBe(true);
+      if (result.isFailure) {
+        expect(result.getError().message).toContain('sourceReferenceId is required when transaction source is ORDER_PAYMENT');
+      }
+    });
+
+    it('should create transaction when non-MANUAL source has sourceReferenceId', () => {
+      const refId = crypto.randomUUID();
+      const result = makeTransactionResult({
+        ...baseProps,
+        type: TransactionType.CREDIT,
+        source: 'ORDER_PAYMENT',
+        sourceReferenceId: refId,
+      });
+      expect(result.isFailure).toBe(false);
+      if (!result.isFailure) {
+        expect(result.getValue().source).toBe('ORDER_PAYMENT');
+        expect(result.getValue().sourceReferenceId?.toString()).toBe(refId);
+      }
+    });
   });
 });

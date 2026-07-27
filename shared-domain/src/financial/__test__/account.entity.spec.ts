@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { makeAccount } from '../account.entity.js';
+import { makeAccount, isInsufficientAccountBalance } from '../account.entity.js';
 import { IdVO } from '../../shared/value-objects/id.vo.js';
 import { PositiveNumberVO } from '../../shared/value-objects/positive-number.vo.js';
 import { ValidationError } from '../../shared/validation-error.js';
@@ -125,6 +125,23 @@ describe('Account Entity', () => {
       expect(result.isFailure).toBe(true);
       expect(result.getError()).toBeInstanceOf(ValidationError);
       expect(result.getError().message).toContain('Exchange rate');
+    });
+  });
+
+  describe('isInsufficientAccountBalance', () => {
+    it('returns true when account balance is less than amount', () => {
+      expect(isInsufficientAccountBalance({ balance: 50 }, 100)).toBe(true);
+    });
+
+    it('returns false when account balance is equal or greater than amount', () => {
+      expect(isInsufficientAccountBalance({ balance: 100 }, 100)).toBe(false);
+      expect(isInsufficientAccountBalance({ balance: 200 }, 100)).toBe(false);
+    });
+
+    it('returns false when account is null or undefined or amount is zero', () => {
+      expect(isInsufficientAccountBalance(null, 100)).toBe(false);
+      expect(isInsufficientAccountBalance(undefined, 100)).toBe(false);
+      expect(isInsufficientAccountBalance({ balance: 50 }, 0)).toBe(false);
     });
   });
 });

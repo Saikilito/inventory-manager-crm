@@ -84,3 +84,11 @@ export const makeAccount = (props: {
     },
   };
 };
+
+export const isInsufficientAccountBalance = (
+  account: { balance: number } | null | undefined,
+  amount: number
+): boolean => {
+  if (!account || amount <= 0) return false;
+  return account.balance < amount;
+};
