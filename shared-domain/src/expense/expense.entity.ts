@@ -2,21 +2,16 @@ import { Id, IdVO } from '../shared/value-objects/id.vo.js';
 import { NonEmptyString, NonEmptyStringVO } from '../shared/value-objects/non-empty-string.vo.js';
 import { PositiveNumber, PositiveNumberVO } from '../shared/value-objects/positive-number.vo.js';
 import { DateTime, DateTimeVO } from '../shared/value-objects/date-time.vo.js';
-import { ExpenseCategory, ExpenseCategoryVO, ExpenseCategoryType } from './value-objects/expense-category.vo.js';
+import { createValidationError } from '../shared/validation-error.js';
+import { ExpenseCategory, ExpenseCategoryVO, type ExpenseCategoryType } from './value-objects/expense-category.vo.js';
 import {
   ExpenseReferenceType,
   ExpenseReferenceTypeVO,
-  ExpenseReferenceTypeType,
+  type ExpenseReferenceTypeType,
 } from './value-objects/expense-reference-type.vo.js';
 
-export {
-  ExpenseCategory,
-  ExpenseCategoryVO,
-  ExpenseCategoryType,
-  ExpenseReferenceType,
-  ExpenseReferenceTypeVO,
-  ExpenseReferenceTypeType,
-};
+export { ExpenseCategory, ExpenseCategoryVO, ExpenseReferenceType, ExpenseReferenceTypeVO };
+export type { ExpenseCategoryType, ExpenseReferenceTypeType };
 
 export interface IExpense {
   id?: Id;
@@ -47,6 +42,13 @@ export const makeExpense = (props: {
   createdAt?: string | Date | number;
   updatedAt?: string | Date | number;
 }): IExpense => {
+  const hasReferenceId = Boolean(props.referenceId && props.referenceId.trim().length > 0);
+  const hasReferenceType = Boolean(props.referenceType && props.referenceType.trim().length > 0);
+
+  if (hasReferenceId !== hasReferenceType) {
+    throw createValidationError('Both referenceId and referenceType are required when referencing an entity');
+  }
+
   const now = new Date();
   const categoryVO = ExpenseCategoryVO.create(props.category);
   const referenceTypeVO = props.referenceType ? ExpenseReferenceTypeVO.create(props.referenceType) : undefined;
@@ -68,6 +70,12 @@ export const makeExpense = (props: {
 };
 
 export const attachTransactionToExpense = (expense: IExpense, transactionId: Id): IExpense => {
+  if (expense.transactionId) {
+    if (expense.transactionId.toString() === transactionId.toString()) {
+      return expense;
+    }
+    throw createValidationError('Expense is already attached to a transaction');
+  }
   return {
     ...expense,
     transactionId,

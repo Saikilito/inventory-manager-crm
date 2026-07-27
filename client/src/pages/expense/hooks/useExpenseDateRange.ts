@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { PeriodType, getPeriodRange, getTodayDateOnly } from '@utils/period-utils';
+import { PeriodType, getPeriodRange, getTodayDateOnly, toStartOfDayISO, toEndOfDayISO } from '@utils/period-utils';
 
 export const useExpenseDateRange = () => {
-  const [periodType, setPeriodType] = useState<PeriodType>('month');
+  const [periodType, setPeriodType] = useState<PeriodType>('day');
   const [referenceDate, setReferenceDate] = useState<string>(getTodayDateOnly());
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
@@ -12,18 +12,8 @@ export const useExpenseDateRange = () => {
 
   useEffect(() => {
     if (isCustomMode) {
-      if (customStart) {
-        const start = new Date(customStart + 'T00:00:00');
-        setStartDate(start.toISOString());
-      } else {
-        setStartDate('');
-      }
-      if (customEnd) {
-        const end = new Date(customEnd + 'T23:59:59.999');
-        setEndDate(end.toISOString());
-      } else {
-        setEndDate('');
-      }
+      setStartDate(customStart ? toStartOfDayISO(customStart) : '');
+      setEndDate(customEnd ? toEndOfDayISO(customEnd) : '');
     } else {
       const range = getPeriodRange(referenceDate, periodType);
       setStartDate(range.startDate);

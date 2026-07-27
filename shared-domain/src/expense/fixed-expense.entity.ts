@@ -2,7 +2,9 @@ import { Id, IdVO } from '../shared/value-objects/id.vo.js';
 import { NonEmptyString, NonEmptyStringVO } from '../shared/value-objects/non-empty-string.vo.js';
 import { PositiveNumber, PositiveNumberVO } from '../shared/value-objects/positive-number.vo.js';
 import { DateTime, DateTimeVO } from '../shared/value-objects/date-time.vo.js';
-import { ExpenseCategory, ExpenseCategoryVO, ExpenseCategoryType } from './expense.entity.js';
+import { BillingMonth, BillingMonthVO } from '../shared/value-objects/billing-month.vo.js';
+import { createValidationError } from '../shared/validation-error.js';
+import { ExpenseCategoryVO, type ExpenseCategoryType } from './expense.entity.js';
 
 export interface IFixedExpense {
   id?: Id;
@@ -18,7 +20,7 @@ export interface IFixedExpense {
 export interface IFixedExpensePayment {
   id?: Id;
   fixedExpenseId: Id;
-  billingMonth: NonEmptyString;
+  billingMonth: BillingMonth;
   isPaid: boolean;
   amountPaid: PositiveNumber;
   paidAt?: DateTime;
@@ -58,11 +60,21 @@ export const makeFixedExpensePayment = (props: {
   generatedExpenseId?: string;
   contextId?: string;
 }): IFixedExpensePayment => {
+  const isPaid = props.isPaid === true;
+
+  if (isPaid && !props.paidAt) {
+    throw createValidationError('paidAt is required when payment is marked as paid');
+  }
+
+  if (!isPaid && props.paidAt) {
+    throw createValidationError('paidAt cannot be provided when payment is not marked as paid');
+  }
+
   return {
     id: props.id ? IdVO.create(props.id) : undefined,
     fixedExpenseId: IdVO.create(props.fixedExpenseId),
-    billingMonth: NonEmptyStringVO.create(props.billingMonth),
-    isPaid: props.isPaid === true,
+    billingMonth: BillingMonthVO.create(props.billingMonth),
+    isPaid,
     amountPaid: PositiveNumberVO.create(props.amountPaid),
     paidAt: props.paidAt ? DateTimeVO.create(props.paidAt) : undefined,
     generatedExpenseId: props.generatedExpenseId ? IdVO.create(props.generatedExpenseId) : undefined,

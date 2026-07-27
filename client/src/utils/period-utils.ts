@@ -12,6 +12,23 @@ export const getTodayDateOnly = (timezone: string = DEFAULT_TIMEZONE): string =>
   return DateOnlyVO.create(undefined, timezone).toString();
 };
 
+export const toStartOfDayISO = (dateStr: string): string => {
+  if (!dateStr) return '';
+  const start = new Date(`${dateStr}T00:00:00`);
+  return isNaN(start.getTime()) ? '' : start.toISOString();
+};
+
+export const toEndOfDayISO = (dateStr: string): string => {
+  if (!dateStr) return '';
+  const end = new Date(`${dateStr}T23:59:59.999`);
+  return isNaN(end.getTime()) ? '' : end.toISOString();
+};
+
+export const toDateOnlyString = (dateStr: string): string => {
+  if (!dateStr) return '';
+  return dateStr.substring(0, 10);
+};
+
 export const getPeriodRange = (
   referenceDate: string,
   periodType: PeriodType,
