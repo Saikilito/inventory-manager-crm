@@ -37,6 +37,7 @@ type StockLot {
   totalCost: Float!
   projectedProfit: Float
   paymentMethod: String!
+  accountId: ID
   transactionId: ID
   accountsPayableId: ID
   status: String!

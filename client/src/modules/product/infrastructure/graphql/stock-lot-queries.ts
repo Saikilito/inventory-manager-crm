@@ -16,6 +16,7 @@ export const GET_STOCK_LOTS = gql`
         projectedProfit
       }
       paymentMethod
+      accountId
       transactionId
       accountsPayableId
       status

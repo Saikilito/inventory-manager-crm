@@ -43,6 +43,13 @@ export const StockLotsPage: React.FC = () => {
     setIsCreateModalOpen(true);
   };
 
+  const handleReceiveDraft = async (stockLotId: string) => {
+    const res = await handleCompleteDraft(stockLotId);
+    if (res && res.requiresAccount && res.lot) {
+      openEditModal(res.lot);
+    }
+  };
+
   // Calculate counts for the status tabs based on current date and supplier filters
   const baseFilteredLots = stockLots.filter((lot) => {
     const matchesDate = lot.purchaseDate === selectedDate;
@@ -209,7 +216,8 @@ export const StockLotsPage: React.FC = () => {
       {!loadingStockLots && filteredStockLots.length > 0 && (
         <StockLotsTable
           filteredStockLots={filteredStockLots}
-          onReceiveDraft={handleCompleteDraft}
+          accounts={accounts}
+          onReceiveDraft={handleReceiveDraft}
           onEditDraft={openEditModal}
         />
       )}

@@ -101,6 +101,7 @@ export const makeCreateStockLot = (deps: {
         purchaseDate: validatedInput.purchaseDate,
         items: stockLotItems,
         paymentMethod: validatedInput.paymentMethod,
+        accountId: validatedInput.accountId,
         status: 'DRAFT',
         notes: validatedInput.notes,
         contextId: validatedInput.contextId,
@@ -169,8 +170,8 @@ export const makeCreateStockLot = (deps: {
 
         const financialDay = dayResult.getValue();
 
-        const generatedStockLotId = IdVO.create().toString();
-        const generatedTransactionId = IdVO.create().toString();
+        const generatedStockLotId = IdVO.generate().toString();
+        const generatedTransactionId = IdVO.generate().toString();
 
         const stockLot = makeStockLot({
           id: generatedStockLotId,
@@ -178,6 +179,7 @@ export const makeCreateStockLot = (deps: {
           purchaseDate: validatedInput.purchaseDate,
           items: stockLotItems,
           paymentMethod: 'CASH',
+          accountId: validatedInput.accountId,
           transactionId: generatedTransactionId,
           notes: validatedInput.notes,
           contextId: validatedInput.contextId,

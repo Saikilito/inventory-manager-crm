@@ -90,7 +90,12 @@ export const makeCompleteStockLot = (deps: {
       return Result.fail(createValidationError('Only DRAFT stock lots can be completed'));
     }
 
-    if (draftStockLot.paymentMethod === 'CASH' && !accountId) {
+    let targetAccountId = accountId;
+    if (draftStockLot.paymentMethod === 'CASH' && !targetAccountId) {
+      targetAccountId = draftStockLot.accountId?.toString();
+    }
+
+    if (draftStockLot.paymentMethod === 'CASH' && !targetAccountId) {
       return Result.fail(createValidationError('Account ID is required to complete a CASH payment stock lot'));
     }
 
@@ -115,7 +120,7 @@ export const makeCompleteStockLot = (deps: {
       );
 
       if (draftStockLot.paymentMethod === 'CASH') {
-        const accountResult = await accountRepository.getById(IdVO.create(accountId!));
+        const accountResult = await accountRepository.getById(IdVO.create(targetAccountId!));
         if (accountResult.isFailure || !accountResult.getValue()) {
           throw new Error('Account not found');
         }
@@ -136,7 +141,7 @@ export const makeCompleteStockLot = (deps: {
         const financialDay = dayResult.getValue();
 
         const transactionResult = makeTransactionResult({
-          accountId: accountId!,
+          accountId: targetAccountId!,
           type: 'DEBIT',
           amount: Number(draftStockLot.totalCost),
           currency: account.currency.toString(),
@@ -163,7 +168,7 @@ export const makeCompleteStockLot = (deps: {
 
         const debitedAccount = account.debit(requiredAmount);
         const updateAccResult = await accountRepository.updateById(
-          IdVO.create(accountId!),
+          IdVO.create(targetAccountId!),
           debitedAccount,
           IdVO.create(userId),
         );

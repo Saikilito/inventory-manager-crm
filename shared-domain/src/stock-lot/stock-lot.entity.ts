@@ -31,6 +31,7 @@ export interface IStockLot {
   totalCost: PositiveNumber;
   projectedProfit?: PositiveNumber;
   paymentMethod: PaymentMethod;
+  accountId?: Id;
   transactionId?: Id;
   accountsPayableId?: Id;
   status: StockLotStatus;
@@ -73,6 +74,7 @@ export const makeStockLot = (props: {
   purchaseDate: string;
   items: IStockLotItem[];
   paymentMethod: string;
+  accountId?: string;
   transactionId?: string;
   accountsPayableId?: string;
   status?: string;
@@ -116,6 +118,7 @@ export const makeStockLot = (props: {
     totalCost: PositiveNumberVO.create(roundedTotalCost),
     projectedProfit: roundedProjectedProfit ? PositiveNumberVO.create(roundedProjectedProfit) : undefined,
     paymentMethod: paymentMethodVO,
+    accountId: props.accountId ? IdVO.create(props.accountId) : undefined,
     transactionId: props.transactionId ? IdVO.create(props.transactionId) : undefined,
     accountsPayableId: props.accountsPayableId ? IdVO.create(props.accountsPayableId) : undefined,
     status: statusVO,

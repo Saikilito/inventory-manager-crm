@@ -18,6 +18,7 @@ export interface StockLot {
   purchaseDate: string;
   items: StockLotItem[];
   paymentMethod: PaymentMethod;
+  accountId?: string;
   transactionId?: string;
   accountsPayableId?: string;
   status: 'DRAFT' | 'RECEIVED' | 'PARTIAL' | 'PAID' | 'CANCELLED';

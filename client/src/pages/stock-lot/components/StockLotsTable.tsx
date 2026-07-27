@@ -3,14 +3,23 @@ import { Calendar, Package, DollarSign, TrendingUp } from "lucide-react";
 import { PaymentMethod } from "@shared-domain/stock-lot/stock-lot.entity";
 import type { StockLot } from "../../../modules/product/infrastructure/graphql/stock-lot-types";
 
+interface AccountShape {
+  id: string;
+  name: string;
+  currency?: string;
+  balance?: number;
+}
+
 interface StockLotsTableProps {
   filteredStockLots: StockLot[];
+  accounts?: AccountShape[];
   onReceiveDraft?: (stockLotId: string) => void;
   onEditDraft?: (stockLot: StockLot) => void;
 }
 
 export const StockLotsTable: React.FC<StockLotsTableProps> = ({
   filteredStockLots,
+  accounts,
   onReceiveDraft,
   onEditDraft,
 }) => {
@@ -34,16 +43,26 @@ export const StockLotsTable: React.FC<StockLotsTableProps> = ({
     );
   };
 
-  const getPaymentMethodBadge = (method: string) => {
+  const getPaymentMethodBadge = (lot: StockLot) => {
+    const method = lot.paymentMethod;
+    const account = lot.accountId ? accounts?.find((a) => a.id === lot.accountId) : undefined;
+
     const styles: Record<string, string> = {
       [PaymentMethod.CASH]: "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/20 dark:text-green-400 dark:border-green-900/30",
       [PaymentMethod.CREDIT]: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900/30",
     };
+
+    let label = method === PaymentMethod.CASH ? '💵 Cash' : '💳 Credit';
+    if (method === PaymentMethod.CASH && account?.name) {
+      label = `💵 ${account.name}`;
+    }
+
     return (
       <span
+        title={account ? `Account: ${account.name}` : undefined}
         className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${styles[method] || styles[PaymentMethod.CASH]}`}
       >
-        {method === PaymentMethod.CASH ? '💵 Cash' : '💳 Credit'}
+        {label}
       </span>
     );
   };
@@ -51,14 +70,15 @@ export const StockLotsTable: React.FC<StockLotsTableProps> = ({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {filteredStockLots.map((lot) => {
-        const shortId = lot.id.substring(18).toUpperCase();
+        const lotId = lot.id || lot._id || '';
+        const shortId = lotId.length >= 18 ? lotId.substring(18).toUpperCase() : lotId.slice(-6).toUpperCase();
         const lotTotal = lot.items.reduce((sum, item) => sum + (item.unitCost * item.quantity), 0);
         const lotProfit = lot.items.reduce((sum, item) => sum + item.projectedProfit, 0);
         const totalItems = lot.items.reduce((sum, item) => sum + item.quantity, 0);
 
         return (
           <div
-            key={lot.id}
+            key={lotId}
             className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 flex flex-col h-full"
           >
             {/* Header */}
@@ -71,7 +91,7 @@ export const StockLotsTable: React.FC<StockLotsTableProps> = ({
                   <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100">
                     {lot.supplier}
                   </h3>
-                  {getPaymentMethodBadge(lot.paymentMethod)}
+                  {getPaymentMethodBadge(lot)}
                 </div>
               </div>
               {getStatusBadge(lot.status)}
@@ -165,7 +185,7 @@ export const StockLotsTable: React.FC<StockLotsTableProps> = ({
                   
                   return (
                     <button
-                      onClick={() => onReceiveDraft(lot.id)}
+                      onClick={() => onReceiveDraft(lotId)}
                       disabled={isFuture}
                       title={isFuture ? "Cannot receive future stock lots yet" : "Mark as received"}
                       className={`px-3 py-1 text-xs font-semibold rounded-lg transition-colors shadow-sm ${

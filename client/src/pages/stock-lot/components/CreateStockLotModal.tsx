@@ -74,6 +74,7 @@ export const CreateStockLotModal: React.FC<CreateStockLotModalProps> = ({
         }
         setPurchaseDate(dateStr || getLocalDateString());
         setPaymentMethod(initialData.paymentMethod || PaymentMethod.CASH);
+        setPayments([{ accountId: initialData.accountId || "", amount: "" }]);
         
         if (initialData.items && initialData.items.length > 0) {
           setItems(

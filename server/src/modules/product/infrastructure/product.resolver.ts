@@ -99,6 +99,7 @@ const mapStockLotToGql = (stockLot: IStockLot) => ({
   totalCost: Number(stockLot.totalCost),
   projectedProfit: stockLot.projectedProfit ? Number(stockLot.projectedProfit) : null,
   paymentMethod: stockLot.paymentMethod,
+  accountId: stockLot.accountId?.toString() || null,
   transactionId: stockLot.transactionId?.toString() || null,
   accountsPayableId: stockLot.accountsPayableId?.toString() || null,
   status: stockLot.status,

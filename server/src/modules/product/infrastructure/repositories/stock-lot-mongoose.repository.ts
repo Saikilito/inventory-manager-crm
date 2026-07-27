@@ -20,6 +20,7 @@ const mapToDomain = (doc: IStockLotDocument): IStockLot => {
     purchaseDate: doc.purchaseDate,
     items,
     paymentMethod: doc.paymentMethod,
+    accountId: doc.accountId?.toString(),
     transactionId: doc.transactionId?.toString(),
     accountsPayableId: doc.accountsPayableId?.toString(),
     status: doc.status,
@@ -56,6 +57,10 @@ export const makeStockLotMongooseRepository = (): IStockLotRepository => {
       if (stockLot.projectedProfit !== undefined) data.projectedProfit = stockLot.projectedProfit;
       if (stockLot.paymentMethod !== undefined) data.paymentMethod = stockLot.paymentMethod;
       
+      if (stockLot.accountId !== undefined) {
+        data.accountId = stockLot.accountId ? new mongoose.Types.ObjectId(stockLot.accountId.toString()) : null;
+      }
+
       if (stockLot.transactionId !== undefined) {
         data.transactionId = stockLot.transactionId ? new mongoose.Types.ObjectId(stockLot.transactionId.toString()) : null;
       }

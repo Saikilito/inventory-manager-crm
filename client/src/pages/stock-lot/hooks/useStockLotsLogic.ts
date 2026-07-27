@@ -245,11 +245,11 @@ export const useStockLotsLogic = () => {
       const lot = stockLots.find((l) => l.id === stockLotId);
       if (!lot) return { success: false, message: 'Stock lot not found' };
 
-      let accountId = undefined;
+      let accountId = lot.accountId;
       if (lot.paymentMethod === PaymentMethod.CASH) {
-        const accountSelection = window.prompt('Enter Account ID to pay from (CASH selected):', accounts[0]?.id || '');
-        if (!accountSelection) return { success: false, message: 'Account ID is required to pay CASH' };
-        accountId = accountSelection;
+        if (!accountId) {
+          return { success: false, requiresAccount: true, lot };
+        }
 
         const selectedAccount = accounts.find((a) => a.id === accountId);
         const lotTotalCost = lot.items.reduce((sum, item) => sum + item.unitCost * item.quantity, 0);

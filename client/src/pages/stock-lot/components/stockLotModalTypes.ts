@@ -35,6 +35,7 @@ export interface StockLotInitialData {
   contextId?: string;
   purchaseDate?: string;
   paymentMethod?: PaymentMethod;
+  accountId?: string;
   items?: StockLotInitialItem[];
 }
 
