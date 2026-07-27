@@ -13,6 +13,7 @@ import { PAY_ACCOUNTS_PAYABLE } from '../../../modules/financial/infrastructure/
 import { getErrorMessage } from '@utils/error';
 import { DateOnlyVO } from '@shared-domain/shared/value-objects/date-only.vo';
 import { isInsufficientAccountBalance } from '@shared-domain/financial/account.entity';
+import { PaymentMethod } from '@shared-domain/stock-lot/stock-lot.entity';
 import type {
   StockLot,
   CreateStockLotInput,
@@ -160,7 +161,7 @@ export const useStockLotsLogic = () => {
 
       const payloadInput = { ...input };
       if (isSplitPayment) {
-        payloadInput.paymentMethod = 'CREDIT';
+        payloadInput.paymentMethod = PaymentMethod.CREDIT;
         delete payloadInput.accountId;
       }
 
@@ -245,7 +246,7 @@ export const useStockLotsLogic = () => {
       if (!lot) return { success: false, message: 'Stock lot not found' };
 
       let accountId = undefined;
-      if (lot.paymentMethod === 'CASH') {
+      if (lot.paymentMethod === PaymentMethod.CASH) {
         const accountSelection = window.prompt('Enter Account ID to pay from (CASH selected):', accounts[0]?.id || '');
         if (!accountSelection) return { success: false, message: 'Account ID is required to pay CASH' };
         accountId = accountSelection;

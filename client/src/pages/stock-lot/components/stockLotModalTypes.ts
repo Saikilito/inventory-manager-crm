@@ -1,4 +1,5 @@
 import type { CreateStockLotInput } from "../../../modules/product/infrastructure/graphql/stock-lot-types";
+import { PaymentMethod } from "@shared-domain/stock-lot/stock-lot.entity";
 
 export interface ProductShape {
   id: string;
@@ -33,7 +34,7 @@ export interface StockLotInitialData {
   supplier?: string;
   contextId?: string;
   purchaseDate?: string;
-  paymentMethod?: "CASH" | "CREDIT";
+  paymentMethod?: PaymentMethod;
   items?: StockLotInitialItem[];
 }
 

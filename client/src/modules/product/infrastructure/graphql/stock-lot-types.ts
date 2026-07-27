@@ -1,3 +1,5 @@
+import { PaymentMethod } from '@shared-domain/stock-lot/stock-lot.entity';
+
 export interface StockLotItem {
   id?: string;
   productId?: string;
@@ -15,7 +17,7 @@ export interface StockLot {
   supplier: string;
   purchaseDate: string;
   items: StockLotItem[];
-  paymentMethod: 'CASH' | 'CREDIT';
+  paymentMethod: PaymentMethod;
   transactionId?: string;
   accountsPayableId?: string;
   status: 'DRAFT' | 'RECEIVED' | 'PARTIAL' | 'PAID' | 'CANCELLED';
@@ -34,7 +36,7 @@ export interface CreateStockLotInput {
     unitCost: number;
     confirmedSellingPrice: number;
   }>;
-  paymentMethod: 'CASH' | 'CREDIT';
+  paymentMethod: PaymentMethod;
   accountId?: string;
   contextId?: string;
   status?: string;
@@ -51,7 +53,7 @@ export interface UpdateStockLotInput {
     unitCost: number;
     confirmedSellingPrice: number;
   }>;
-  paymentMethod: 'CASH' | 'CREDIT';
+  paymentMethod: PaymentMethod;
   accountId?: string;
   contextId?: string;
 }

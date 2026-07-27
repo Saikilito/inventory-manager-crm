@@ -1,11 +1,12 @@
 import React from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { isInsufficientAccountBalance } from "@shared-domain/financial/account.entity";
+import { PaymentMethod } from "@shared-domain/stock-lot/stock-lot.entity";
 import type { AccountShape, PaymentSplit } from "./stockLotModalTypes";
 
 interface LotPaymentSectionProps {
-  paymentMethod: "CASH" | "CREDIT";
-  setPaymentMethod: (method: "CASH" | "CREDIT") => void;
+  paymentMethod: PaymentMethod;
+  setPaymentMethod: (method: PaymentMethod) => void;
   payments: PaymentSplit[];
   accounts: AccountShape[];
   totalCost: number;
@@ -35,9 +36,9 @@ export const LotPaymentSection: React.FC<LotPaymentSectionProps> = ({
       <div className="flex bg-stone-100 dark:bg-stone-800/50 p-1 rounded-xl max-w-sm">
         <button
           type="button"
-          onClick={() => setPaymentMethod("CASH")}
+          onClick={() => setPaymentMethod(PaymentMethod.CASH)}
           className={`flex-1 flex justify-center items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
-            paymentMethod === "CASH"
+            paymentMethod === PaymentMethod.CASH
               ? "bg-white dark:bg-stone-700 text-stone-900 dark:text-white shadow-sm ring-1 ring-stone-900/5"
               : "text-stone-500 hover:text-stone-700 dark:hover:text-stone-300"
           }`}
@@ -46,9 +47,9 @@ export const LotPaymentSection: React.FC<LotPaymentSectionProps> = ({
         </button>
         <button
           type="button"
-          onClick={() => setPaymentMethod("CREDIT")}
+          onClick={() => setPaymentMethod(PaymentMethod.CREDIT)}
           className={`flex-1 flex justify-center items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
-            paymentMethod === "CREDIT"
+            paymentMethod === PaymentMethod.CREDIT
               ? "bg-white dark:bg-stone-700 text-stone-900 dark:text-white shadow-sm ring-1 ring-stone-900/5"
               : "text-stone-500 hover:text-stone-700 dark:hover:text-stone-300"
           }`}
@@ -57,7 +58,7 @@ export const LotPaymentSection: React.FC<LotPaymentSectionProps> = ({
         </button>
       </div>
 
-      {paymentMethod === "CASH" && (
+      {paymentMethod === PaymentMethod.CASH && (
         <div className="space-y-4 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-xl p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <h4 className="font-medium text-stone-800 dark:text-stone-200">Funding Source</h4>

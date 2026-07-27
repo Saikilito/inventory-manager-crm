@@ -1,5 +1,6 @@
 import React from "react";
 import { Calendar, Package, DollarSign, TrendingUp } from "lucide-react";
+import { PaymentMethod } from "@shared-domain/stock-lot/stock-lot.entity";
 import type { StockLot } from "../../../modules/product/infrastructure/graphql/stock-lot-types";
 
 interface StockLotsTableProps {
@@ -35,14 +36,14 @@ export const StockLotsTable: React.FC<StockLotsTableProps> = ({
 
   const getPaymentMethodBadge = (method: string) => {
     const styles: Record<string, string> = {
-      CASH: "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/20 dark:text-green-400 dark:border-green-900/30",
-      CREDIT: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900/30",
+      [PaymentMethod.CASH]: "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/20 dark:text-green-400 dark:border-green-900/30",
+      [PaymentMethod.CREDIT]: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900/30",
     };
     return (
       <span
-        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${styles[method] || styles.CASH}`}
+        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${styles[method] || styles[PaymentMethod.CASH]}`}
       >
-        {method === 'CASH' ? '💵 Cash' : '💳 Credit'}
+        {method === PaymentMethod.CASH ? '💵 Cash' : '💳 Credit'}
       </span>
     );
   };
