@@ -75,23 +75,71 @@ const mocks = [
       data: {
         getAllOrders: [
           {
+            _id: "order-1",
             id: "order-1",
             clientId: "client-1",
+            sellerId: "seller-1",
+            createdAt: "2026-07-10T12:00:00Z",
+            status: "COMPLETED",
+            paymentStatus: "PAID",
+            deliveryStatus: "DELIVERED",
+            contextId: "ctx-1",
+            total: 100,
+            deliveryCost: 15,
+            items: [],
+            payments: [],
+            cancellationObservation: "",
             __typename: "Order",
           },
           {
+            _id: "order-2",
             id: "order-2",
             clientId: "client-2",
+            sellerId: "seller-1",
+            createdAt: "2026-07-10T12:00:00Z",
+            status: "COMPLETED",
+            paymentStatus: "PAID",
+            deliveryStatus: "DELIVERED",
+            contextId: "ctx-1",
+            total: 100,
+            deliveryCost: 20,
+            items: [],
+            payments: [],
+            cancellationObservation: "",
             __typename: "Order",
           },
           {
+            _id: "order-3",
             id: "order-3",
             clientId: "client-3",
+            sellerId: "seller-1",
+            createdAt: "2026-07-10T12:00:00Z",
+            status: "COMPLETED",
+            paymentStatus: "PAID",
+            deliveryStatus: "CANCELLED",
+            contextId: "ctx-1",
+            total: 100,
+            deliveryCost: 12,
+            items: [],
+            payments: [],
+            cancellationObservation: "",
             __typename: "Order",
           },
           {
+            _id: "order-4",
             id: "order-4",
             clientId: "client-4",
+            sellerId: "seller-1",
+            createdAt: "2026-07-09T12:00:00Z",
+            status: "COMPLETED",
+            paymentStatus: "PAID",
+            deliveryStatus: "PENDING",
+            contextId: "ctx-1",
+            total: 100,
+            deliveryCost: 10,
+            items: [],
+            payments: [],
+            cancellationObservation: "",
             __typename: "Order",
           },
         ],
@@ -105,29 +153,58 @@ const mocks = [
     },
     result: {
       data: {
+        totalClients: 4,
         getAllClients: [
           {
+            _id: "client-1",
             id: "client-1",
             firstName: "John",
             lastName: "Doe",
+            address: "",
+            whatsapp: "",
+            nationalId: "",
+            type: "RETAIL",
+            sellerId: "seller-1",
+            orders: [],
             __typename: "Client",
           },
           {
+            _id: "client-2",
             id: "client-2",
             firstName: "Jane",
             lastName: "Smith",
+            address: "",
+            whatsapp: "",
+            nationalId: "",
+            type: "RETAIL",
+            sellerId: "seller-1",
+            orders: [],
             __typename: "Client",
           },
           {
+            _id: "client-3",
             id: "client-3",
             firstName: "Bob",
             lastName: "Johnson",
+            address: "",
+            whatsapp: "",
+            nationalId: "",
+            type: "RETAIL",
+            sellerId: "seller-1",
+            orders: [],
             __typename: "Client",
           },
           {
+            _id: "client-4",
             id: "client-4",
             firstName: "Alice",
             lastName: "Williams",
+            address: "",
+            whatsapp: "",
+            nationalId: "",
+            type: "RETAIL",
+            sellerId: "seller-1",
+            orders: [],
             __typename: "Client",
           },
         ],
@@ -149,7 +226,7 @@ describe("DeliveriesPage - Daily Delivery Counter", () => {
 
   it("should render deliveries list successfully and allow day-based filtering with KPI counter", async () => {
     render(
-      <MockedProvider mocks={mocks} addTypename={false}>
+      <MockedProvider mocks={mocks}>
         <DeliveriesPage />
       </MockedProvider>
     );
@@ -162,22 +239,10 @@ describe("DeliveriesPage - Daily Delivery Counter", () => {
       expect(screen.queryByRole("status")).not.toBeInTheDocument();
     });
 
-    // Check that ALL deliveries are rendered initially
-    expect(screen.getByText("John Doe")).toBeInTheDocument();
-    expect(screen.getByText("Jane Smith")).toBeInTheDocument();
-    expect(screen.getByText("Bob Johnson")).toBeInTheDocument();
-    expect(screen.getByText("Alice Williams")).toBeInTheDocument();
-
-    // Find and click the "Day" filter button
-    const dayFilterButton = screen.getByRole("button", { name: "Day" });
-    expect(dayFilterButton).toBeInTheDocument();
-    fireEvent.click(dayFilterButton);
-
-    // Verify Date Navigator and KPI Card are shown
-    expect(screen.getByText("Selected Day:")).toBeInTheDocument();
+    // Verify Date Navigator and KPI Card are shown initially
     expect(screen.getByText("Total Delivery Revenue")).toBeInTheDocument();
 
-    // Today is 2026-07-10, so formatDayLabel should show "(Today)"
+    // Today is 2026-07-10, so DateNavigator should show "2026-07-10"
     expect(screen.getByDisplayValue("2026-07-10")).toBeInTheDocument();
 
     // Delivery-1 ($15.00 PENDING) and Delivery-2 ($20.00 DELIVERED) are on 2026-07-10.

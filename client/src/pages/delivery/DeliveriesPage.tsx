@@ -17,8 +17,6 @@ export const DeliveriesPage: React.FC = () => {
     filteredDeliveries,
     loadingDel,
     successMessage,
-    timeFilter,
-    setTimeFilter,
     statusFilter,
     setStatusFilter,
     selectedDate,
@@ -47,113 +45,72 @@ export const DeliveriesPage: React.FC = () => {
       {successMessage && <Alert message={successMessage} type="success" />}
 
       {/* Filters Bar */}
-      {deliveries.length > 0 && (
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-stone-50/50 dark:bg-stone-900/40 p-4 rounded-xl border border-stone-200 dark:border-stone-800/80">
-          {/* Time Interval Filters */}
-          <div className="flex flex-wrap gap-1.5 items-center">
-            <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mr-1">
-              Period:
-            </span>
-            {[
-              { label: "All", value: "ALL" },
-              { label: "Day", value: "DAY" },
-              { label: "This Week", value: "WEEK" },
-              { label: "This Month", value: "MONTH" },
-            ].map((tab) => (
-              <button
-                key={tab.value}
-                onClick={() => setTimeFilter(tab.value as any)}
-                className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                  timeFilter === tab.value
-                    ? "bg-stone-950 text-white dark:bg-white dark:text-stone-950 shadow-sm"
-                    : "bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 border border-stone-200 dark:border-stone-800/60"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-stone-50/50 dark:bg-stone-900/40 p-4 rounded-xl border border-stone-200 dark:border-stone-800/80">
+        {/* Status Filters */}
+        <div className="flex flex-wrap gap-1.5 items-center">
+          <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mr-1">
+            Status:
+          </span>
+          {[
+            { label: "All", value: "ALL" },
+            { label: "Pending", value: DeliveryStatus.PENDING },
+            { label: "Dispatched", value: DeliveryStatus.DISPATCHED },
+            { label: "Delivered", value: DeliveryStatus.DELIVERED },
+            { label: "Cancelled", value: DeliveryStatus.CANCELLED },
+          ].map((tab) => (
+            <button
+              key={tab.value}
+              onClick={() => setStatusFilter(tab.value)}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                statusFilter === tab.value
+                  ? "bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-950 shadow-sm"
+                  : "bg-white dark:bg-stone-900 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 border border-stone-200 dark:border-stone-800/60"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-          {/* Status Filters */}
-          <div className="flex flex-wrap gap-1.5 items-center">
-            <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mr-1">
-              Status:
+        {/* Date Navigator */}
+        <DateNavigator
+          selectedDate={selectedDate}
+          onChangeDate={setSelectedDate}
+        />
+      </div>
+
+      {/* Active Date & KPI Summary Section */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center bg-stone-50/50 dark:bg-stone-900/40 p-4 rounded-xl border border-stone-200 dark:border-stone-800/80 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="md:col-span-2 flex items-center gap-3 py-1">
+          <div className="p-2.5 bg-stone-100 dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800/60 shrink-0">
+            <Calendar className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div className="space-y-0.5">
+            <span className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-wider block">
+              Active Date
             </span>
-            {[
-              { label: "All", value: "ALL" },
-              { label: "Pending", value: DeliveryStatus.PENDING },
-              { label: "Dispatched", value: DeliveryStatus.DISPATCHED },
-              { label: "Delivered", value: DeliveryStatus.DELIVERED },
-              { label: "Cancelled", value: DeliveryStatus.CANCELLED },
-            ].map((tab) => (
-              <button
-                key={tab.value}
-                onClick={() => setStatusFilter(tab.value)}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                  statusFilter === tab.value
-                    ? "bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-950 shadow-sm"
-                    : "bg-white dark:bg-stone-900 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 border border-stone-200 dark:border-stone-800/60"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+            <span className="text-xs font-semibold text-stone-600 dark:text-stone-300">
+              Showing scheduled deliveries for {selectedDate}
+            </span>
           </div>
         </div>
-      )}
 
-      {/* Date Navigator and KPI Card Section */}
-      {deliveries.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center bg-stone-50/50 dark:bg-stone-900/40 p-4 rounded-xl border border-stone-200 dark:border-stone-800/80 animate-in fade-in slide-in-from-top-2 duration-200">
-          {/* Date Navigator or Period Info */}
-          {timeFilter === 'DAY' ? (
-            <div className="md:col-span-2 flex flex-col sm:flex-row sm:items-center gap-3">
-              <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">
-                Selected Day:
-              </span>
-              <DateNavigator
-                selectedDate={selectedDate}
-                onChangeDate={setSelectedDate}
-              />
-            </div>
-          ) : (
-            <div className="md:col-span-2 flex items-center gap-3 py-1">
-              <div className="p-2 bg-stone-100 dark:bg-stone-900 rounded-lg border border-stone-200 dark:border-stone-800/60 shrink-0">
-                <Calendar className="w-4 h-4 text-stone-500 dark:text-stone-400" />
-              </div>
-              <div className="space-y-0.5">
-                <span className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-wider block">
-                  Active Period
-                </span>
-                <span className="text-xs font-semibold text-stone-600 dark:text-stone-300">
-                  {timeFilter === 'WEEK' && "Scheduled deliveries for the current week"}
-                  {timeFilter === 'MONTH' && "Scheduled deliveries for the current month"}
-                  {timeFilter === 'ALL' && "History of all scheduled deliveries"}
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* KPI Card */}
-          <div className="bg-white dark:bg-stone-950 border border-stone-200 dark:border-stone-850 p-4 rounded-xl flex items-center justify-between shadow-sm">
-            <div className="space-y-1">
-              <span className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-wider block">
-                <span>Total Delivery Revenue</span>
-                {timeFilter === 'DAY' && <span className="text-stone-400 dark:text-stone-500 font-medium"> (Today)</span>}
-                {timeFilter === 'WEEK' && <span className="text-stone-400 dark:text-stone-500 font-medium"> (Weekly)</span>}
-                {timeFilter === 'MONTH' && <span className="text-stone-400 dark:text-stone-500 font-medium"> (Monthly)</span>}
-                {timeFilter === 'ALL' && <span className="text-stone-400 dark:text-stone-500 font-medium"> (All Time)</span>}
-              </span>
-              <span className="text-xl font-black text-stone-900 dark:text-stone-50 font-mono">
-                ${totalCollected.toFixed(2)}
-              </span>
-            </div>
-            <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg border border-emerald-100 dark:border-emerald-900/20">
-              <Coins className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-            </div>
+        {/* KPI Card */}
+        <div className="bg-white dark:bg-stone-950 border border-stone-200 dark:border-stone-850 p-4 rounded-xl flex items-center justify-between shadow-sm">
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-wider block">
+              <span>Total Delivery Revenue</span>
+              <span className="text-stone-400 dark:text-stone-500 font-medium"> (Daily)</span>
+            </span>
+            <span className="text-xl font-black text-stone-900 dark:text-stone-50 font-mono">
+              ${totalCollected.toFixed(2)}
+            </span>
+          </div>
+          <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg border border-emerald-100 dark:border-emerald-900/20">
+            <Coins className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
           </div>
         </div>
-      )}
+      </div>
 
       {loadingDel ? (
         <div className="flex justify-center py-12">

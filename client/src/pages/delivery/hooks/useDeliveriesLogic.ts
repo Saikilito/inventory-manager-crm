@@ -6,6 +6,7 @@ import { CLIENTS_QUERY } from '../../../modules/client/infrastructure/graphql/qu
 import { GET_ALL_ORDERS } from '../../../modules/order/infrastructure/graphql/queries';
 import { getErrorMessage } from '@utils/error';
 import { getFullName } from '@utils/formatters';
+import { toDateOnlyString } from '@utils/period-utils';
 import { DeliveryStatus } from '@shared-domain/delivery/delivery.entity';
 import { DateTimeVO } from '@shared-domain/shared/value-objects/date-time.vo';
 
@@ -34,9 +35,8 @@ export interface DeliveryShape {
 
 export const useDeliveriesLogic = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [timeFilter, setTimeFilter] = useState<'ALL' | 'DAY' | 'WEEK' | 'MONTH'>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
-  const [selectedDate, setSelectedDate] = useState<string>(() => DateTimeVO.create().toString().substring(0, 10));
+  const [selectedDate, setSelectedDate] = useState<string>(() => toDateOnlyString(DateTimeVO.create().toString()));
 
   const {
     data: delData,
@@ -59,11 +59,15 @@ export const useDeliveriesLogic = () => {
   const clients: ClientShape[] = clientsData?.getAllClients || [];
 
   const orderMap = useMemo(() => {
-    return new Map<string, OrderShape>(orders.map((o: OrderShape) => [o.id, o]));
+    return new Map<string, OrderShape>(
+      orders.map((o: OrderShape & { _id?: string }) => [o.id || o._id || '', o])
+    );
   }, [orders]);
 
   const clientMap = useMemo(() => {
-    return new Map<string, ClientShape>(clients.map((c: ClientShape) => [c.id, c]));
+    return new Map<string, ClientShape>(
+      clients.map((c: ClientShape & { _id?: string }) => [c.id || c._id || '', c])
+    );
   }, [clients]);
 
   const filteredDeliveries = useMemo(() => {
@@ -76,37 +80,9 @@ export const useDeliveriesLogic = () => {
         return false;
       }
 
-      if (timeFilter === 'ALL') return true;
-
-      const delDate = new Date(d.scheduledDate);
-      if (isNaN(delDate.getTime())) return true; // fallback
-
-      const now = new Date();
-
-      if (timeFilter === 'DAY') {
-        return d.scheduledDate.substring(0, 10) === selectedDate;
-      }
-
-      if (timeFilter === 'WEEK') {
-        const day = now.getDay() || 7;
-        const startOfWeek = new Date(now);
-        startOfWeek.setDate(now.getDate() - day + 1);
-        startOfWeek.setHours(0, 0, 0, 0);
-
-        const endOfWeek = new Date(startOfWeek);
-        endOfWeek.setDate(startOfWeek.getDate() + 6);
-        endOfWeek.setHours(23, 59, 59, 999);
-
-        return delDate >= startOfWeek && delDate <= endOfWeek;
-      }
-
-      if (timeFilter === 'MONTH') {
-        return delDate.getFullYear() === now.getFullYear() && delDate.getMonth() === now.getMonth();
-      }
-
-      return true;
+      return toDateOnlyString(d.scheduledDate) === selectedDate;
     });
-  }, [deliveries, statusFilter, timeFilter, selectedDate]);
+  }, [deliveries, orderMap, statusFilter, selectedDate]);
 
   const totalCollected = useMemo(() => {
     return filteredDeliveries
@@ -141,8 +117,6 @@ export const useDeliveriesLogic = () => {
     filteredDeliveries,
     loadingDel,
     successMessage,
-    timeFilter,
-    setTimeFilter,
     statusFilter,
     setStatusFilter,
     selectedDate,
