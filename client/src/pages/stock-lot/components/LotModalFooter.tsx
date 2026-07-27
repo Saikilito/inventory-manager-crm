@@ -1,9 +1,11 @@
 import React from "react";
+import { isFuturePurchaseDate } from "@shared-domain/stock-lot/stock-lot.entity";
 
 interface LotModalFooterProps {
   error: string | null;
   loading: boolean;
   purchaseDate: string;
+  hasInsufficientBalance?: boolean;
   handleClose: () => void;
   handleDraftSubmit: (e: React.FormEvent) => void;
 }
@@ -12,19 +14,18 @@ export const LotModalFooter: React.FC<LotModalFooterProps> = ({
   error,
   loading,
   purchaseDate,
+  hasInsufficientBalance,
   handleClose,
   handleDraftSubmit,
 }) => {
-  const pd = new Date(purchaseDate + "T00:00:00");
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const isFutureDate = pd > today;
+  const isFutureDate = isFuturePurchaseDate(purchaseDate);
+  const displayError = error || (hasInsufficientBalance ? "Insufficient account balance" : null);
 
   return (
     <div className="bg-stone-50 dark:bg-stone-900/80 border-t border-stone-200 dark:border-stone-800 rounded-b-2xl flex flex-col">
-      {error && (
+      {displayError && (
         <div className="mx-6 mt-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300 px-4 py-3 rounded-xl text-sm font-medium">
-          {error}
+          {displayError}
         </div>
       )}
       <div className="px-6 py-4 flex items-center justify-between">
@@ -47,10 +48,10 @@ export const LotModalFooter: React.FC<LotModalFooterProps> = ({
           <button
             type="submit"
             form="stock-lot-form"
-            disabled={loading || isFutureDate}
-            title={isFutureDate ? "Future stock lots can only be saved as drafts" : ""}
+            disabled={loading || isFutureDate || !!hasInsufficientBalance}
+            title={isFutureDate ? "Future stock lots can only be saved as drafts" : hasInsufficientBalance ? "Insufficient account balance" : ""}
             className={`px-6 py-2.5 text-sm font-semibold rounded-lg transition-colors shadow-sm flex items-center gap-2 ${
-              isFutureDate
+              isFutureDate || hasInsufficientBalance
                 ? "bg-stone-200 dark:bg-stone-800 text-stone-400 dark:text-stone-600 cursor-not-allowed"
                 : "bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 hover:bg-stone-800 dark:hover:bg-white/90 disabled:opacity-50"
             }`}

@@ -11,6 +11,23 @@ import { LotFormItems } from "./LotFormItems";
 import { LotPaymentSection } from "./LotPaymentSection";
 import { LotModalHeader } from "./LotModalHeader";
 import { LotModalFooter } from "./LotModalFooter";
+import { isInsufficientAccountBalance } from "@shared-domain/financial/account.entity";
+import { PaymentMethod } from "@shared-domain/stock-lot/stock-lot.entity";
+
+export const getLocalDateString = (date = new Date()): string => {
+  const offset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - offset).toISOString().split("T")[0];
+};
+
+export const getValidLotItems = (items: StockLotItemInput[]): StockLotItemInput[] => {
+  return items.filter(
+    (item) =>
+      item.productName.trim() !== "" &&
+      parseFloat(item.quantity) > 0 &&
+      parseFloat(item.unitCost) > 0 &&
+      parseFloat(item.confirmedSellingPrice) > 0
+  );
+};
 
 export const CreateStockLotModal: React.FC<CreateStockLotModalProps> = ({
   isOpen,
@@ -27,11 +44,9 @@ export const CreateStockLotModal: React.FC<CreateStockLotModalProps> = ({
   const [contextId, setContextId] = useState("");
   const [purchaseDate, setPurchaseDate] = useState(() => {
     if (selectedDate) return selectedDate;
-    const today = new Date();
-    const offset = today.getTimezoneOffset() * 60000;
-    return new Date(today.getTime() - offset).toISOString().split("T")[0];
+    return getLocalDateString();
   });
-  const [paymentMethod, setPaymentMethod] = useState<"CASH" | "CREDIT">("CASH");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.CASH);
   const [payments, setPayments] = useState<PaymentSplit[]>([{ accountId: "", amount: "" }]);
   const [items, setItems] = useState<StockLotItemInput[]>([
     {
@@ -53,13 +68,12 @@ export const CreateStockLotModal: React.FC<CreateStockLotModalProps> = ({
         
         let dateStr = "";
         if (initialData.purchaseDate) {
-          const d = new Date(initialData.purchaseDate + 'T00:00:00');
-          dateStr = !isNaN(d.getTime()) ? initialData.purchaseDate : initialData.purchaseDate;
+          dateStr = initialData.purchaseDate;
         } else {
-          dateStr = selectedDate || new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split("T")[0];
+          dateStr = selectedDate || getLocalDateString();
         }
-        setPurchaseDate(dateStr || new Date().toISOString().split("T")[0]);
-        setPaymentMethod(initialData.paymentMethod || "CASH");
+        setPurchaseDate(dateStr || getLocalDateString());
+        setPaymentMethod(initialData.paymentMethod || PaymentMethod.CASH);
         
         if (initialData.items && initialData.items.length > 0) {
           setItems(
@@ -78,9 +92,9 @@ export const CreateStockLotModal: React.FC<CreateStockLotModalProps> = ({
       } else {
         setSupplier("");
         setContextId("");
-        const localDateStr = selectedDate || new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split("T")[0];
+        const localDateStr = selectedDate || getLocalDateString();
         setPurchaseDate(localDateStr);
-        setPaymentMethod("CASH");
+        setPaymentMethod(PaymentMethod.CASH);
         setPayments([{ accountId: "", amount: "" }]);
         setItems([{ productName: "", quantity: "", unitCost: "", confirmedSellingPrice: "", isNewProduct: false, selectedProductId: "" }]);
       }
@@ -98,6 +112,16 @@ export const CreateStockLotModal: React.FC<CreateStockLotModalProps> = ({
   const totalPayments = useMemo(() => {
     return payments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
   }, [payments]);
+
+  const hasInsufficientBalance = useMemo(() => {
+    if (paymentMethod !== PaymentMethod.CASH) return false;
+    return payments.some((p) => {
+      if (!p.accountId) return false;
+      const acc = accounts?.find((a) => a.id === p.accountId);
+      const amt = payments.length === 1 ? totalCost : parseFloat(p.amount) || 0;
+      return isInsufficientAccountBalance(acc, amt);
+    });
+  }, [paymentMethod, payments, accounts, totalCost]);
 
   const handleAddItem = () => {
     setItems([
@@ -161,8 +185,8 @@ export const CreateStockLotModal: React.FC<CreateStockLotModalProps> = ({
   const handleClose = () => {
     setSupplier("");
     setContextId("");
-    setPurchaseDate(new Date().toISOString().split("T")[0]);
-    setPaymentMethod("CASH");
+    setPurchaseDate(getLocalDateString());
+    setPaymentMethod(PaymentMethod.CASH);
     setPayments([{ accountId: "", amount: "" }]);
     setItems([{ productName: "", quantity: "", unitCost: "", confirmedSellingPrice: "", isNewProduct: false, selectedProductId: "" }]);
     setError(null);
@@ -176,18 +200,12 @@ export const CreateStockLotModal: React.FC<CreateStockLotModalProps> = ({
     if (!supplier.trim()) return setError("Supplier name is required");
     if (!purchaseDate) return setError("Purchase date is required");
 
-    const validItems = items.filter(
-      (item) =>
-        item.productName.trim() &&
-        parseFloat(item.quantity) > 0 &&
-        parseFloat(item.unitCost) > 0 &&
-        parseFloat(item.confirmedSellingPrice) > 0
-    );
+    const validItems = getValidLotItems(items);
 
     if (validItems.length === 0) return setError("At least one valid item is required");
 
     let parsedPayments: { accountId: string; amount: number }[] = [];
-    if (paymentMethod === "CASH") {
+    if (paymentMethod === PaymentMethod.CASH) {
       parsedPayments = payments
         .filter(p => p.accountId)
         .map(p => ({ accountId: p.accountId, amount: parseFloat(p.amount) || 0 }));
@@ -216,7 +234,7 @@ export const CreateStockLotModal: React.FC<CreateStockLotModalProps> = ({
         unitCost: parseFloat(item.unitCost),
         confirmedSellingPrice: parseFloat(item.confirmedSellingPrice),
       })),
-      accountId: paymentMethod === "CASH" && parsedPayments.length === 1 ? parsedPayments[0].accountId : undefined,
+      accountId: paymentMethod === PaymentMethod.CASH && parsedPayments.length === 1 ? parsedPayments[0].accountId : undefined,
       contextId: contextId ? contextId : undefined,
       status: "RECEIVED",
     };
@@ -238,13 +256,7 @@ export const CreateStockLotModal: React.FC<CreateStockLotModalProps> = ({
     if (!supplier.trim()) return setError("Supplier name is required");
     if (!purchaseDate) return setError("Purchase date is required");
 
-    const validItems = items.filter(
-      (item) =>
-        item.productName.trim() &&
-        parseFloat(item.quantity) > 0 &&
-        parseFloat(item.unitCost) > 0 &&
-        parseFloat(item.confirmedSellingPrice) > 0
-    );
+    const validItems = getValidLotItems(items);
 
     if (validItems.length === 0) return setError("At least one valid item is required to save a draft");
 
@@ -259,7 +271,7 @@ export const CreateStockLotModal: React.FC<CreateStockLotModalProps> = ({
         unitCost: parseFloat(item.unitCost),
         confirmedSellingPrice: parseFloat(item.confirmedSellingPrice),
       })),
-      accountId: paymentMethod === "CASH" && payments[0]?.accountId ? payments[0].accountId : undefined,
+      accountId: paymentMethod === PaymentMethod.CASH && payments[0]?.accountId ? payments[0].accountId : undefined,
       contextId: contextId ? contextId : undefined,
       status: "DRAFT",
     };
@@ -324,6 +336,7 @@ export const CreateStockLotModal: React.FC<CreateStockLotModalProps> = ({
           error={error}
           loading={loading}
           purchaseDate={purchaseDate}
+          hasInsufficientBalance={hasInsufficientBalance}
           handleClose={handleClose}
           handleDraftSubmit={handleDraftSubmit}
         />

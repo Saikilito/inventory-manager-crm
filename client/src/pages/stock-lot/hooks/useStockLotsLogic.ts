@@ -12,6 +12,7 @@ import { GET_ALL_CONTEXTS } from '../../../modules/context/infrastructure/graphq
 import { PAY_ACCOUNTS_PAYABLE } from '../../../modules/financial/infrastructure/graphql/accounts-payable-mutations';
 import { getErrorMessage } from '@utils/error';
 import { DateOnlyVO } from '@shared-domain/shared/value-objects/date-only.vo';
+import { isInsufficientAccountBalance } from '@shared-domain/financial/account.entity';
 import type {
   StockLot,
   CreateStockLotInput,
@@ -41,6 +42,8 @@ interface ContextShape {
 interface CreateStockLotVariables {
   input: CreateStockLotInput;
 }
+
+const SUCCESS_MESSAGE_TIMEOUT_MS = 5000;
 
 export const useStockLotsLogic = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -83,7 +86,7 @@ export const useStockLotsLogic = () => {
       if (data.createStockLot && data.createStockLot.stockLot) {
         setSuccessMessage('Stock lot created successfully');
         refetchStockLots();
-        setTimeout(() => setSuccessMessage(null), 5000);
+        setTimeout(() => setSuccessMessage(null), SUCCESS_MESSAGE_TIMEOUT_MS);
       }
     },
   });
@@ -93,7 +96,7 @@ export const useStockLotsLogic = () => {
       if (data.completeStockLot && data.completeStockLot.stockLot) {
         setSuccessMessage('Stock lot completed successfully');
         refetchStockLots();
-        setTimeout(() => setSuccessMessage(null), 5000);
+        setTimeout(() => setSuccessMessage(null), SUCCESS_MESSAGE_TIMEOUT_MS);
       }
     },
     onError: (error) => {
@@ -101,12 +104,12 @@ export const useStockLotsLogic = () => {
     },
   });
 
-  const [updateStockLotMutation, { loading: updatingStockLot }] = useMutation(UPDATE_STOCK_LOT, {
+  const [updateStockLotMutation] = useMutation(UPDATE_STOCK_LOT, {
     onCompleted: (data) => {
       if (data.updateStockLot) {
         setSuccessMessage('Stock lot updated successfully');
         refetchStockLots();
-        setTimeout(() => setSuccessMessage(null), 5000);
+        setTimeout(() => setSuccessMessage(null), SUCCESS_MESSAGE_TIMEOUT_MS);
       }
     },
   });
@@ -120,12 +123,40 @@ export const useStockLotsLogic = () => {
     });
   }, [stockLots, statusFilter, supplierFilter, selectedDate]);
 
+  const { totalPurchaseValue, totalProjectedProfit } = useMemo(() => {
+    return filteredStockLots.reduce(
+      (acc, lot) => {
+        let lotCost = 0;
+        let lotProfit = 0;
+        lot.items?.forEach((item) => {
+          const cost = (item.unitCost || 0) * (item.quantity || 0);
+          const selling = (item.confirmedSellingPrice || item.unitCost || 0) * (item.quantity || 0);
+          lotCost += cost;
+          lotProfit += selling - cost;
+        });
+        acc.totalPurchaseValue += lotCost;
+        acc.totalProjectedProfit += lotProfit;
+        return acc;
+      },
+      { totalPurchaseValue: 0, totalProjectedProfit: 0 },
+    );
+  }, [filteredStockLots]);
+
   const handleCreateStockLot = async (
     input: CreateStockLotInput & { id?: string },
     payments?: { accountId: string; amount: number }[],
   ) => {
     try {
       const isSplitPayment = payments && payments.length > 1;
+
+      if (isSplitPayment && payments) {
+        for (const payment of payments) {
+          const acc = accounts.find((a) => a.id === payment.accountId);
+          if (isInsufficientAccountBalance(acc, payment.amount)) {
+            return { success: false, message: 'Insufficient account balance' };
+          }
+        }
+      }
 
       const payloadInput = { ...input };
       if (isSplitPayment) {
@@ -218,6 +249,12 @@ export const useStockLotsLogic = () => {
         const accountSelection = window.prompt('Enter Account ID to pay from (CASH selected):', accounts[0]?.id || '');
         if (!accountSelection) return { success: false, message: 'Account ID is required to pay CASH' };
         accountId = accountSelection;
+
+        const selectedAccount = accounts.find((a) => a.id === accountId);
+        const lotTotalCost = lot.items.reduce((sum, item) => sum + item.unitCost * item.quantity, 0);
+        if (isInsufficientAccountBalance(selectedAccount, lotTotalCost)) {
+          return { success: false, message: 'Insufficient account balance' };
+        }
       }
 
       await completeStockLotMutation({
@@ -231,29 +268,6 @@ export const useStockLotsLogic = () => {
       return { success: false, message: getErrorMessage(e) };
     }
   };
-
-  const getProductNameById = (productId: string): string => {
-    const product = products.find((p) => p.id === productId);
-    return product?.name || 'Unknown Product';
-  };
-
-  const totalPurchaseValue = useMemo(() => {
-    return filteredStockLots.reduce((sum, lot) => {
-      const lotTotal = lot.items.reduce((itemSum, item) => {
-        return itemSum + item.unitCost * item.quantity;
-      }, 0);
-      return sum + lotTotal;
-    }, 0);
-  }, [filteredStockLots]);
-
-  const totalProjectedProfit = useMemo(() => {
-    return filteredStockLots.reduce((sum, lot) => {
-      const lotProfit = lot.items.reduce((itemSum, item) => {
-        return itemSum + item.projectedProfit;
-      }, 0);
-      return sum + lotProfit;
-    }, 0);
-  }, [filteredStockLots]);
 
   return {
     stockLots,
@@ -269,13 +283,11 @@ export const useStockLotsLogic = () => {
     setSelectedDate,
     handleCreateStockLot,
     handleCompleteDraft,
-    getProductNameById,
     refetchStockLots,
     totalPurchaseValue,
     totalProjectedProfit,
     products,
     accounts,
     contexts,
-    completingStockLot,
   };
 };

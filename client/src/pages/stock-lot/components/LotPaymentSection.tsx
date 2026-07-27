@@ -1,5 +1,6 @@
 import React from "react";
 import { Plus, Trash2 } from "lucide-react";
+import { isInsufficientAccountBalance } from "@shared-domain/financial/account.entity";
 import type { AccountShape, PaymentSplit } from "./stockLotModalTypes";
 
 interface LotPaymentSectionProps {
@@ -70,52 +71,69 @@ export const LotPaymentSection: React.FC<LotPaymentSectionProps> = ({
           </div>
 
           <div className="space-y-3">
-            {payments.map((payment, index) => (
-              <div key={index} className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                <div className="flex-1 w-full relative">
-                  <select
-                    value={payment.accountId}
-                    onChange={(e) => handlePaymentChange(index, "accountId", e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-stone-200 dark:border-stone-700 rounded-lg bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-shadow"
-                  >
-                    <option value="">-- Choose Account --</option>
-                    {(accounts || [])
-                      .filter(acc => !payments.some((p, i) => i !== index && p.accountId === acc.id))
-                      .map(acc => (
-                        <option key={acc.id} value={acc.id}>
-                          {acc.name} (Bal: ${acc.balance.toFixed(2)})
-                        </option>
-                      ))}
-                  </select>
-                </div>
-                
-                <div className="flex items-center gap-2 w-full sm:w-auto">
-                  {payments.length > 1 && (
-                    <div className="relative w-full sm:w-36">
-                      <span className="absolute left-3 top-2 text-stone-400 text-sm">$</span>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={payment.amount}
-                        onChange={(e) => handlePaymentChange(index, "amount", e.target.value)}
-                        placeholder="0.00"
-                        className="w-full pl-6 pr-3 py-2 text-sm border border-stone-200 dark:border-stone-700 rounded-lg bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-shadow"
-                      />
+            {payments.map((payment, index) => {
+              const selectedAcc = accounts?.find((a) => a.id === payment.accountId);
+              const paymentAmount = payments.length > 1 ? parseFloat(payment.amount) || 0 : totalCost;
+              const isInsufficient = isInsufficientAccountBalance(selectedAcc, paymentAmount);
+
+              return (
+                <div key={index} className="flex flex-col gap-1">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                    <div className="flex-1 w-full relative">
+                      <select
+                        value={payment.accountId}
+                        onChange={(e) => handlePaymentChange(index, "accountId", e.target.value)}
+                        className={`w-full px-3 py-2 text-sm border rounded-lg bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-shadow ${
+                          isInsufficient ? "border-red-500 dark:border-red-500" : "border-stone-200 dark:border-stone-700"
+                        }`}
+                      >
+                        <option value="">-- Choose Account --</option>
+                        {(accounts || [])
+                          .filter((acc) => !payments.some((p, i) => i !== index && p.accountId === acc.id))
+                          .map((acc) => (
+                            <option key={acc.id} value={acc.id}>
+                              {acc.name} (Bal: ${acc.balance.toFixed(2)})
+                            </option>
+                          ))}
+                      </select>
                     </div>
-                  )}
-                  {payments.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => handleRemovePayment(index)}
-                      className="p-2 text-stone-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      {payments.length > 1 && (
+                        <div className="relative w-full sm:w-36">
+                          <span className="absolute left-3 top-2 text-stone-400 text-sm">$</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={payment.amount}
+                            onChange={(e) => handlePaymentChange(index, "amount", e.target.value)}
+                            placeholder="0.00"
+                            className={`w-full pl-6 pr-3 py-2 text-sm border rounded-lg bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-shadow ${
+                              isInsufficient ? "border-red-500 dark:border-red-500" : "border-stone-200 dark:border-stone-700"
+                            }`}
+                          />
+                        </div>
+                      )}
+                      {payments.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemovePayment(index)}
+                          className="p-2 text-stone-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {isInsufficient && selectedAcc && (
+                    <span className="text-xs font-semibold text-red-600 dark:text-red-400">
+                      Insufficient balance (${selectedAcc.balance.toFixed(2)} available)
+                    </span>
                   )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {payments.length > 1 && (
