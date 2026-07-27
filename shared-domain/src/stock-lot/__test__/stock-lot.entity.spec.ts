@@ -1,5 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { makeStockLot, makeStockLotItem, calculateWeightedAveragePrice, completeStockLot } from '../stock-lot.entity.js';
+import {
+  makeStockLot,
+  makeStockLotItem,
+  calculateWeightedAveragePrice,
+  completeStockLot,
+  canBeReceived,
+  canBeCompleted,
+  isFuturePurchaseDate,
+  canBeReceivedByDate,
+} from '../stock-lot.entity.js';
 import { IdVO } from '../../shared/value-objects/id.vo.js';
 
 describe('StockLot Entity', () => {
@@ -30,7 +39,7 @@ describe('StockLot Entity', () => {
           confirmedSellingPrice: 1200,
           isNewProduct: false,
         }),
-      ).toThrow('Product name is required');
+      ).toThrow('Empty String is not allowed');
     });
 
     it('should throw validation error for negative quantity', () => {
@@ -42,7 +51,7 @@ describe('StockLot Entity', () => {
           confirmedSellingPrice: 1200,
           isNewProduct: false,
         }),
-      ).toThrow('Quantity must be non-negative');
+      ).toThrow('must be a non-negative number');
     });
 
     it('should throw validation error for non-positive unit cost', () => {
@@ -54,7 +63,7 @@ describe('StockLot Entity', () => {
           confirmedSellingPrice: 1200,
           isNewProduct: false,
         }),
-      ).toThrow('Unit cost must be positive');
+      ).toThrow('must be a positive number');
     });
   });
 
@@ -106,7 +115,7 @@ describe('StockLot Entity', () => {
           paymentMethod: 'CASH',
           transactionId: 'tx-123',
         }),
-      ).toThrow('Supplier name is required');
+      ).toThrow('Empty String is not allowed');
     });
 
     it('should throw validation error for missing transaction ID with CASH', () => {
@@ -118,6 +127,50 @@ describe('StockLot Entity', () => {
           paymentMethod: 'CASH',
         }),
       ).toThrow('Transaction ID is required for CASH payment');
+    });
+  });
+
+  describe('canBeReceived & canBeCompleted', () => {
+    const validItems = [
+      makeStockLotItem({
+        productName: 'Laptop',
+        quantity: 10,
+        unitCost: 800,
+        confirmedSellingPrice: 1200,
+        isNewProduct: false,
+      }),
+    ];
+
+    it('should return true for DRAFT stock lot and false for RECEIVED', () => {
+      const draftLot = makeStockLot({
+        supplier: 'TechSupply Co',
+        purchaseDate: '2026-07-23',
+        items: validItems,
+        paymentMethod: 'CASH',
+        status: 'DRAFT',
+      });
+
+      const receivedLot = makeStockLot({
+        supplier: 'TechSupply Co',
+        purchaseDate: '2026-07-23',
+        items: validItems,
+        paymentMethod: 'CASH',
+        transactionId: '507f1f77bcf86cd799439011',
+        status: 'RECEIVED',
+      });
+
+      expect(canBeReceived(draftLot)).toBe(true);
+      expect(canBeCompleted(draftLot)).toBe(true);
+      expect(canBeReceived(receivedLot)).toBe(false);
+      expect(canBeCompleted(receivedLot)).toBe(false);
+    });
+
+    it('should identify future purchase dates correctly', () => {
+      expect(isFuturePurchaseDate('2099-12-31')).toBe(true);
+      expect(canBeReceivedByDate('2099-12-31')).toBe(false);
+      expect(isFuturePurchaseDate('2000-01-01')).toBe(false);
+      expect(canBeReceivedByDate('2000-01-01')).toBe(true);
+      expect(isFuturePurchaseDate('')).toBe(false);
     });
   });
 

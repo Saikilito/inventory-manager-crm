@@ -3,9 +3,18 @@ import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { DomainError } from '../../../../../../shared-domain/src/shared/errors.js';
 import { createNotFoundError, createDatabaseError } from '../../../../../../shared-domain/src/shared/errors.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
-import { IProduct, calculateWeightedAveragePrice } from '../../../../../../shared-domain/src/product/product.entity.js';
+import { NonEmptyStringVO } from '../../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js';
+import { IProduct, makeProduct, calculateWeightedAveragePrice } from '../../../../../../shared-domain/src/product/product.entity.js';
 import { IProductRepository } from '../repositories/product.repository.js';
 import { ProductModel } from '../../infrastructure/product.model.js';
+
+export interface StockLotItemInput {
+  productId?: string | { toString(): string };
+  productName: string | { toString(): string };
+  quantity: number | { toString(): string };
+  unitCost: number | { toString(): string };
+  confirmedSellingPrice: number | { toString(): string };
+}
 
 export const atomicIncrementStock = async (
   productId: string,
@@ -54,6 +63,83 @@ export interface ProductProcessingItem {
   isNewProduct: boolean;
   entity?: IProduct;
 }
+
+export const processStockLotItems = async (
+  items: StockLotItemInput[],
+  productRepository: IProductRepository,
+  contextId?: string,
+): Promise<Result<ProductProcessingItem[], DomainError>> => {
+  const results: ProductProcessingItem[] = [];
+
+  for (const item of items) {
+    const rawProductId = item.productId ? item.productId.toString() : undefined;
+    const rawProductName = item.productName.toString().trim();
+    const quantity = Number(item.quantity);
+    const unitCost = Number(item.unitCost);
+    const confirmedSellingPrice = Number(item.confirmedSellingPrice);
+
+    let existingProduct: IProduct | undefined;
+
+    if (rawProductId) {
+      const productResult = await productRepository.getById(IdVO.create(rawProductId));
+      if (!productResult.isFailure && productResult.getValue()) {
+        existingProduct = productResult.getValue()!;
+      }
+    }
+
+    if (!existingProduct) {
+      const allProductsResult = await productRepository.getAll({
+        where: {
+          fields: contextId
+            ? [{ field: NonEmptyStringVO.create('contextId'), operator: '=' as const, value: contextId }]
+            : [],
+        },
+      });
+
+      if (allProductsResult.isFailure) {
+        return Result.fail(allProductsResult.getError());
+      }
+
+      const allProducts = allProductsResult.getValue().items;
+      const normalizedName = rawProductName.toLowerCase();
+      existingProduct = allProducts.find(
+        (p: IProduct) => p.name.toString().trim().toLowerCase() === normalizedName,
+      );
+    }
+
+    if (existingProduct) {
+      results.push({
+        productId: existingProduct.id!.toString(),
+        productName: rawProductName,
+        quantity,
+        unitCost,
+        confirmedSellingPrice,
+        isNewProduct: false,
+        entity: existingProduct,
+      });
+    } else {
+      const newProduct = makeProduct({
+        name: rawProductName,
+        purchasePrice: unitCost,
+        sellingPrice: confirmedSellingPrice,
+        stock: 0,
+        contextId,
+      });
+
+      results.push({
+        productId: new mongoose.Types.ObjectId().toHexString(),
+        productName: rawProductName,
+        quantity,
+        unitCost,
+        confirmedSellingPrice,
+        isNewProduct: true,
+        entity: newProduct,
+      });
+    }
+  }
+
+  return Result.ok(results);
+};
 
 export interface StockLotProductUpdatesOutput {
   createdProducts: IProduct[];

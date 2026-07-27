@@ -2,12 +2,13 @@ import { Id, IdVO } from '../shared/value-objects/id.vo.js';
 import { NonEmptyString, NonEmptyStringVO } from '../shared/value-objects/non-empty-string.vo.js';
 import { PositiveNumber, PositiveNumberVO } from '../shared/value-objects/positive-number.vo.js';
 import { NonNegativeNumber, NonNegativeNumberVO } from '../shared/value-objects/non-negative-number.vo.js';
-import { ValidationError, createValidationError } from '../shared/validation-error.js';
-import { PaymentMethod, PaymentMethodVO, PaymentMethodType } from './value-objects/payment-method.vo.js';
-import { StockLotStatus, StockLotStatusVO, StockLotStatusType } from './value-objects/stock-lot-status.vo.js';
+import { createValidationError } from '../shared/validation-error.js';
+import { PaymentMethod, PaymentMethodVO, type PaymentMethodType } from './value-objects/payment-method.vo.js';
+import { StockLotStatus, StockLotStatusVO, type StockLotStatusType } from './value-objects/stock-lot-status.vo.js';
+import { DateOnlyVO } from '../shared/value-objects/date-only.vo.js';
 
-export { PaymentMethod, PaymentMethodVO, PaymentMethodType };
-export { StockLotStatus, StockLotStatusVO, StockLotStatusType };
+export { PaymentMethod, PaymentMethodVO, StockLotStatus, StockLotStatusVO };
+export type { PaymentMethodType, StockLotStatusType };
 
 export const PRICE_DECIMAL_PRECISION = 2;
 export const STOCK_DECIMAL_PRECISION = 4;
@@ -47,19 +48,6 @@ export const makeStockLotItem = (props: {
   confirmedSellingPrice: number;
   isNewProduct: boolean;
 }): IStockLotItem => {
-  if (!props.productName || props.productName.trim().length === 0) {
-    throw createValidationError('Product name is required');
-  }
-  if (props.quantity < 0) {
-    throw createValidationError('Quantity must be non-negative');
-  }
-  if (props.unitCost <= 0) {
-    throw createValidationError('Unit cost must be positive');
-  }
-  if (props.confirmedSellingPrice <= 0) {
-    throw createValidationError('Confirmed selling price must be positive');
-  }
-
   const roundedQuantity = Number(Number(props.quantity).toFixed(STOCK_DECIMAL_PRECISION));
   const roundedUnitCost = Number(Number(props.unitCost).toFixed(PRICE_DECIMAL_PRECISION));
   const roundedSellingPrice = Number(Number(props.confirmedSellingPrice).toFixed(PRICE_DECIMAL_PRECISION));
@@ -70,7 +58,7 @@ export const makeStockLotItem = (props: {
 
   return {
     productId: props.productId ? IdVO.create(props.productId) : undefined,
-    productName: NonEmptyStringVO.create(props.productName.trim()),
+    productName: NonEmptyStringVO.create(props.productName ? props.productName.trim() : ''),
     quantity: NonNegativeNumberVO.create(roundedQuantity),
     unitCost: PositiveNumberVO.create(roundedUnitCost),
     confirmedSellingPrice: PositiveNumberVO.create(roundedSellingPrice),
@@ -93,9 +81,6 @@ export const makeStockLot = (props: {
   createdAt?: Date;
   updatedAt?: Date;
 }): IStockLot => {
-  if (!props.supplier || props.supplier.trim().length === 0) {
-    throw createValidationError('Supplier name is required');
-  }
   if (!props.purchaseDate) {
     throw createValidationError('Purchase date is required');
   }
@@ -125,7 +110,7 @@ export const makeStockLot = (props: {
 
   return {
     id: props.id ? IdVO.create(props.id) : undefined,
-    supplier: NonEmptyStringVO.create(props.supplier.trim()),
+    supplier: NonEmptyStringVO.create(props.supplier ? props.supplier.trim() : ''),
     purchaseDate: props.purchaseDate,
     items: props.items,
     totalCost: PositiveNumberVO.create(roundedTotalCost),
@@ -141,6 +126,21 @@ export const makeStockLot = (props: {
   };
 };
 
+export const isFuturePurchaseDate = (purchaseDate: string): boolean => {
+  if (!purchaseDate) return false;
+  return purchaseDate > DateOnlyVO.create().toString();
+};
+
+export const canBeReceivedByDate = (purchaseDate: string): boolean => {
+  return !isFuturePurchaseDate(purchaseDate);
+};
+
+export const canBeReceived = (stockLot: IStockLot): boolean => {
+  return StockLotStatusVO.isDraft(stockLot.status);
+};
+
+export const canBeCompleted = canBeReceived;
+
 export const completeStockLot = (
   stockLot: IStockLot,
   props: {
@@ -149,14 +149,14 @@ export const completeStockLot = (
     accountsPayableId?: Id;
   },
 ): IStockLot => {
-  if (stockLot.status !== 'DRAFT') {
+  if (!canBeReceived(stockLot)) {
     throw createValidationError('Only DRAFT stock lots can be completed');
   }
 
   const now = new Date();
   return {
     ...stockLot,
-    status: 'RECEIVED',
+    status: StockLotStatusVO.create(StockLotStatus.RECEIVED),
     items: props.items || stockLot.items,
     transactionId: props.transactionId ?? stockLot.transactionId,
     accountsPayableId: props.accountsPayableId ?? stockLot.accountsPayableId,
