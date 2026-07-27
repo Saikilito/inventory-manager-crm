@@ -19,6 +19,8 @@ export type AuthenticateUser = (
   input: AuthenticateUserInput,
 ) => Promise<Result<AuthenticationResult, Error>>;
 
+const TOKEN_EXPIRATION_TIME = "12h";
+
 const resolveJwtSecret = (): string => {
   const secret = process.env.JWT_SECRET;
   if (!secret || secret.length === 0 || secret === "JWT_SECRET_DEFAULT") {
@@ -103,7 +105,7 @@ export const makeAuthenticateUser = (
       );
     }
 
-    const token = createToken(user.id!.toString(), user.email.toString(), __secret, "1h");
+    const token = createToken(user.id!.toString(), user.email.toString(), __secret, TOKEN_EXPIRATION_TIME);
     return Result.ok<AuthenticationResult, Error>({ token });
   };
 };

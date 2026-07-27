@@ -18,6 +18,7 @@ export type ResultComposerInstance<Context extends ComposerContext = Record<neve
     resultOrPromiseOrFn: ResultFactory<Context, Val, Err>,
   ): ResultComposerInstance<Context & Record<Key, Val>>;
   run<Err = never>(): Promise<Result<Context, Err>>;
+  runSync<Err = never>(): Result<Context, Err>;
 };
 
 const makeResultComposer = <Context extends ComposerContext = Record<never, never>>(
@@ -49,6 +50,35 @@ const makeResultComposer = <Context extends ComposerContext = Record<never, neve
         let res = step.fn(context);
         if (res instanceof Promise) {
           res = await res;
+        }
+
+        if (!(res instanceof Result)) {
+          return Result.fail(new Error(`Step ${step.key} did not return a Result instance.`) as Err);
+        }
+
+        if (res.isFailure) {
+          return Result.fail(res.getError() as Err);
+        }
+
+        context[step.key] = res.getValue();
+      } catch (err) {
+        return Result.fail((err instanceof Error ? err : new Error(String(err))) as Err);
+      }
+    }
+
+    return Result.ok(context as Context);
+  },
+
+  runSync<Err = never>(): Result<Context, Err> {
+    const context: ComposerContext = {};
+
+    for (const step of steps) {
+      try {
+        const res = step.fn(context);
+        if (res instanceof Promise) {
+          return Result.fail(
+            new Error(`Step ${step.key} returned a Promise in runSync(). Use run() instead.`) as Err,
+          );
         }
 
         if (!(res instanceof Result)) {

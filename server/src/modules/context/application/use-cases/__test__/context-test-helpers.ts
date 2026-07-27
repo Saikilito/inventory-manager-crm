@@ -4,6 +4,11 @@ import { IContext, makeContext } from '../../../../../../../shared-domain/src/co
 import { IProduct, makeProduct } from '../../../../../../../shared-domain/src/product/product.entity.js';
 import { IOrder, makeOrder, OrderStatus, PaymentStatus, DeliveryStatus } from '../../../../../../../shared-domain/src/order/order.entity.js';
 import { IPdfReportService } from '../../services/pdf-report-service.interface.js';
+import { IContextRepository } from '../../../domain/repositories/context.repository.js';
+import { IProductRepository } from '../../../../product/application/repositories/product.repository.js';
+import { IOrderRepository } from '../../../../order/application/repositories/order.repository.js';
+import { IExpenseRepository } from '../../../../expense/application/repositories/expense.repository.js';
+import { IAccountRepository } from '../../../../financial/application/repositories/financial.repository.js';
 
 export const CONTEXT_ID = '110e8400-e29b-41d4-a716-446655440011';
 export const ANOTHER_CONTEXT_ID = '110e8400-e29b-41d4-a716-446655440022';
@@ -109,6 +114,7 @@ export const createMockOrders = (): IOrder[] => {
       clientId: CLIENT_ID,
       sellerId: SELLER_ID,
       status: OrderStatus.CANCELLED,
+      cancellationObservation: 'Cancelación solicitada por el cliente',
       paymentStatus: PaymentStatus.PENDING,
       deliveryStatus: DeliveryStatus.PENDING,
       createdAt: '2026-06-16T10:00:00Z',
@@ -163,58 +169,61 @@ export const createMockOrders = (): IOrder[] => {
   ];
 };
 
-export const mockContextRepository = {
-  getById: async (id: any) => {
+export const mockContextRepository: IContextRepository = {
+  getById: async (id: { toString(): string }) => {
     if (id.toString() === CONTEXT_ID || id.toString() === ANOTHER_CONTEXT_ID) {
       return Result.ok(createMockContext(id.toString()));
     }
     return Result.ok(null);
   },
-  getAll: async () => Result.ok({ items: [createMockContext()], total: 1 }),
-} as any;
+  getAll: async () => Result.ok({ items: [createMockContext()], total: 1, page: 1, limit: 10, pages: 1 }),
+} as unknown as IContextRepository;
 
-export const mockProductRepository = {
+export const mockProductRepository: IProductRepository = {
   getAll: async () => {
     try {
       const items = createMockProducts();
-      return Result.ok({ items, total: 3 });
+      return Result.ok({ items, total: 3, page: 1, limit: 10, pages: 1 });
     } catch (err: unknown) {
       return Result.fail(toError(err));
     }
   },
-} as any;
+} as unknown as IProductRepository;
 
-export const mockOrderRepository = {
+export const mockOrderRepository: IOrderRepository = {
   getAll: async () => {
     try {
       const items = createMockOrders();
-      return Result.ok({ items, total: items.length });
+      return Result.ok({ items, total: items.length, page: 1, limit: 10, pages: 1 });
     } catch (err: unknown) {
       return Result.fail(toError(err));
     }
   },
-} as any;
+} as unknown as IOrderRepository;
 
-export const mockExpenseRepository = {
+export const mockExpenseRepository: IExpenseRepository = {
   getAll: async () => {
-    return Result.ok({ items: [], total: 0 });
+    return Result.ok({ items: [], total: 0, page: 1, limit: 10, pages: 0 });
   },
   dissociateByContextId: async () => {
     return Result.ok(undefined);
   },
-} as any;
+} as unknown as IExpenseRepository;
 
-export const mockAccountRepository = {
+export const mockAccountRepository: IAccountRepository = {
   getAll: async () => {
     return Result.ok({
       items: [
         { id: '110e8400-e29b-41d4-a716-44665544acc1', name: 'Banesco', currency: 'VES' },
         { id: '110e8400-e29b-41d4-a716-44665544acc2', name: 'Zelle', currency: 'USD' }
       ],
-      total: 2
+      total: 2,
+      page: 1,
+      limit: 10,
+      pages: 1
     });
   }
-} as any;
+} as unknown as IAccountRepository;
 
 export const mockPdfReportService: IPdfReportService = {
   generateContextReport: async (metrics, periodType) => Buffer.from('PDF_DUMMY_DATA'),

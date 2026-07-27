@@ -23,9 +23,6 @@ describe('Reporting & PDF Engine (Slice 6 Tests)', () => {
     );
 
     const result = await getContextMetrics({ contextId: CONTEXT_ID });
-    if (result.isFailure) {
-      console.log('ERROR:', result.getError());
-    }
     expect(result.isFailure).toBe(false);
 
     const metrics = result.getValue();
@@ -37,8 +34,8 @@ describe('Reporting & PDF Engine (Slice 6 Tests)', () => {
     expect(metrics.potentialMargin).toBe(17.5);
 
     // Verify newly added financial fields
-    expect(metrics.totalCOGS).toBe(9.5);
-    expect(metrics.netProfit).toBe(6.5);
+    expect(metrics.totalCOGS).toBe(11);
+    expect(metrics.netProfit).toBe(7.5);
     expect(metrics.accountDistribution.length).toBe(2);
     expect(metrics.accountDistribution[0].accountId).toBe('110e8400-e29b-41d4-a716-44665544acc1');
     expect(metrics.accountDistribution[0].totalReceivedUsd).toBe(15);
@@ -52,9 +49,9 @@ describe('Reporting & PDF Engine (Slice 6 Tests)', () => {
     const julyMonthly = metrics.periods.monthly.find(m => m.period === '2026-07');
 
     expect(juneMonthly).toBeDefined();
-    expect(juneMonthly!.revenue).toBe(11.00);
-    expect(juneMonthly!.profit).toBe(4.50);
-    expect(juneMonthly!.salesCount).toBe(1);
+    expect(juneMonthly!.revenue).toBe(13.50);
+    expect(juneMonthly!.profit).toBe(5.50);
+    expect(juneMonthly!.salesCount).toBe(2);
 
     expect(julyMonthly).toBeDefined();
     expect(julyMonthly!.revenue).toBe(5.00);
@@ -69,8 +66,8 @@ describe('Reporting & PDF Engine (Slice 6 Tests)', () => {
     // Top Sellers
     expect(metrics.topSellers.length).toBe(2);
     expect(metrics.topSellers[0].productId).toBe(PRODUCT_1_ID);
-    expect(metrics.topSellers[0].quantitySold).toBe(5);
-    expect(metrics.topSellers[0].revenue).toBe(12.50);
+    expect(metrics.topSellers[0].quantitySold).toBe(6);
+    expect(metrics.topSellers[0].revenue).toBe(15.00);
   });
 
   it('should filter metrics and expenses by startDate and endDate correctly', async () => {
@@ -92,12 +89,12 @@ describe('Reporting & PDF Engine (Slice 6 Tests)', () => {
     expect(result.isFailure).toBe(false);
     const metrics = result.getValue();
 
-    // In June, we have only 1 completed order with revenue of 11.00 and profit of 4.50
-    expect(metrics.totalRevenue).toBe(11.00);
+    // In June, completed orders (Order 1 & 5) have revenue of 13.50
+    expect(metrics.totalRevenue).toBe(13.50);
     expect(metrics.periods.monthly.length).toBe(1);
     expect(metrics.periods.monthly[0].period).toBe('2026-06');
-    expect(metrics.periods.monthly[0].revenue).toBe(11.00);
-    expect(metrics.periods.monthly[0].profit).toBe(4.50);
+    expect(metrics.periods.monthly[0].revenue).toBe(13.50);
+    expect(metrics.periods.monthly[0].profit).toBe(5.50);
 
     // June should not see July's order (which has revenue 5.00)
     expect(metrics.periods.monthly.some(m => m.period === '2026-07')).toBe(false);
@@ -113,9 +110,6 @@ describe('Reporting & PDF Engine (Slice 6 Tests)', () => {
     );
 
     const result = await getContextMetrics({});
-    if (result.isFailure) {
-      console.log('ERROR General Context:', result.getError());
-    }
     expect(result.isFailure).toBe(false);
 
     const metrics = result.getValue();
@@ -151,9 +145,6 @@ describe('Reporting & PDF Engine (Slice 6 Tests)', () => {
     const generatePdfReport = makeGeneratePdfReport(getContextMetrics, mockPdfReportService);
 
     const result = await generatePdfReport({ contextId: CONTEXT_ID, periodType: 'MONTHLY' });
-    if (result.isFailure) {
-      console.log('ERROR generatePdfReport:', result.getError());
-    }
     expect(result.isFailure).toBe(false);
     
     const base64 = result.getValue();

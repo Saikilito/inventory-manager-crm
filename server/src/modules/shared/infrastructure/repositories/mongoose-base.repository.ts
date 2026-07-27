@@ -4,12 +4,12 @@ import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { createDatabaseError, DatabaseError } from '../../../../../../shared-domain/src/shared/errors.js';
 import { doTryResult } from '../../../../../../shared-domain/src/shared/do-try-result.js';
 import {
+  IShared,
+  WhereField,
+  GetAllInput,
   BaseRepository,
   CreateEntityInput,
   UpdateEntityInput,
-  GetAllInput,
-  WhereField,
-  IShared,
 } from '../../../../../../shared-domain/src/shared/repository.js';
 
 const isLikelyObjectIdField = (fieldName: string): boolean => {
@@ -19,7 +19,7 @@ const isLikelyObjectIdField = (fieldName: string): boolean => {
   );
 };
 
-const toObjectIdIfValid = (val: string): mongoose.Types.ObjectId | string => {
+export const toObjectIdIfValid = (val: string): mongoose.Types.ObjectId | string => {
   if (typeof val === 'string' && /^[a-fA-F0-9]{24}$/.test(val)) {
     try {
       return new mongoose.Types.ObjectId(val);
@@ -162,6 +162,8 @@ export interface MongooseBaseRepositoryProps<T, Doc extends mongoose.Document> {
   mapToDocumentData: (domain: CreateEntityInput<T> | UpdateEntityInput<T>) => Partial<Doc>;
 }
 
+const mapToDatabaseError = (err: Error): DatabaseError => createDatabaseError(err.message);
+
 export const makeMongooseBaseRepository = <T, Doc extends mongoose.Document>({
   model,
   mapToDomain,
@@ -193,7 +195,7 @@ export const makeMongooseBaseRepository = <T, Doc extends mongoose.Document>({
             return domainEntities[0];
           }
         },
-        (err) => createDatabaseError(err.message),
+        mapToDatabaseError,
       );
     },
 
@@ -207,7 +209,7 @@ export const makeMongooseBaseRepository = <T, Doc extends mongoose.Document>({
           }
           return mapToDomain(doc) as unknown as R;
         },
-        (err) => createDatabaseError(err.message),
+        mapToDatabaseError,
       );
     },
 
@@ -230,7 +232,7 @@ export const makeMongooseBaseRepository = <T, Doc extends mongoose.Document>({
           }
           return mapToDomain(doc) as unknown as R;
         },
-        (err) => createDatabaseError(err.message),
+        mapToDatabaseError,
       );
     },
 
@@ -272,7 +274,7 @@ export const makeMongooseBaseRepository = <T, Doc extends mongoose.Document>({
             pages,
           };
         },
-        (err) => createDatabaseError(err.message),
+        mapToDatabaseError,
       );
     },
 
@@ -294,7 +296,7 @@ export const makeMongooseBaseRepository = <T, Doc extends mongoose.Document>({
             throw new Error('Document not found for update');
           }
         },
-        (err) => createDatabaseError(err.message),
+        mapToDatabaseError,
       );
     },
 
@@ -321,7 +323,7 @@ export const makeMongooseBaseRepository = <T, Doc extends mongoose.Document>({
           const res = await model.updateOne(filter, { $set: updateData }).exec();
           return res.modifiedCount > 0;
         },
-        (err) => createDatabaseError(err.message),
+        mapToDatabaseError,
       );
     },
 
@@ -331,7 +333,7 @@ export const makeMongooseBaseRepository = <T, Doc extends mongoose.Document>({
           const objectIds = ids.map((id) => toObjectIdIfValid(id.toString()));
           await model.deleteMany({ _id: { $in: objectIds } }).exec();
         },
-        (err) => createDatabaseError(err.message),
+        mapToDatabaseError,
       );
     },
   };
