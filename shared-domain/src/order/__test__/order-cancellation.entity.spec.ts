@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { makeOrder, OrderStatus, PaymentStatus, DeliveryStatus } from '../order.entity';
-import { ValidationError } from '@shared-domain/shared/validation-error';
+import { makeOrder, OrderStatus, PaymentStatus, DeliveryStatus } from '../order.entity.js';
+import { ValidationError } from '../../shared/validation-error.js';
 
 describe('makeOrder - Cancellation Observation', () => {
   const validOrderProps = {
-    items: [{ productId: 'product123', quantity: 1 }],
+    items: [{ productId: '507f1f77bcf86cd799439011', quantity: 1 }],
     total: 100,
-    clientId: 'client123',
+    clientId: '507f1f77bcf86cd799439012',
     status: OrderStatus.ACTIVE,
-    sellerId: 'seller123',
+    sellerId: '507f1f77bcf86cd799439013',
   };
 
   describe('cancellationObservation field', () => {
