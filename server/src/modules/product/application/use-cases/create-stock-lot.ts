@@ -6,14 +6,13 @@ import { DateOnlyVO } from '../../../../../../shared-domain/src/shared/value-obj
 import { PositiveNumberVO } from '../../../../../../shared-domain/src/shared/value-objects/positive-number.vo.js';
 import { IProduct } from '../../../../../../shared-domain/src/product/product.entity.js';
 import { IStockLot, makeStockLot, makeStockLotItem } from '../../../../../../shared-domain/src/stock-lot/stock-lot.entity.js';
-import { IAccountsPayable, makeAccountsPayable } from '../../../../../../shared-domain/src/financial/accounts-payable.entity.js';
-import { makeTransactionResult } from '../../../../../../shared-domain/src/financial/transaction.entity.js';
 import { IProductRepository } from '../repositories/product.repository.js';
 import { IStockLotRepository } from '../repositories/stock-lot.repository.js';
 import { IAccountRepository, ITransactionRepository, IFinancialDayRepository } from '../../../financial/application/repositories/financial.repository.js';
 import { IAccountsPayableRepository } from '../../../financial/application/repositories/accounts-payable.repository.js';
 import { makeFindOrOpenFinancialDay } from '../../../financial/application/services/find-or-open-financial-day.js';
 import { processStockLotItems, applyStockLotProductUpdates } from './atomic-stock-update.js';
+import { executeCashPayment, executeCreditPayment } from './stock-lot-payment-helper.js';
 import { z } from 'zod';
 
 const StockLotItemInputSchema = z.object({
@@ -155,21 +154,13 @@ export const makeCreateStockLot = (deps: {
           }
         }
 
-        const accountResult = await accountRepository.getById(IdVO.create(validatedInput.accountId!));
-        if (accountResult.isFailure || !accountResult.getValue()) {
-          return Result.fail(createNotFoundError('Account not found'));
-        }
-
-        const account = accountResult.getValue()!;
         const dateStr = DateOnlyVO.create(validatedInput.purchaseDate);
-
         const dayResult = await findOrOpenFinancialDay(dateStr.toString());
         if (dayResult.isFailure) {
           return Result.fail(dayResult.getError());
         }
 
         const financialDay = dayResult.getValue();
-
         const generatedStockLotId = IdVO.generate().toString();
         const generatedTransactionId = IdVO.generate().toString();
 
@@ -185,44 +176,21 @@ export const makeCreateStockLot = (deps: {
           contextId: validatedInput.contextId,
         });
 
-        const requiredAmount = PositiveNumberVO.create(Number(stockLot.totalCost));
-        if (!account.canDebit(requiredAmount)) {
-          return Result.fail(createValidationError('Insufficient account balance'));
-        }
-
-        const transactionResult = makeTransactionResult({
-          id: generatedTransactionId,
+        const cashResult = await executeCashPayment({
+          supplier: validatedInput.supplier,
+          purchaseDate: validatedInput.purchaseDate,
+          totalCost: Number(stockLot.totalCost),
           accountId: validatedInput.accountId!,
-          type: 'DEBIT',
-          amount: Number(stockLot.totalCost.toString()),
-          currency: account.currency.toString(),
-          description: `[Stock Purchase] ${validatedInput.supplier}`,
-          date: dateStr.toString(),
+          userId: validatedInput.userId,
+          stockLotId: generatedStockLotId,
           financialDayId: financialDay.id!.toString(),
-          source: 'STOCK_PURCHASE',
-          sourceReferenceId: generatedStockLotId,
+          transactionId: generatedTransactionId,
+          accountRepository,
+          transactionRepository,
         });
 
-        if (transactionResult.isFailure) {
-          return Result.fail(transactionResult.getError());
-        }
-
-        const transaction = transactionResult.getValue();
-
-        const saveTxResult = await transactionRepository.create(transaction, IdVO.create(validatedInput.userId));
-        if (saveTxResult.isFailure) {
-          return Result.fail(saveTxResult.getError());
-        }
-
-        const debitedAccount = account.debit(requiredAmount);
-        const updateAccResult = await accountRepository.updateById(
-          IdVO.create(validatedInput.accountId!),
-          debitedAccount,
-          IdVO.create(validatedInput.userId),
-        );
-
-        if (updateAccResult.isFailure) {
-          return Result.fail(createDatabaseError('Failed to update account balance'));
+        if (cashResult.isFailure) {
+          return Result.fail(cashResult.getError());
         }
 
         const saveResult = await stockLotRepository.create(stockLot, IdVO.create(validatedInput.userId));
@@ -259,29 +227,23 @@ export const makeCreateStockLot = (deps: {
         }
 
         const savedStockLot = saveStockLotResult.getValue() as IStockLot;
-
         const stockLotId = savedStockLot.id!.toString();
-
         const totalAmount = stockLotItems.reduce((sum, item) => sum + Number(item.unitCost) * Number(item.quantity), 0);
 
-        const accountsPayable = makeAccountsPayable({
+        const creditResult = await executeCreditPayment({
           supplier: validatedInput.supplier,
           stockLotId,
           totalAmount,
           contextId: validatedInput.contextId,
+          userId: validatedInput.userId,
+          accountsPayableRepository,
         });
 
-        const savePayableResult = await accountsPayableRepository.create(
-          accountsPayable,
-          IdVO.create(validatedInput.userId),
-        );
-        if (savePayableResult.isFailure) {
-          return Result.fail(savePayableResult.getError());
+        if (creditResult.isFailure) {
+          return Result.fail(creditResult.getError());
         }
 
-        const savedPayable = savePayableResult.getValue() as IAccountsPayable;
-
-        const accountsPayableId = savedPayable.id!.toString();
+        const { accountsPayableId } = creditResult.getValue();
 
         const updateStockLotResult = await stockLotRepository.updateById(
           IdVO.create(stockLotId),

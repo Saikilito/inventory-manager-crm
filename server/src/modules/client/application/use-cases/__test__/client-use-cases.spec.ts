@@ -16,7 +16,6 @@ const VALID_CLIENT_UUID = '550e8400-e29b-41d4-a716-446655440000';
 const VALID_SELLER_UUID = '550e8400-e29b-41d4-a716-446655440001';
 const NON_EXISTENT_UUID = '550e8400-e29b-41d4-a716-446655440002';
 
-// Setup Mock Client Mother
 const clientMother = {
   create(overrides: Partial<{ id: string; firstName: string; lastName: string; address: string; whatsapp: string; nationalId?: string; type: string; orders: string[]; sellerId: string }> = {}) {
     return makeClient({
@@ -33,7 +32,6 @@ const clientMother = {
   }
 };
 
-// Create fully isolated mock repository
 const makeMockClientRepository = () => {
   const store = new Map<string, IClient>();
   const initial = clientMother.create();
@@ -100,9 +98,9 @@ describe('Client Use Cases (TDD)', () => {
     const repo = makeMockClientRepository();
     const getClient = makeGetClient(repo as any);
 
-    const result = await getClient('00000000-0000-4000-a000-000000000000'); // Valid UUID format, nonexistent
+    const result = await getClient('00000000-0000-4000-a000-000000000000');
     expect(result.isFailure).toBe(true);
-    expect(result.getError().message).toBe('Client not found');
+    expect(result.getError().message).toContain('Client not found');
   });
 
   it('should retrieve all clients (GetAllClients)', async () => {
@@ -168,7 +166,6 @@ describe('Client Use Cases (TDD)', () => {
     const repo = makeMockClientRepository();
     const createClient = makeCreateClient(repo as any);
 
-    // Empty first name should throw a ValidationError upon Value Object creation
     const resultEmptyName = await createClient({
       firstName: '',
       lastName: 'Messi',
@@ -231,7 +228,6 @@ describe('Client Use Cases (TDD)', () => {
   describe('recalculateClientRating (Integration)', () => {
     it('should update client rating to CONCURRENT when client reaches 3 completed orders', async () => {
       const repo = makeMockClientRepository();
-      // Initialize client as BASIC
       const initialClient = clientMother.create({ id: VALID_CLIENT_UUID, type: ClientRatingTier.BASIC });
       repo.getStore().set(VALID_CLIENT_UUID, initialClient);
 

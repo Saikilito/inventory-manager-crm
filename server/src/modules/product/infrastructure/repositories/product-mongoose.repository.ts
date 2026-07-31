@@ -6,6 +6,16 @@ import { makeMongooseBaseRepository } from '../../../shared/infrastructure/repos
 import { escapeRegExp } from '../../../../../../shared-domain/src/shared/utils/string-utils.js';
 import { IShared } from '../../../../../../shared-domain/src/shared/repository.js';
 
+const buildAccentInsensitiveRegexPattern = (str: string): string => {
+  const escaped = escapeRegExp(str);
+  return escaped
+    .replace(/[aAáÁ]/g, '[aAáÁ]')
+    .replace(/[eEéÉ]/g, '[eEéÉ]')
+    .replace(/[iIíÍ]/g, '[iIíÍ]')
+    .replace(/[oOóÓ]/g, '[oOóÓ]')
+    .replace(/[uUúÚ]/g, '[uUúÚ]');
+};
+
 const mapToDomain = (doc: IProductDocument): IProduct => {
   return makeProduct({
     id: doc._id.toString(),
@@ -51,7 +61,7 @@ export const makeProductMongooseRepository = (): IProductRepository => {
       if (tokens.nameTokens.length > 0) {
         andConditions.push({
           $and: tokens.nameTokens.map((token) => ({
-            name: { $regex: escapeRegExp(token), $options: 'i' },
+            name: { $regex: buildAccentInsensitiveRegexPattern(token), $options: 'i' },
           })),
         });
       }
@@ -69,7 +79,7 @@ export const makeProductMongooseRepository = (): IProductRepository => {
         }
         if (tokens.motoModel) {
           compatibilityOr.push({
-            'customAttributes.motoBrand': { $regex: escapeRegExp(tokens.motoModel), $options: 'i' },
+            'customAttributes.motoModel': { $regex: escapeRegExp(tokens.motoModel), $options: 'i' },
           });
         }
         andConditions.push({ $or: compatibilityOr });

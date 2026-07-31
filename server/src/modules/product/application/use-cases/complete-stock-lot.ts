@@ -8,7 +8,6 @@ import {
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
 import { DateOnlyVO } from '../../../../../../shared-domain/src/shared/value-objects/date-only.vo.js';
-import { PositiveNumberVO } from '../../../../../../shared-domain/src/shared/value-objects/positive-number.vo.js';
 import { IProduct } from '../../../../../../shared-domain/src/product/product.entity.js';
 import {
   IStockLot,
@@ -16,14 +15,6 @@ import {
   canBeCompleted,
   completeStockLot,
 } from '../../../../../../shared-domain/src/stock-lot/stock-lot.entity.js';
-import {
-  IAccountsPayable,
-  makeAccountsPayable,
-} from '../../../../../../shared-domain/src/financial/accounts-payable.entity.js';
-import {
-  makeTransactionResult,
-  ITransaction,
-} from '../../../../../../shared-domain/src/financial/transaction.entity.js';
 import { IProductRepository } from '../repositories/product.repository.js';
 import { IStockLotRepository } from '../repositories/stock-lot.repository.js';
 import {
@@ -34,11 +25,12 @@ import {
 import { IAccountsPayableRepository } from '../../../financial/application/repositories/accounts-payable.repository.js';
 import { makeFindOrOpenFinancialDay } from '../../../financial/application/services/find-or-open-financial-day.js';
 import { processStockLotItems, applyStockLotProductUpdates } from './atomic-stock-update.js';
+import { executeCashPayment, executeCreditPayment } from './stock-lot-payment-helper.js';
 import { z } from 'zod';
 
 const CompleteStockLotInputSchema = z.object({
   stockLotId: z.string().min(1, 'Stock Lot ID is required'),
-  accountId: z.string().optional(), // Needed if we are confirming a CASH payment now
+  accountId: z.string().optional(),
   userId: z.string().min(1, 'User ID is required'),
 });
 
@@ -120,19 +112,7 @@ export const makeCompleteStockLot = (deps: {
       );
 
       if (draftStockLot.paymentMethod === 'CASH') {
-        const accountResult = await accountRepository.getById(IdVO.create(targetAccountId!));
-        if (accountResult.isFailure || !accountResult.getValue()) {
-          throw new Error('Account not found');
-        }
-
-        const account = accountResult.getValue()!;
-        const requiredAmount = PositiveNumberVO.create(Number(draftStockLot.totalCost));
-        if (!account.canDebit(requiredAmount)) {
-          return Result.fail(createValidationError('Insufficient account balance'));
-        }
-
         const dateStr = DateOnlyVO.create(draftStockLot.purchaseDate);
-
         const dayResult = await findOrOpenFinancialDay(dateStr.toString());
         if (dayResult.isFailure) {
           throw new Error(dayResult.getError().message);
@@ -140,42 +120,23 @@ export const makeCompleteStockLot = (deps: {
 
         const financialDay = dayResult.getValue();
 
-        const transactionResult = makeTransactionResult({
+        const cashResult = await executeCashPayment({
+          supplier: draftStockLot.supplier.toString(),
+          purchaseDate: draftStockLot.purchaseDate.toString(),
+          totalCost: Number(draftStockLot.totalCost),
           accountId: targetAccountId!,
-          type: 'DEBIT',
-          amount: Number(draftStockLot.totalCost),
-          currency: account.currency.toString(),
-          description: `[Stock Purchase] ${draftStockLot.supplier.toString()}`,
-          date: dateStr.toString(),
+          userId,
+          stockLotId: draftStockLot.id!.toString(),
           financialDayId: financialDay.id!.toString(),
-          source: 'STOCK_PURCHASE',
-          sourceReferenceId: draftStockLot.id!.toString(),
+          accountRepository,
+          transactionRepository,
         });
 
-        if (transactionResult.isFailure) {
-          throw new Error(transactionResult.getError().message);
+        if (cashResult.isFailure) {
+          return Result.fail(cashResult.getError());
         }
 
-        const transaction = transactionResult.getValue();
-
-        const saveTxResult = await transactionRepository.create(transaction, IdVO.create(userId));
-        if (saveTxResult.isFailure) {
-          throw new Error(saveTxResult.getError().message);
-        }
-
-        const savedTx = saveTxResult.getValue() as ITransaction;
-        const transactionId = savedTx.id?.toString();
-
-        const debitedAccount = account.debit(requiredAmount);
-        const updateAccResult = await accountRepository.updateById(
-          IdVO.create(targetAccountId!),
-          debitedAccount,
-          IdVO.create(userId),
-        );
-
-        if (updateAccResult.isFailure) {
-          throw new Error('Failed to update account balance');
-        }
+        const transactionId = cashResult.getValue().transactionId;
 
         const { createdProducts, updatedProducts } = await applyStockLotProductUpdates(
           products,
@@ -208,22 +169,20 @@ export const makeCompleteStockLot = (deps: {
       } else {
         const totalAmount = stockLotItems.reduce((sum, item) => sum + Number(item.unitCost) * Number(item.quantity), 0);
 
-        const accountsPayable = makeAccountsPayable({
+        const creditResult = await executeCreditPayment({
           supplier: draftStockLot.supplier.toString(),
           stockLotId,
           totalAmount,
           contextId: contextIdStr,
+          userId,
+          accountsPayableRepository,
         });
 
-        const savePayableResult = await accountsPayableRepository.create(accountsPayable, IdVO.create(userId));
-
-        if (savePayableResult.isFailure) {
-          throw new Error(savePayableResult.getError().message);
+        if (creditResult.isFailure) {
+          return Result.fail(creditResult.getError());
         }
 
-        const savedPayable = savePayableResult.getValue() as IAccountsPayable;
-
-        const accountsPayableId = savedPayable.id!.toString();
+        const { accountsPayableId } = creditResult.getValue();
 
         const { createdProducts, updatedProducts } = await applyStockLotProductUpdates(
           products,

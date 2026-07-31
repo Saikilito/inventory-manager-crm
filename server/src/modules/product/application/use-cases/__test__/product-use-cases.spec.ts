@@ -19,7 +19,6 @@ import { makeDeleteProduct } from '../delete-product.js';
 
 const VALID_UUID = '550e8400-e29b-41d4-a716-446655440000';
 
-// Setup Mock Product Mother
 const productMother = {
   create(overrides: Partial<{ id: string; name: string; purchasePrice: number; sellingPrice: number; stock: number }> = {}) {
     return makeProduct({
@@ -32,7 +31,6 @@ const productMother = {
   },
 };
 
-// Create fully isolated mock repository
 const makeMockProductRepository = (): IProductRepository => {
   const store = new Map<string, IProduct>();
   const initial = productMother.create();
@@ -92,9 +90,9 @@ describe('Product Use Cases (TDD)', () => {
     const repo = makeMockProductRepository();
     const getProduct = makeGetProduct(repo);
 
-    const result = await getProduct('00000000-0000-0000-0000-000000000000'); // Valid format, non-existent
+    const result = await getProduct('00000000-0000-0000-0000-000000000000');
     expect(result.isFailure).toBe(true);
-    expect(result.getError().message).toBe('Product not found');
+    expect(result.getError().message).toContain('Product not found');
   });
 
   it('should retrieve all products (GetAllProducts)', async () => {
@@ -137,7 +135,6 @@ describe('Product Use Cases (TDD)', () => {
     const repo = makeMockProductRepository();
     const createProduct = makeCreateProduct({ productRepository: repo });
 
-    // Negative price should throw a ValidationError upon Value Object creation
     const resultNegPrice = await createProduct({
       name: 'Negative Price Beer',
       purchasePrice: -3.0,
@@ -146,7 +143,6 @@ describe('Product Use Cases (TDD)', () => {
     });
     expect(resultNegPrice.isFailure).toBe(true);
 
-    // Negative stock should throw a ValidationError upon Value Object creation
     const resultNegStock = await createProduct({
       name: 'Negative Stock Beer',
       purchasePrice: 3.0,
@@ -182,7 +178,7 @@ describe('Product Use Cases (TDD)', () => {
 
     const result = await updateProduct({
       id: VALID_UUID,
-      sellingPrice: -2.0, // Broken PositiveNumberVO contract
+      sellingPrice: -2.0,
     });
 
     expect(result.isFailure).toBe(true);

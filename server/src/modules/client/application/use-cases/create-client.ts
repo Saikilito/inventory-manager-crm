@@ -3,7 +3,7 @@ import { DomainError } from '../../../../../../shared-domain/src/shared/errors.j
 import { Result } from '../../../../../../shared-domain/src/shared/result.js';
 import { ResultComposer } from '../../../../../../shared-domain/src/shared/result-composer.js';
 import { IdVO } from '../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
-import { makeClient, ClientRatingTier } from '../../../../../../shared-domain/src/client/client.entity.js';
+import { makeClient, ClientRatingTier, type IClient } from '../../../../../../shared-domain/src/client/client.entity.js';
 import { IClientRepository } from '../repositories/client.repository.js';
 
 export interface CreateClientInput {
@@ -16,7 +16,7 @@ export interface CreateClientInput {
   sellerId: string;
 }
 
-export type CreateClient = UseCase<CreateClientInput, void, DomainError>;
+export type CreateClient = UseCase<CreateClientInput, IClient, DomainError>;
 
 export const makeCreateClient = (clientRepository: IClientRepository): CreateClient => {
   return async (input: CreateClientInput) => {
@@ -40,6 +40,6 @@ export const makeCreateClient = (clientRepository: IClientRepository): CreateCli
       return Result.fail(composerResult.getError());
     }
 
-    return Result.ok<void, DomainError>();
+    return Result.ok<IClient, DomainError>(composerResult.getValue().save as IClient);
   };
 };
