@@ -5,10 +5,27 @@ import { match } from 'ts-pattern';
 import {
   KNOWLEDGE_LIST_QUERY,
   DELETE_KNOWLEDGE,
+  KNOWLEDGE_GRAPH_QUERY_NAME,
 } from '@modules/knowledge/application/queries/knowledge.queries';
 import { CategoryFilter } from './CategoryFilter';
 import { KnowledgeItem, type KnowledgeListItem } from './KnowledgeItem';
+import { SortableKnowledgeItem } from './SortableKnowledgeItem';
 import { KnowledgeForm, type KnowledgeFormInitialValues } from './KnowledgeForm';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+} from '@dnd-kit/sortable';
 import Alert from '../../../../components/Alert';
 import Spinkit from '../../../../components/Spinkit';
 
@@ -27,6 +44,7 @@ interface KnowledgeListResponse {
 }
 
 const PAGE_SIZE = 12;
+const LOCAL_STORAGE_KEY = 'knowledge_items_order';
 
 type ModalState =
   | { kind: 'closed' }
@@ -50,7 +68,9 @@ const KnowledgeList: React.FC<KnowledgeListProps> = () => {
     fetchPolicy: 'cache-and-network',
   });
 
-  const [deleteKnowledge, { loading: deleting }] = useMutation(DELETE_KNOWLEDGE);
+  const [deleteKnowledge, { loading: deleting }] = useMutation(DELETE_KNOWLEDGE, {
+    refetchQueries: [KNOWLEDGE_GRAPH_QUERY_NAME, 'KnowledgeList'],
+  });
 
   useEffect(() => {
     if (searchInput.trim().length === 0 && activeSearch.length > 0) {
@@ -74,6 +94,62 @@ const KnowledgeList: React.FC<KnowledgeListProps> = () => {
     });
   }, [items, activeSearch]);
 
+  const [orderedItems, setOrderedItems] = useState<KnowledgeListItem[]>([]);
+
+  useEffect(() => {
+    if (!filteredItems.length) {
+      setOrderedItems([]);
+      return;
+    }
+    const savedOrderJson = localStorage.getItem(LOCAL_STORAGE_KEY);
+    let savedOrder: string[] = [];
+    if (savedOrderJson) {
+      try {
+        savedOrder = JSON.parse(savedOrderJson);
+      } catch (err) {
+        console.warn('[KnowledgeList] Failed to parse saved item order:', err);
+      }
+    }
+    if (savedOrder.length > 0) {
+      const sorted = [...filteredItems].sort((a, b) => {
+        const indexA = savedOrder.indexOf(a._id);
+        const indexB = savedOrder.indexOf(b._id);
+        if (indexA === -1 && indexB === -1) return 0;
+        if (indexA === -1) return 1;
+        if (indexB === -1) return -1;
+        return indexA - indexB;
+      });
+      setOrderedItems(sorted);
+    } else {
+      setOrderedItems(filteredItems);
+    }
+  }, [filteredItems]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 5 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setOrderedItems((currentItems) => {
+        const oldIndex = currentItems.findIndex((i) => i._id === active.id);
+        const newIndex = currentItems.findIndex((i) => i._id === over.id);
+        if (oldIndex === -1 || newIndex === -1) return currentItems;
+
+        const nextOrder = arrayMove(currentItems, oldIndex, newIndex);
+        const orderIds = nextOrder.map((item) => item._id);
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(orderIds));
+        return nextOrder;
+      });
+    }
+  };
+
   const handleSubmitSearch = (event: React.FormEvent) => {
     event.preventDefault();
     setActiveSearch(searchInput.trim());
@@ -86,13 +162,23 @@ const KnowledgeList: React.FC<KnowledgeListProps> = () => {
   };
 
   const handleDelete = async (entry: KnowledgeListItem) => {
-    if (!window.confirm(`Delete knowledge entry "${entry.title}"?`)) return;
     try {
       const result = await deleteKnowledge({ variables: { _id: entry._id } });
       if (result.errors && result.errors.length > 0) {
         throw new Error(result.errors[0]?.message ?? 'Delete failed');
       }
       setFeedback({ kind: 'success', message: `Deleted "${entry.title}"` });
+      setOrderedItems((prev) => prev.filter((item) => item._id !== entry._id));
+      const savedOrderJson = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (savedOrderJson) {
+        try {
+          const savedOrder: string[] = JSON.parse(savedOrderJson);
+          const nextOrder = savedOrder.filter((id) => id !== entry._id);
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(nextOrder));
+        } catch (err) {
+          console.warn('[KnowledgeList] Failed to update saved item order:', err);
+        }
+      }
       await refetch();
     } catch (err) {
       setFeedback({
@@ -199,16 +285,27 @@ const KnowledgeList: React.FC<KnowledgeListProps> = () => {
           }
 
           return (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {filteredItems.map((entry) => (
-                <KnowledgeItem
-                  key={entry._id}
-                  entry={entry}
-                  onEdit={(e) => setModal({ kind: 'edit', entry: e })}
-                  onDelete={handleDelete}
-                />
-              ))}
-            </div>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={orderedItems.map((item) => item._id)}
+                strategy={rectSortingStrategy}
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {orderedItems.map((entry) => (
+                    <SortableKnowledgeItem
+                      key={entry._id}
+                      entry={entry}
+                      onEdit={(e) => setModal({ kind: 'edit', entry: e })}
+                      onDelete={handleDelete}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
           );
         })}
 

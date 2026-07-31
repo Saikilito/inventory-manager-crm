@@ -60,31 +60,6 @@ export const KNOWLEDGE_DETAIL_QUERY = gql`
   }
 `;
 
-export const SEARCH_KNOWLEDGE_QUERY = gql`
-  query SearchKnowledge($query: String!, $topN: Int, $category: KnowledgeCategory) {
-    searchKnowledge(query: $query, topN: $topN, category: $category) {
-      knowledge {
-        _id
-        category
-        title
-        content
-        wikiLinks {
-          title
-          url
-        }
-        metadata {
-          hierarchyLevel
-          tags
-        }
-        status
-        isActive
-        updatedAt
-      }
-      score
-    }
-  }
-`;
-
 export const CREATE_KNOWLEDGE = gql`
   mutation CreateKnowledge($input: CreateKnowledgeInput!) {
     createKnowledge(input: $input) {
@@ -138,14 +113,19 @@ export const KNOWLEDGE_PENDING_QUERY = gql`
   }
 `;
 
+export const KNOWLEDGE_GRAPH_QUERY_NAME = 'KnowledgeGraph';
+
 export const KNOWLEDGE_GRAPH_QUERY = gql`
-  query KnowledgeGraph($status: KnowledgeStatus) {
-    knowledgeGraph(status: $status) {
+  query ${KNOWLEDGE_GRAPH_QUERY_NAME}($status: KnowledgeStatus, $includeDrafts: Boolean) {
+    knowledgeGraph(status: $status, includeDrafts: $includeDrafts) {
       nodes {
         id
         title
         category
         status
+        hierarchyLevel
+        content
+        tags
       }
       edges {
         sourceId

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useMutation } from '@apollo/client';
-import { X, Plus, Trash2 } from 'lucide-react';
+import { useMutation, useQuery } from '@apollo/client';
+import { X, Plus } from 'lucide-react';
 import {
   KnowledgeCategory,
   HierarchyLevel,
@@ -10,7 +10,10 @@ import {
 import {
   CREATE_KNOWLEDGE,
   UPDATE_KNOWLEDGE,
+  KNOWLEDGE_GRAPH_QUERY,
+  KNOWLEDGE_GRAPH_QUERY_NAME,
 } from '@modules/knowledge/application/queries/knowledge.queries';
+import { WikiLinkRow, KnowledgeNodeOption } from './WikiLinkRow';
 
 export interface KnowledgeFormInitialValues {
   _id: string;
@@ -81,8 +84,24 @@ export const KnowledgeForm: React.FC<KnowledgeFormProps> = ({
 }) => {
   const [state, setState] = useState<FormState>(() => buildInitialState(initialValues));
   const [validationError, setValidationError] = useState<string | null>(null);
-  const [createKnowledge, { loading: creating }] = useMutation(CREATE_KNOWLEDGE);
-  const [updateKnowledge, { loading: updating }] = useMutation(UPDATE_KNOWLEDGE);
+  const [createKnowledge, { loading: creating }] = useMutation(CREATE_KNOWLEDGE, {
+    refetchQueries: [KNOWLEDGE_GRAPH_QUERY_NAME, 'KnowledgeList'],
+  });
+  const [updateKnowledge, { loading: updating }] = useMutation(UPDATE_KNOWLEDGE, {
+    refetchQueries: [KNOWLEDGE_GRAPH_QUERY_NAME, 'KnowledgeList'],
+  });
+
+  const { data: graphData } = useQuery(KNOWLEDGE_GRAPH_QUERY, {
+    variables: { includeDrafts: true },
+  });
+
+  const nodeOptions: KnowledgeNodeOption[] = (graphData?.knowledgeGraph?.nodes || []).map(
+    (node: { id: string; title: string; category?: string }) => ({
+      id: node.id,
+      title: node.title,
+      category: node.category,
+    })
+  );
 
   useEffect(() => {
     setState(buildInitialState(initialValues));
@@ -148,6 +167,7 @@ export const KnowledgeForm: React.FC<KnowledgeFormProps> = ({
                 hierarchyLevel: state.hierarchyLevel,
                 tags,
               },
+              wikiLinks,
             },
           },
         });
@@ -167,6 +187,7 @@ export const KnowledgeForm: React.FC<KnowledgeFormProps> = ({
                 hierarchyLevel: state.hierarchyLevel,
                 tags,
               },
+              wikiLinks,
             },
           },
         });
@@ -174,7 +195,6 @@ export const KnowledgeForm: React.FC<KnowledgeFormProps> = ({
           throw new Error(result.errors[0]?.message ?? 'Update failed');
         }
         onSaved(`Updated "${state.title.trim()}"`);
-        void wikiLinks;
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Operation failed';
@@ -313,36 +333,15 @@ export const KnowledgeForm: React.FC<KnowledgeFormProps> = ({
             )}
             <div className="space-y-2">
               {state.wikiLinks.map((link, index) => (
-                <div
+                <WikiLinkRow
                   key={`link-${index}`}
-                  className="grid grid-cols-1 sm:grid-cols-[1fr_2fr_auto] gap-2 items-center"
-                >
-                  <input
-                    type="text"
-                    value={link.title}
-                    onChange={(e) => updateWikiLink(index, { title: e.target.value })}
-                    placeholder="Title"
-                    disabled={busy}
-                    className="h-10 px-3 text-sm bg-white dark:bg-stone-950 text-stone-900 dark:text-stone-100 border border-stone-200 dark:border-stone-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                  <input
-                    type="url"
-                    value={link.url ?? ''}
-                    onChange={(e) => updateWikiLink(index, { url: e.target.value })}
-                    placeholder="https://example.com (optional)"
-                    disabled={busy}
-                    className="h-10 px-3 text-sm bg-white dark:bg-stone-950 text-stone-900 dark:text-stone-100 border border-stone-200 dark:border-stone-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeWikiLink(index)}
-                    disabled={busy}
-                    className="inline-flex items-center justify-center h-10 w-10 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-colors"
-                    aria-label="Remove link"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
+                  link={link}
+                  index={index}
+                  disabled={busy}
+                  nodeOptions={nodeOptions}
+                  onChange={(patch) => updateWikiLink(index, patch)}
+                  onRemove={() => removeWikiLink(index)}
+                />
               ))}
             </div>
           </div>

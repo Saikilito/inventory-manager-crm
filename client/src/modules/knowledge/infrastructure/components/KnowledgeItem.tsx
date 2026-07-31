@@ -1,4 +1,4 @@
-import React, { Fragment } from 'react';
+import React, { Fragment, useState } from 'react';
 import { match } from 'ts-pattern';
 import { Pencil, Trash2, Link2 } from 'lucide-react';
 import { KnowledgeCategory, HierarchyLevel } from '@shared-domain/knowledge';
@@ -65,6 +65,7 @@ const truncate = (text: string, maxChars: number): string => {
 };
 
 export const KnowledgeItem: React.FC<KnowledgeItemProps> = ({ entry, onEdit, onDelete }) => {
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const categoryStyle = CATEGORY_STYLES[entry.category] ?? 'bg-stone-100 text-stone-700 border-stone-200';
   const hierarchyLabel = HIERARCHY_LABELS[entry.metadata.hierarchyLevel] ?? entry.metadata.hierarchyLevel;
   const tags = entry.metadata.tags || [];
@@ -144,29 +145,56 @@ export const KnowledgeItem: React.FC<KnowledgeItemProps> = ({ entry, onEdit, onD
         </div>
       )}
 
-      <div className="mt-4 pt-4 border-t border-stone-100 dark:border-stone-800/60 flex flex-wrap items-center justify-between gap-3">
-        <span className="text-xs text-stone-500 dark:text-stone-400">
-          Updated {formatRelativeTime(entry.updatedAt)}
-        </span>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => onEdit(entry)}
-            className="inline-flex items-center h-9 px-3 rounded-lg text-xs font-semibold text-stone-700 dark:text-stone-200 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 border border-stone-200 dark:border-stone-700/60 transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500"
-          >
-            <Pencil className="w-3.5 h-3.5 mr-1.5" />
-            Edit
-          </button>
-          <button
-            type="button"
-            onClick={() => onDelete(entry)}
-            className="inline-flex items-center h-9 px-3 rounded-lg text-xs font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/20 hover:bg-red-100 dark:hover:bg-red-950/40 border border-red-200 dark:border-red-900/30 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
-          >
-            <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-            Delete
-          </button>
+      {confirmDelete ? (
+        <div className="mt-4 pt-3 border-t border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-950/20 p-3 rounded-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 animate-[fadeIn_0.15s_ease-out]">
+          <span className="text-xs font-semibold text-red-800 dark:text-red-300">
+            ¿Confirmar eliminación?
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setConfirmDelete(false);
+                onDelete(entry);
+              }}
+              className="inline-flex items-center h-8 px-3 rounded-md text-xs font-bold text-white bg-red-600 hover:bg-red-700 transition-colors focus:outline-none"
+            >
+              Sí, eliminar
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(false)}
+              className="inline-flex items-center h-8 px-3 rounded-md text-xs font-medium text-stone-700 dark:text-stone-300 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 hover:bg-stone-50 transition-colors focus:outline-none"
+            >
+              Cancelar
+            </button>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="mt-4 pt-4 border-t border-stone-100 dark:border-stone-800/60 flex flex-wrap items-center justify-between gap-3">
+          <span className="text-xs text-stone-500 dark:text-stone-400">
+            Updated {formatRelativeTime(entry.updatedAt)}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onEdit(entry)}
+              className="inline-flex items-center h-9 px-3 rounded-lg text-xs font-semibold text-stone-700 dark:text-stone-200 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 border border-stone-200 dark:border-stone-700/60 transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500"
+            >
+              <Pencil className="w-3.5 h-3.5 mr-1.5" />
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(true)}
+              className="inline-flex items-center h-9 px-3 rounded-lg text-xs font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/20 hover:bg-red-100 dark:hover:bg-red-950/40 border border-red-200 dark:border-red-900/30 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
+            >
+              <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+              Delete
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

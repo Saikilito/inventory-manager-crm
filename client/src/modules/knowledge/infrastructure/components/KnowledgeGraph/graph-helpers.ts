@@ -1,16 +1,24 @@
 import type { Edge, Node } from '@xyflow/react';
-import { KnowledgeCategory } from '@shared-domain/knowledge';
+import { Globe2, Network, ListTree, FileText, type LucideIcon } from 'lucide-react';
+import { KnowledgeCategory, HierarchyLevel, KnowledgeStatus } from '@shared-domain/knowledge';
+import { computeRadialPositions, type RadialLayoutEdge, type RadialLayoutNode } from './radial-layout';
 
 export interface KnowledgeGraphNodeData {
   label: string;
   category: string;
   status: string;
+  hierarchyLevel: string;
+  content: string;
+  tags: string[];
   resolved: boolean;
   isOrphan: boolean;
   [key: string]: unknown;
 }
 
 export type KnowledgeGraphNode = Node<KnowledgeGraphNodeData>;
+
+export const truncateText = (text: string, maxChars: number): string =>
+  text.length <= maxChars ? text : `${text.slice(0, maxChars).trimEnd()}…`;
 
 export const CATEGORY_COLORS: Record<string, { bg: string; border: string; text: string }> = {
   [KnowledgeCategory.SALES]: {
@@ -55,11 +63,57 @@ export const STATUS_BADGES: Record<string, { label: string; className: string }>
   },
 };
 
+export interface HierarchyLevelMeta {
+  label: string;
+  description: string;
+  sizeClass: string;
+  emphasisClass: string;
+}
+
+export const HIERARCHY_LEVEL_META: Record<string, HierarchyLevelMeta> = {
+  [HierarchyLevel.ROOT]: {
+    label: 'Root Index',
+    description: 'Top-level directory the agent opens first',
+    sizeClass: 'min-w-[230px] max-w-[300px] px-5 py-4 text-base',
+    emphasisClass: 'shadow-lg shadow-stone-900/10 dark:shadow-black/30',
+  },
+  [HierarchyLevel.DOMAIN]: {
+    label: 'Domain Index',
+    description: 'Groups related topics under one subject',
+    sizeClass: 'min-w-[210px] max-w-[270px] px-4 py-3 text-sm',
+    emphasisClass: 'shadow-md shadow-stone-900/5 dark:shadow-black/20',
+  },
+  [HierarchyLevel.TOPIC]: {
+    label: 'Topic Index',
+    description: 'Points the agent to specific documents',
+    sizeClass: 'min-w-[190px] max-w-[240px] px-3.5 py-2.5 text-sm',
+    emphasisClass: 'shadow-sm',
+  },
+  [HierarchyLevel.DATA]: {
+    label: 'Document',
+    description: 'Leaf-level content the agent reads verbatim',
+    sizeClass: 'min-w-[170px] max-w-[210px] px-3 py-2 text-xs',
+    emphasisClass: '',
+  },
+};
+
+export const DEFAULT_HIERARCHY_LEVEL_META: HierarchyLevelMeta = HIERARCHY_LEVEL_META[HierarchyLevel.DATA]!;
+
+export const HIERARCHY_LEVEL_ICONS: Record<string, LucideIcon> = {
+  [HierarchyLevel.ROOT]: Globe2,
+  [HierarchyLevel.DOMAIN]: Network,
+  [HierarchyLevel.TOPIC]: ListTree,
+  [HierarchyLevel.DATA]: FileText,
+};
+
 export interface RawGraphNode {
   id: string;
   title: string;
   category: string;
   status: string;
+  hierarchyLevel: string;
+  content?: string;
+  tags?: string[];
 }
 
 export interface RawGraphEdge {
@@ -69,22 +123,18 @@ export interface RawGraphEdge {
   resolved: boolean;
 }
 
-const GRID_COLUMNS = 4;
-const GRID_ROW_HEIGHT = 140;
-const GRID_COL_WIDTH = 280;
+const EMPTY_CONTENT = '';
+const EMPTY_TAGS: string[] = [];
 
-const buildLayout = (count: number): { x: number; y: number }[] => {
-  return Array.from({ length: count }, (_, index) => {
-    const col = index % GRID_COLUMNS;
-    const row = Math.floor(index / GRID_COLUMNS);
-    return { x: col * GRID_COL_WIDTH, y: row * GRID_ROW_HEIGHT };
-  });
-};
+export type PositionOverrideMap = Record<string, { x: number; y: number }>;
 
-export const toReactFlowElements = (
-  rawNodes: RawGraphNode[],
-  rawEdges: RawGraphEdge[],
-): { nodes: KnowledgeGraphNode[]; edges: Edge[] } => {
+const EMPTY_POSITION_OVERRIDES: PositionOverrideMap = {};
+
+export const isDraggableHierarchyLevel = (_hierarchyLevel: string): boolean => true;
+
+export const isDraftStatus = (status?: string): boolean => status === KnowledgeStatus.DRAFT;
+
+const buildOrphanTitles = (rawNodes: RawGraphNode[], rawEdges: RawGraphEdge[]): Set<string> => {
   const knownIds = new Set(rawNodes.map((n) => n.id));
   const orphanTitles = new Set<string>();
   for (const edge of rawEdges) {
@@ -93,44 +143,62 @@ export const toReactFlowElements = (
       orphanTitles.add(edge.targetTitle);
     }
   }
+  return orphanTitles;
+};
 
-  const layout = buildLayout(rawNodes.length + orphanTitles.size);
+export const toReactFlowElements = (
+  rawNodes: RawGraphNode[],
+  rawEdges: RawGraphEdge[],
+  positionOverrides: PositionOverrideMap = EMPTY_POSITION_OVERRIDES,
+): { nodes: KnowledgeGraphNode[]; edges: Edge[] } => {
+  const orphanTitles = buildOrphanTitles(rawNodes, rawEdges);
 
-  const nodes: KnowledgeGraphNode[] = [];
+  const layoutNodes: RadialLayoutNode[] = [
+    ...rawNodes.map((node) => ({ id: node.id, hierarchyLevel: node.hierarchyLevel, isOrphan: false })),
+    ...Array.from(orphanTitles, (title) => ({ id: `orphan::${title}`, hierarchyLevel: '', isOrphan: true })),
+  ];
+  const layoutEdges: RadialLayoutEdge[] = rawEdges.map((edge) => ({
+    source: edge.sourceId,
+    target: edge.resolved ? edge.targetId ?? `orphan::${edge.targetTitle}` : `orphan::${edge.targetTitle}`,
+  }));
+  const positionById = computeRadialPositions(layoutNodes, layoutEdges);
+  const resolvePosition = (id: string) => positionOverrides[id] ?? positionById.get(id) ?? { x: 0, y: 0 };
 
-  rawNodes.forEach((node, index) => {
-    const pos = layout[index] ?? { x: 0, y: 0 };
-    nodes.push({
-      id: node.id,
-      type: 'knowledge',
-      position: pos,
-      data: {
-        label: node.title,
-        category: node.category,
-        status: node.status,
-        resolved: true,
-        isOrphan: false,
-      },
-    });
-  });
+  const nodes: KnowledgeGraphNode[] = rawNodes.map((node) => ({
+    id: node.id,
+    type: 'knowledge',
+    position: resolvePosition(node.id),
+    draggable: isDraggableHierarchyLevel(node.hierarchyLevel),
+    data: {
+      label: node.title,
+      category: node.category,
+      status: node.status,
+      hierarchyLevel: node.hierarchyLevel,
+      content: node.content ?? EMPTY_CONTENT,
+      tags: node.tags ?? EMPTY_TAGS,
+      resolved: true,
+      isOrphan: false,
+    },
+  }));
 
-  let orphanIndex = 0;
   for (const title of orphanTitles) {
     const orphanId = `orphan::${title}`;
-    const pos = layout[rawNodes.length + orphanIndex] ?? { x: 0, y: 0 };
     nodes.push({
       id: orphanId,
       type: 'orphan',
-      position: pos,
+      position: resolvePosition(orphanId),
+      draggable: true,
       data: {
         label: title,
         category: '__orphan__',
         status: 'DRAFT',
+        hierarchyLevel: '',
+        content: EMPTY_CONTENT,
+        tags: EMPTY_TAGS,
         resolved: false,
         isOrphan: true,
       },
     });
-    orphanIndex += 1;
   }
 
   const edges: Edge[] = rawEdges.map((edge, index) => {
@@ -142,7 +210,7 @@ export const toReactFlowElements = (
       id: `edge::${edge.sourceId}::${index}`,
       source: edge.sourceId,
       target: targetId,
-      animated: !edge.resolved,
+      animated: true,
       style: edge.resolved
         ? { stroke: '#10b981', strokeWidth: 2 }
         : { stroke: '#a8a29e', strokeWidth: 1.5, strokeDasharray: '6 4' },
@@ -152,5 +220,42 @@ export const toReactFlowElements = (
   return { nodes, edges };
 };
 
-export const getNodeColor = (category: string) =>
-  CATEGORY_COLORS[category] ?? CATEGORY_COLORS['__orphan__']!;
+export interface GraphFilters {
+  searchText?: string;
+  category?: string;
+  status?: string;
+  hierarchyLevel?: string;
+}
+
+const normalizeSearchText = (value: string): string => value.trim().toLowerCase();
+
+export const hasActiveFilters = (filters: GraphFilters): boolean =>
+  Boolean(filters.searchText?.trim() || filters.category || filters.status || filters.hierarchyLevel);
+
+export const nodeMatchesFilters = (node: RawGraphNode, filters: GraphFilters): boolean => {
+  const searchText = filters.searchText ? normalizeSearchText(filters.searchText) : '';
+  if (searchText && !normalizeSearchText(node.title).includes(searchText)) return false;
+  if (filters.category && node.category !== filters.category) return false;
+  if (filters.status && node.status !== filters.status) return false;
+  if (filters.hierarchyLevel && node.hierarchyLevel !== filters.hierarchyLevel) return false;
+  return true;
+};
+
+export interface GraphStats {
+  totalNodes: number;
+  totalIndices: number;
+  totalDocuments: number;
+  unresolvedCount: number;
+}
+
+export const computeGraphStats = (rawNodes: RawGraphNode[], rawEdges: RawGraphEdge[]): GraphStats => {
+  const totalDocuments = rawNodes.filter((node) => node.hierarchyLevel === HierarchyLevel.DATA).length;
+  const unresolvedTitles = new Set(rawEdges.filter((edge) => !edge.resolved).map((edge) => edge.targetTitle));
+
+  return {
+    totalNodes: rawNodes.length,
+    totalIndices: rawNodes.length - totalDocuments,
+    totalDocuments,
+    unresolvedCount: unresolvedTitles.size,
+  };
+};

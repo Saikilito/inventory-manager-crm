@@ -1,12 +1,14 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@apollo/client';
 import {
   ReactFlow,
   Background,
   Controls,
+  useNodesState,
   type Edge,
   type Node,
   type NodeMouseHandler,
+  type OnNodeDrag,
   BackgroundVariant,
   ReactFlowProvider,
 } from '@xyflow/react';
@@ -14,14 +16,25 @@ import '@xyflow/react/dist/style.css';
 import { KNOWLEDGE_GRAPH_QUERY } from '@modules/knowledge/application/queries/knowledge.queries';
 import {
   toReactFlowElements,
+  nodeMatchesFilters,
+  hasActiveFilters,
+  computeGraphStats,
   type KnowledgeGraphNode,
   type RawGraphEdge,
   type RawGraphNode,
+  type GraphFilters,
+  type GraphStats,
+  type PositionOverrideMap,
 } from './graph-helpers';
 import { KnowledgeNode } from './KnowledgeNode';
 import { OrphanNode } from './OrphanNode';
 import { GraphControls, MiniMapWrapper } from './GraphControls';
+import { useGraphFocus } from './useGraphFocus';
 import Spinkit from '../../../../../components/Spinkit';
+
+const DIMMED_OPACITY = 0.15;
+const MATCHED_OPACITY = 1;
+const EMPTY_POSITION_OVERRIDES: PositionOverrideMap = {};
 
 interface KnowledgeGraphResponse {
   knowledgeGraph: {
@@ -35,33 +48,130 @@ const nodeTypes = {
   orphan: OrphanNode,
 };
 
-interface KnowledgeGraphProps {
+export interface KnowledgeNodeClickPayload {
+  id?: string;
+  title: string;
+  isOrphan: boolean;
+  category?: string;
   status?: string;
-  onNodeClick?: (entry: { id?: string; title: string; isOrphan: boolean }) => void;
+  hierarchyLevel?: string;
+  content?: string;
+  tags?: string[];
+  linkedTitles?: string[];
 }
 
-export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ status, onNodeClick }) => {
+export interface KnowledgeGraphInfo {
+  stats: GraphStats;
+  matchCount: number | null;
+}
+
+interface KnowledgeGraphProps {
+  status?: string;
+  includeDrafts?: boolean;
+  onNodeClick?: (entry: KnowledgeNodeClickPayload) => void;
+  filters?: GraphFilters;
+  onInfoChange?: (info: KnowledgeGraphInfo) => void;
+  positionOverrides?: PositionOverrideMap;
+  onNodePositionChange?: (id: string, position: { x: number; y: number }) => void;
+}
+
+const GraphFocusEffect: React.FC<{ matchedNodeIds: string[] | null }> = ({ matchedNodeIds }) => {
+  useGraphFocus(matchedNodeIds);
+  return null;
+};
+
+export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
+  status,
+  includeDrafts,
+  onNodeClick,
+  filters,
+  onInfoChange,
+  positionOverrides = EMPTY_POSITION_OVERRIDES,
+  onNodePositionChange,
+}) => {
   const { data, loading, error, refetch } = useQuery<KnowledgeGraphResponse>(KNOWLEDGE_GRAPH_QUERY, {
-    variables: status ? { status } : {},
+    variables: {
+      ...(status ? { status } : {}),
+      ...(includeDrafts ? { includeDrafts: true } : {}),
+    },
     fetchPolicy: 'cache-and-network',
   });
 
   const [showMinimap, setShowMinimap] = useState(false);
+  const rawNodes = useMemo(() => data?.knowledgeGraph.nodes ?? [], [data]);
+  const rawEdges = useMemo(() => data?.knowledgeGraph.edges ?? [], [data]);
 
-  const { nodes, edges } = useMemo<{ nodes: KnowledgeGraphNode[]; edges: Edge[] }>(() => {
-    if (!data?.knowledgeGraph) return { nodes: [], edges: [] };
-    return toReactFlowElements(data.knowledgeGraph.nodes, data.knowledgeGraph.edges);
-  }, [data]);
+  const { nodes: baseNodes, edges: baseEdges } = useMemo<{ nodes: KnowledgeGraphNode[]; edges: Edge[] }>(
+    () => toReactFlowElements(rawNodes, rawEdges, positionOverrides),
+    [rawNodes, rawEdges, positionOverrides],
+  );
+
+  const stats = useMemo<GraphStats>(() => computeGraphStats(rawNodes, rawEdges), [rawNodes, rawEdges]);
+
+  const filtersActive = Boolean(filters && hasActiveFilters(filters));
+  const matchedNodeIds = useMemo<string[] | null>(() => {
+    if (!filters || !filtersActive) return null;
+    return rawNodes.filter((node) => nodeMatchesFilters(node, filters)).map((node) => node.id);
+  }, [rawNodes, filters, filtersActive]);
+  const matchedIdSet = useMemo(() => (matchedNodeIds ? new Set(matchedNodeIds) : null), [matchedNodeIds]);
+
+  useEffect(() => {
+    onInfoChange?.({ stats, matchCount: matchedNodeIds ? matchedNodeIds.length : null });
+  }, [stats, matchedNodeIds, onInfoChange]);
+
+  const displayNodes = useMemo<KnowledgeGraphNode[]>(() => {
+    if (!matchedIdSet) return baseNodes;
+    return baseNodes.map((node) => ({
+      ...node,
+      style: { ...node.style, opacity: matchedIdSet.has(node.id) ? MATCHED_OPACITY : DIMMED_OPACITY },
+    }));
+  }, [baseNodes, matchedIdSet]);
+
+  const edges = useMemo<Edge[]>(() => {
+    if (!matchedIdSet) return baseEdges;
+    return baseEdges.map((edge) => ({
+      ...edge,
+      style: {
+        ...edge.style,
+        opacity: matchedIdSet.has(edge.source) || matchedIdSet.has(edge.target) ? MATCHED_OPACITY : DIMMED_OPACITY,
+      },
+    }));
+  }, [baseEdges, matchedIdSet]);
+
+  const [nodes, setNodes, onNodesChange] = useNodesState<KnowledgeGraphNode>(displayNodes);
+  useEffect(() => {
+    setNodes(displayNodes);
+  }, [displayNodes, setNodes]);
 
   const handleNodeClick: NodeMouseHandler = useCallback(
     (_event, node: Node) => {
+      if (node.type === 'orphan') {
+        onNodeClick?.({ title: String((node.data as { label?: string })?.label ?? node.id), isOrphan: true });
+        return;
+      }
+      const source = rawNodes.find((n) => n.id === node.id);
+      const linkedTitles = rawEdges.filter((edge) => edge.sourceId === node.id).map((edge) => edge.targetTitle);
       onNodeClick?.({
-        id: node.type === 'orphan' ? undefined : node.id,
-        title: String((node.data as { label?: string })?.label ?? node.id),
-        isOrphan: node.type === 'orphan',
+        id: node.id,
+        title: source?.title ?? String((node.data as { label?: string })?.label ?? node.id),
+        isOrphan: false,
+        category: source?.category,
+        status: source?.status,
+        hierarchyLevel: source?.hierarchyLevel,
+        content: source?.content,
+        tags: source?.tags,
+        linkedTitles,
       });
     },
-    [onNodeClick],
+    [onNodeClick, rawNodes, rawEdges],
+  );
+
+  const handleNodeDragStop: OnNodeDrag<KnowledgeGraphNode> = useCallback(
+    (_event, node) => {
+      if (node.draggable === false) return;
+      onNodePositionChange?.(node.id, node.position);
+    },
+    [onNodePositionChange],
   );
 
   if (loading && !data) {
@@ -88,7 +198,7 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ status, onNodeCl
     );
   }
 
-  if (nodes.length === 0) {
+  if (rawNodes.length === 0) {
     return (
       <div className="text-center py-12 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl">
         <p className="text-stone-500 dark:text-stone-400">
@@ -99,16 +209,18 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ status, onNodeCl
   }
 
   return (
-    <div className="relative w-full h-[640px] bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded-xl overflow-hidden">
+    <div className="relative w-full h-full min-h-[640px] bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded-xl overflow-hidden">
       <ReactFlowProvider>
         <ReactFlow
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}
+          onNodesChange={onNodesChange}
           onNodeClick={handleNodeClick}
+          onNodeDragStop={handleNodeDragStop}
           fitView
-          fitViewOptions={{ padding: 0.15 }}
-          minZoom={0.2}
+          fitViewOptions={{ padding: 0.2 }}
+          minZoom={0.12}
           maxZoom={1.5}
           proOptions={{ hideAttribution: true }}
         >
@@ -119,6 +231,7 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ status, onNodeCl
           />
           <MiniMapWrapper show={showMinimap} />
         </ReactFlow>
+        <GraphFocusEffect matchedNodeIds={matchedNodeIds} />
         <GraphControls
           showMinimap={showMinimap}
           onToggleMinimap={() => setShowMinimap((value) => !value)}
