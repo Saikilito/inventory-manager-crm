@@ -34,7 +34,6 @@ export const formatTime = (dateStr: string): string => {
 
 export const formatTimeToAmPm = (timeStr: string): string => {
   if (!timeStr) return "-";
-  // Check if it already contains AM/PM
   if (timeStr.toUpperCase().includes("AM") || timeStr.toUpperCase().includes("PM")) {
     return timeStr;
   }
@@ -45,14 +44,30 @@ export const formatTimeToAmPm = (timeStr: string): string => {
   if (isNaN(hours)) return timeStr;
   const ampm = hours >= 12 ? "PM" : "AM";
   hours = hours % 12;
-  hours = hours ? hours : 12; // the hour '0' should be '12'
+  hours = hours ? hours : 12;
   return `${hours}:${minutes} ${ampm}`;
 };
 
-export const getFullName = (client: any, fallback: string = "Unknown Client"): string => {
+export interface PersonNameFields {
+  firstName?: string;
+  name?: string;
+  lastName?: string;
+  surname?: string;
+}
+
+export const getFullName = (
+  client?: PersonNameFields | Record<string, unknown> | null,
+  fallback: string = "Unknown Client"
+): string => {
   if (!client) return fallback;
-  const firstName = client.firstName || client.name || "";
-  const lastName = client.lastName || client.surname || "";
+  const firstName =
+    (client.firstName as string | undefined) ||
+    (client.name as string | undefined) ||
+    "";
+  const lastName =
+    (client.lastName as string | undefined) ||
+    (client.surname as string | undefined) ||
+    "";
   const full = `${firstName} ${lastName}`.trim();
   return full || fallback;
 };

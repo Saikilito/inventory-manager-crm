@@ -8,16 +8,18 @@ import { GetUsersUseCase } from "@modules/auth/application/use-cases/get-users";
 import { UpdateUserUseCase } from "@modules/auth/application/use-cases/update-user";
 import { IUser, makeUser } from "@shared-domain/user/user.entity";
 
+export interface RegisterParams {
+  name: string;
+  username: string;
+  email: string;
+  password: string;
+  role: string;
+}
+
 export interface AuthPloc extends Ploc<AuthState> {
   checkSession(): Promise<void>;
   login(email: string, password: string): Promise<void>;
-  register(
-    name: string,
-    username: string,
-    email: string,
-    password: string,
-    role: string,
-  ): Promise<void>;
+  register(params: RegisterParams): Promise<void>;
   logout(): Promise<void>;
   getUsers(): Promise<void>;
   updateUser(targetId: string, data: Partial<IUser>): Promise<void>;
@@ -65,13 +67,13 @@ export function makeAuthPloc(
     }
   };
 
-  const register = async (
-    name: string,
-    username: string,
-    email: string,
-    password: string,
-    role: string,
-  ) => {
+  const register = async ({
+    name,
+    username,
+    email,
+    password,
+    role,
+  }: RegisterParams) => {
     ploc.changeState({ kind: AuthStateKind.REGISTERING });
 
     try {
@@ -102,7 +104,6 @@ export function makeAuthPloc(
           errorMessage: result.getError().message || "Registration error",
         });
       } else {
-        // Registration success redirects or clears state
         ploc.changeState({ kind: AuthStateKind.UNAUTHENTICATED });
       }
     } catch (e: unknown) {
@@ -157,7 +158,6 @@ export function makeAuthPloc(
 
     const originalUsers = currentState.users || [];
 
-    // Optimistically update the user list in the state
     const optimisticallyUpdatedUsers = originalUsers.map((user) => {
       if (String(user.id) === targetId) {
         return {

@@ -14,18 +14,3 @@ export const GET_ALL_CONTEXTS = gql`
     }
   }
 `;
-
-export const GET_CONTEXT = gql`
-  query getContext($_id: ID!) {
-    getContext(_id: $_id) {
-      _id
-      name
-      attributes {
-        name
-        label
-        type
-        required
-      }
-    }
-  }
-`;
