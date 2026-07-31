@@ -60,6 +60,7 @@ Skills are stored in:
 | `strict-coder-protocol` | Writing, modifying, refactoring, or fixing code | Pre-Flight and Post-Flight checklists (DRY, No Magic Strings, 400 lines limit) |
 | `code-audit` | Auditing, reviewing, or verifying a file | QA verification (`wc -l`, `grep` for `any`, `switch`, `class`) |
 | `project-testing` | Writing, adding, or reviewing tests | Vitest, Object Mother, Domain purity |
+| `skill-authoring` | Creating, updating, or maintaining skills | Anthropic skill engineering guidelines & prompt caching principles |
 
 ---
 
@@ -74,6 +75,7 @@ Skills are stored in:
 | **Sequential Error Chaining** | [result-composer.md](docs/agents/result-composer.md) | Chaining 2+ `Result` monads |
 | **Testing & Verification** | [verification.md](docs/agents/verification.md) | Tests, DoD checklist |
 | **Commands** | [commands.md](docs/agents/commands.md) | Dev, test, build commands |
+| **Skill Authoring & Maintenance** | [skill-guidelines.md](docs/agents/skill-guidelines.md) | Creating, updating, or maintaining AI skills |
 | **Guideline Maintenance** | [agents-guidelines.md](docs/agents/agents-guidelines.md) | Updating `AGENTS.md` or `docs/agents/*` |
 
 ---

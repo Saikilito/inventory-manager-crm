@@ -107,56 +107,56 @@ grep -rn "console\." --include="*.ts"
 
 ---
 
-### 5. 💬 Comments Audit (Zero-Tolerance for Noise)
+### 5. 💬 Comments & Error Handling Audit (Zero-Tolerance for Explanatory Noise & Silent Catches)
 
 ```bash
-# Find all comments
-grep -n "//" <file>
-grep -n "/\*" <file>
+# Find all comments (excluding ESLint/type directives and allowed JSX section comments)
+grep -n -E "//|/\*" <file> | grep -v "eslint-disable\|@ts-ignore\|@ts-expect-error\|{\/\*"
 
-# Find potentially redundant comments (NOT eslint/TODO/FIXME)
-grep -n "^[ \t]*\/\/" <file> | grep -v "eslint-disable\|TODO\|FIXME\|@ts-ignore\|@ts-expect-error"
+# Find empty or unlogged catch blocks
+grep -n -A 3 "catch" <file> | grep -E "catch.*\{" -A 3
 ```
 
-**Rule:** Comments are a LAST RESORT. Code must be self-documenting.
+**Rule 1:** Comments explaining code are strictly BANNED. Code must be self-documenting.
+**Rule 2:** Catch blocks MUST NOT be empty or silently swallow errors. Log errors using `console.error` (exceptions/failures) or `console.warn`/`console.info` (expected fallbacks).
 
-| Comment Type                              | Verdict                                 |
+| Check / Comment Type                      | Verdict                                 |
 | :---------------------------------------- | :-------------------------------------- |
+| JSX section comment (`{/* Section */}`)   | ✅ PASS (Allowed for React UI block structure) |
 | ESLint bypass with justification          | ✅ PASS                                 |
-| `// TODO(ticket):` or `// FIXME(ticket):` | ✅ PASS                                 |
-| Obscure business rule explanation         | ✅ PASS                                 |
-| Non-obvious integration/API quirk         | ✅ PASS                                 |
-| Explains WHAT code does                   | ❌ FAIL - Delete or rename variables    |
+| Pre-existing TODO in untouched legacy     | ✅ PASS (Leave untouched)               |
+| Agent-introduced `TODO` or `FIXME`        | ❌ FAIL - Do not introduce new TODOs    |
+| External regulatory or vendor API constraint | ✅ PASS (Only if impossible in code) |
+| Explains WHAT code does / internal logic  | ❌ FAIL - Refactor names/types instead  |
 | Explains obvious                          | ❌ FAIL - Delete                        |
-| Decorative section headers                | ❌ FAIL - Delete                        |
+| Decorative line headers (`// ==== ...`)  | ❌ FAIL - Delete                        |
 | Type information                          | ❌ FAIL - TypeScript already shows this |
 | Commented-out code                        | ❌ FAIL - Delete (Git has history)      |
-| Translations to other languages           | ❌ FAIL - Use English names             |
+| Empty `catch {}` or silent error swallowing | ❌ FAIL - Add `console.error` / `console.warn` |
 
-**Redundant comment examples:**
+---
+
+### 💡 Code Exemplars for Audit Evaluation
 
 ```typescript
-// ❌ BAD - Explains what
-// Increments the counter by 1
-counter++;
+// ❌ BAD - Explains what obvious code does
+// Reset state for next use
+setStep('form');
 
-// ❌ BAD - Obvious
-// User entity
-class User {}
+// ❌ BAD - Empty catch / silent error swallowing
+try {
+  savedOrder = JSON.parse(savedOrderJson);
+} catch {}
 
-// ❌ BAD - Decorative
-// ==================== VALIDATION ====================
+// ✅ GOOD - React JSX section comment for visual structure
+{/* Header Filters Bar */}
 
-// ❌ BAD - Type info already in TypeScript
-// Returns a string
-function getName(): string {}
-
-// ✅ GOOD - Obscure business rule
-// Tax rate is 19% for Chile per SII regulation, not LATAM average of 16%
-const TAX_RATE = 0.19;
-
-// ✅ GOOD - ESLint bypass
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- 3rd party lib doesn't have types
+// ✅ GOOD - Logged fallback error
+try {
+  savedOrder = JSON.parse(savedOrderJson);
+} catch (err) {
+  console.warn('[Storage] Failed to parse saved item order:', err);
+}
 ```
 
 **Verdict:** `PASS` / `FAIL - redundant comments at lines X, Y` / `FAIL - commented code at lines A, B`
