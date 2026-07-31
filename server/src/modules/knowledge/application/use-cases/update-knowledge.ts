@@ -17,7 +17,7 @@ import {
 import { KnowledgeCategoryVO } from '../../../../../../shared-domain/src/knowledge/value-objects/knowledge-category.vo.js';
 import { HierarchyLevelVO } from '../../../../../../shared-domain/src/knowledge/value-objects/hierarchy-level.vo.js';
 import { KnowledgeStatusVO } from '../../../../../../shared-domain/src/knowledge/value-objects/knowledge-status.vo.js';
-import { WikiLinkVO } from '../../../../../../shared-domain/src/knowledge/value-objects/wiki-link.vo.js';
+import { WikiLinkVO, wikiLinkSchema } from '../../../../../../shared-domain/src/knowledge/value-objects/wiki-link.vo.js';
 import { IKnowledgeRepository } from '../repositories/knowledge.repository.js';
 
 export const updateKnowledgeInputSchema = z.object({
@@ -30,6 +30,7 @@ export const updateKnowledgeInputSchema = z.object({
   status: zodKnowledgeStatus.optional(),
   productId: zodIdString.optional(),
   updatedBy: zodIdString,
+  wikiLinks: z.array(wikiLinkSchema).optional(),
 });
 
 export type UpdateKnowledgeInput = z.infer<typeof updateKnowledgeInputSchema>;
@@ -91,7 +92,10 @@ export const makeUpdateKnowledge = (knowledgeRepository: IKnowledgeRepository): 
           ? NonEmptyStringVO.create(validated.content)
           : existing.content;
 
-        const wikiLinks = WikiLinkVO.extractFromContent(nextContent.toString());
+        const rawLinks = validated.wikiLinks;
+        const wikiLinks = rawLinks !== undefined
+          ? rawLinks.map((link) => WikiLinkVO.create(link))
+          : WikiLinkVO.extractFromContent(nextContent.toString());
 
         const nextProductId = validated.productId !== undefined
           ? IdVO.create(validated.productId)

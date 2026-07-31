@@ -15,6 +15,7 @@ import { IKnowledgeEdge, IKnowledgeGraph, IKnowledgeNode } from '../services/kno
 export const getKnowledgeGraphInputSchema = z
   .object({
     status: z.enum([KnowledgeStatus.DRAFT, KnowledgeStatus.ACTIVE, KnowledgeStatus.REJECTED]).optional(),
+    includeDrafts: z.boolean().optional(),
   })
   .optional();
 
@@ -35,6 +36,14 @@ export const makeGetKnowledgeGraph = (knowledgeRepository: IKnowledgeRepository)
       }
     }
 
+    if (input?.includeDrafts) {
+      const [activeEntries, draftEntries] = await Promise.all([
+        knowledgeRepository.findByStatus(KnowledgeStatusVO.create(KnowledgeStatus.ACTIVE)),
+        knowledgeRepository.findByStatus(KnowledgeStatusVO.create(KnowledgeStatus.DRAFT)),
+      ]);
+      return Result.ok(aggregateGraph([...activeEntries, ...draftEntries]));
+    }
+
     const statusToQuery: KnowledgeStatusType = input?.status
       ? KnowledgeStatusVO.create(input.status)
       : KnowledgeStatusVO.create(KnowledgeStatus.ACTIVE);
@@ -51,6 +60,9 @@ export const aggregateGraph = (entries: IKnowledge[]): IKnowledgeGraph => {
     title: entry.title.toString(),
     category: entry.category,
     status: entry.status,
+    hierarchyLevel: entry.metadata.hierarchyLevel,
+    content: entry.content.toString(),
+    tags: entry.metadata.tags ?? [],
   }));
 
   const titleIndex = new Map<string, string>();

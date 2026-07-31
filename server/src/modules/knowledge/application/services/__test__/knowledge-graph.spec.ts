@@ -40,6 +40,49 @@ describe('aggregateGraph', () => {
     expect(result.nodes[1]?.title).toBe('Beta');
   });
 
+  it('should pass through hierarchyLevel, content and tags for every node', () => {
+    const result = aggregateGraph([
+      buildKnowledge({
+        id: 'a' as IKnowledge['id'],
+        title: NonEmptyStringVO.create('Root Index'),
+        content: NonEmptyStringVO.create('Points to sub-topics'),
+        metadata: {
+          hierarchyLevel: HierarchyLevel.ROOT as IKnowledge['metadata']['hierarchyLevel'],
+          tags: ['index', 'sales'],
+          createdBy: 'a4d3e8f1-2b3c-4d5e-9f0a-1b2c3d4e5f6a' as IKnowledge['metadata']['createdBy'],
+        },
+      }),
+      buildKnowledge({
+        id: 'b' as IKnowledge['id'],
+        title: NonEmptyStringVO.create('Leaf Document'),
+        content: NonEmptyStringVO.create('[[Root Index]] some details'),
+      }),
+    ]);
+
+    const rootNode = result.nodes.find((n) => n.id === 'a');
+    expect(rootNode?.hierarchyLevel).toBe(HierarchyLevel.ROOT);
+    expect(rootNode?.content).toBe('Points to sub-topics');
+    expect(rootNode?.tags).toEqual(['index', 'sales']);
+
+    const leafNode = result.nodes.find((n) => n.id === 'b');
+    expect(leafNode?.hierarchyLevel).toBe(HierarchyLevel.TOPIC);
+  });
+
+  it('should default tags to an empty array when metadata.tags is not set', () => {
+    const result = aggregateGraph([
+      buildKnowledge({
+        id: 'a' as IKnowledge['id'],
+        metadata: {
+          hierarchyLevel: HierarchyLevel.DATA as IKnowledge['metadata']['hierarchyLevel'],
+          tags: undefined as unknown as string[],
+          createdBy: 'a4d3e8f1-2b3c-4d5e-9f0a-1b2c3d4e5f6a' as IKnowledge['metadata']['createdBy'],
+        },
+      }),
+    ]);
+
+    expect(result.nodes[0]?.tags).toEqual([]);
+  });
+
   it('should resolve edges when the wiki link target matches another entry title', () => {
     const result = aggregateGraph([
       buildKnowledge({

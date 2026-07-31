@@ -53,7 +53,7 @@ describe('ApproveKnowledge', () => {
   it('should be idempotent when entry is already ACTIVE', async () => {
     const entry = buildKnowledge({ status: KnowledgeStatus.ACTIVE as IKnowledge['status'] });
     const repo = buildRepository({ getById: vi.fn().mockResolvedValue(Result.ok(entry)) });
-    const result = await makeApproveKnowledge(repo)({ id: '507f1f77bcf86cd799439011', updatedBy: 'u1' });
+    const result = await makeApproveKnowledge(repo)({ id: '507f1f77bcf86cd799439011', updatedBy: '507f1f77bcf86cd799439022' });
     expect(result.isFailure).toBe(false);
     expect(repo.updateStatus).not.toHaveBeenCalled();
   });
@@ -91,7 +91,7 @@ describe('RejectKnowledge', () => {
   it('should be idempotent when entry is already REJECTED', async () => {
     const entry = buildKnowledge({ status: KnowledgeStatus.REJECTED as IKnowledge['status'] });
     const repo = buildRepository({ getById: vi.fn().mockResolvedValue(Result.ok(entry)) });
-    const result = await makeRejectKnowledge(repo)({ id: '507f1f77bcf86cd799439011', updatedBy: 'u1' });
+    const result = await makeRejectKnowledge(repo)({ id: '507f1f77bcf86cd799439011', updatedBy: '507f1f77bcf86cd799439022' });
     expect(result.isFailure).toBe(false);
     expect(repo.updateStatus).not.toHaveBeenCalled();
   });

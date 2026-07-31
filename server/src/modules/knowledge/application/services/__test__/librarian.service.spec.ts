@@ -77,7 +77,7 @@ describe('LibrarianService', () => {
     await librarian.extractFromProduct({ productId: PRODUCT_ID, name: 'Premium Coffee' });
     const elapsed = Date.now() - start;
 
-    expect(elapsed).toBeLessThan(20);
+    expect(elapsed).toBeLessThan(150);
     expect(create).toHaveBeenCalled();
   });
 

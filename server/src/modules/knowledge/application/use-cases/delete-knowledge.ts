@@ -35,8 +35,8 @@ export const makeDeleteKnowledge = (knowledgeRepository: IKnowledgeRepository): 
         }
         return Result.ok(k);
       })
-      .useResult('softDelete', async () => {
-        const result = await knowledgeRepository.softDeleteByIds(
+      .useResult('delete', async () => {
+        const result = await knowledgeRepository.deleteByIds(
           [IdVO.create(parsed.data.id)],
           IdVO.create(parsed.data.deletedBy),
         );

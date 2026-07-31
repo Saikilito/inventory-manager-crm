@@ -23,6 +23,7 @@ interface CreateKnowledgeInput {
   content: string;
   metadata: KnowledgeMetadataInput;
   status?: KnowledgeStatus;
+  wikiLinks?: KnowledgeWikiLinkInput[];
 }
 
 interface UpdateKnowledgeInput {
@@ -32,6 +33,7 @@ interface UpdateKnowledgeInput {
   content?: string;
   metadata?: KnowledgeMetadataInput;
   status?: KnowledgeStatus;
+  wikiLinks?: KnowledgeWikiLinkInput[];
 }
 
 const mapSubLink = (link: { title: string; url?: string }) => ({
@@ -91,6 +93,13 @@ const requireAdmin = async (
   return { _id: user.id!.toString(), role: user.role };
 };
 
+const requireAuth = async (ctx: IContext): Promise<void> => {
+  const decoded = await ctx.token();
+  if (!decoded) {
+    throw new Error('Unauthorized: authentication required');
+  }
+};
+
 const buildTagsPayload = (input: { metadata?: KnowledgeMetadataInput; tags?: string[] }) => {
   if (input.tags !== undefined) return input.tags;
   return input.metadata?.tags || [];
@@ -102,6 +111,9 @@ const mapGraphToGql = (graph: IKnowledgeGraph) => ({
     title: node.title,
     category: node.category as KnowledgeCategory,
     status: node.status as KnowledgeStatus,
+    hierarchyLevel: node.hierarchyLevel as HierarchyLevel,
+    content: node.content,
+    tags: node.tags,
   })),
   edges: graph.edges.map((edge: IKnowledgeEdge) => ({
     sourceId: edge.sourceId.toString(),
@@ -186,13 +198,18 @@ export default {
 
     knowledgeGraph: async (
       _parent: unknown,
-      args: { status?: KnowledgeStatus },
+      args: { status?: KnowledgeStatus; includeDrafts?: boolean },
       ctx: IContext,
     ) => {
-      await requireAdmin(ctx);
-      const result = await ctx.container.knowledge.getKnowledgeGraph(
-        args.status ? { status: args.status as KnowledgeStatusType } : undefined,
-      );
+      if (args.includeDrafts) {
+        await requireAdmin(ctx);
+      } else {
+        await requireAuth(ctx);
+      }
+      const result = await ctx.container.knowledge.getKnowledgeGraph({
+        ...(args.status ? { status: args.status as KnowledgeStatusType } : {}),
+        ...(args.includeDrafts ? { includeDrafts: true } : {}),
+      });
       if (result.isFailure) {
         throw result.getError();
       }
@@ -215,6 +232,7 @@ export default {
         tags: buildTagsPayload({ metadata: input.metadata }),
         ...(input.status ? { status: input.status } : {}),
         ...(input.metadata.productId ? { productId: input.metadata.productId } : {}),
+        ...(input.wikiLinks ? { wikiLinks: input.wikiLinks } : {}),
         createdBy: admin._id,
       });
       if (result.isFailure) {
@@ -247,6 +265,7 @@ export default {
         ...(tags.length > 0 ? { tags } : {}),
         ...(input.status ? { status: input.status } : {}),
         ...(input.metadata?.productId ? { productId: input.metadata.productId } : {}),
+        ...(input.wikiLinks !== undefined ? { wikiLinks: input.wikiLinks } : {}),
         updatedBy: admin._id,
       });
       if (result.isFailure) {

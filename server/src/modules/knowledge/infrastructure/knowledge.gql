@@ -63,6 +63,9 @@ type KnowledgeNode {
   title: String!
   category: KnowledgeCategory!
   status: KnowledgeStatus!
+  hierarchyLevel: KnowledgeHierarchyLevel!
+  content: String!
+  tags: [String!]!
 }
 
 type KnowledgeEdge {
@@ -95,6 +98,7 @@ input CreateKnowledgeInput {
   content: String!
   metadata: KnowledgeMetadataInput!
   status: KnowledgeStatus
+  wikiLinks: [KnowledgeWikiLinkInput!]
 }
 
 input UpdateKnowledgeInput {
@@ -104,6 +108,7 @@ input UpdateKnowledgeInput {
   content: String
   metadata: KnowledgeMetadataInput
   status: KnowledgeStatus
+  wikiLinks: [KnowledgeWikiLinkInput!]
 }
 
 type Query {
@@ -111,7 +116,7 @@ type Query {
   knowledge(_id: ID!): Knowledge!
   searchKnowledge(query: String!, topN: Int, category: KnowledgeCategory): [KnowledgeSearchResult!]!
   knowledgePending(status: KnowledgeStatus): [Knowledge!]!
-  knowledgeGraph(status: KnowledgeStatus): KnowledgeGraph!
+  knowledgeGraph(status: KnowledgeStatus, includeDrafts: Boolean): KnowledgeGraph!
 }
 
 type Mutation {

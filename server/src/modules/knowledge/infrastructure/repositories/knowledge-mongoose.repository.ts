@@ -160,12 +160,14 @@ const softDeleteByIds = async (
 ): Promise<Result<void, DatabaseError>> => {
   return doTryResult(
     async () => {
+      const objectIds = ids.map((id) => toObjectIdIfValid(id.toString()));
       await KnowledgeModel.updateMany(
-        { _id: { $in: ids.map((id) => id.toString()) } },
+        { _id: { $in: objectIds } },
         {
           $set: {
             isActive: false,
-            updatedBy: deletedBy.toString(),
+            'metadata.updatedBy': toObjectIdIfValid(deletedBy.toString()),
+            updatedBy: toObjectIdIfValid(deletedBy.toString()),
           },
         },
       ).exec();
@@ -177,7 +179,10 @@ const softDeleteByIds = async (
 const findByStatus = async (status: KnowledgeStatusType): Promise<IKnowledge[]> => {
   const result = await doTryResult(
     async () => {
-      const docs = await KnowledgeModel.find({ status: status.toString() })
+      const docs = await KnowledgeModel.find({
+        status: status.toString(),
+        isActive: { $ne: false },
+      })
         .sort({ updatedAt: -1 })
         .exec();
       return docs.map(mapToDomain);
@@ -219,7 +224,6 @@ export const makeKnowledgeMongooseRepository = (): IKnowledgeRepository => {
   };
 };
 
-// Re-exports kept for downstream consumers that need direct VO construction.
 export { KnowledgeCategory, KnowledgeCategoryVO };
 export type { KnowledgeCategoryType };
 export { HierarchyLevel, HierarchyLevelVO };
