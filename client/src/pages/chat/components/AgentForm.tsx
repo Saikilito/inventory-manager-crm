@@ -8,6 +8,9 @@ export const AVAILABLE_TOOLS = [
   { key: "createClient", label: "Create Client in CRM" },
   { key: "createOrder", label: "Create Draft CRM Order" },
   { key: "queryMongoDB", label: "Query Database (Direct)" },
+  { key: "webFetch", label: "Web Search & Fetch (Research)" },
+  { key: "navigateKnowledgeBrain", label: "Navigate Knowledge Graph" },
+  { key: "createKnowledgeEntry", label: "Create Knowledge Entry" },
 ];
 
 export interface AgentFormProps {

@@ -4,7 +4,6 @@ import { AgentDirectorySidebar } from "./AgentsConfigWorkspace/AgentDirectorySid
 import { AgentWorkspaceHeader } from "./AgentsConfigWorkspace/AgentWorkspaceHeader";
 import { AgentWorkspaceTabs } from "./AgentsConfigWorkspace/AgentWorkspaceTabs";
 import { SandboxChatUI } from "./AgentsConfigWorkspace/SandboxChatUI";
-import { KnowledgeBrainPanel } from "./AgentsConfigWorkspace/KnowledgeBrainPanel";
 import {
   PromptAndToolsFields,
 } from "./AgentsConfigWorkspace/AgentFormSections";
@@ -51,7 +50,6 @@ export const AgentsConfigWorkspace: React.FC = () => {
   }
 
   const isChatView = activeSubTab === "chat" && selectedAgent !== null && !isCreatingNew;
-  const isKnowledgeView = activeSubTab === "knowledge" && selectedAgent !== null && !isCreatingNew;
   const showPromptFields = isCreatingNew || activeSubTab === "prompt";
 
   return (
@@ -76,22 +74,7 @@ export const AgentsConfigWorkspace: React.FC = () => {
                 onDeleteClick={(e) => handleDeleteClick(selectedAgent.id, e)}
               />
               <AgentWorkspaceTabs activeSubTab={activeSubTab} setActiveSubTab={setActiveSubTab} />
-              <SandboxChatUI agentId={selectedAgent.id} />
-            </div>
-          ) : isKnowledgeView ? (
-            <div className="flex-1 flex flex-col h-full min-h-0">
-              <AgentWorkspaceHeader
-                isChatView={false}
-                isCreatingNew={false}
-                name={name}
-                role={role}
-                showDelete
-                onDeleteClick={(e) => selectedAgent && handleDeleteClick(selectedAgent.id, e)}
-              />
-              <AgentWorkspaceTabs activeSubTab={activeSubTab} setActiveSubTab={setActiveSubTab} />
-              <div className="flex-1 p-6 overflow-y-auto">
-                <KnowledgeBrainPanel />
-              </div>
+              <SandboxChatUI key={selectedAgent.id} agentId={selectedAgent.id} />
             </div>
           ) : (
             <form onSubmit={handleSaveSubmit} className="flex-1 flex flex-col h-full">

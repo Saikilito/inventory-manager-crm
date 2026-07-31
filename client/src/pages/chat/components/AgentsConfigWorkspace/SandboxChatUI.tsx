@@ -17,6 +17,13 @@ export const SandboxChatUI: React.FC<SandboxChatUIProps> = ({ agentId }) => {
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setMessages([
+      { id: "init", sender: "SYSTEM", text: "Playtest Sandbox started. Speak directly to this AI Agent to test its custom system prompt and capability configurations in real-time." }
+    ]);
+    setInputText("");
+  }, [agentId]);
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
@@ -27,7 +34,6 @@ export const SandboxChatUI: React.FC<SandboxChatUIProps> = ({ agentId }) => {
     const userText = inputText.trim();
     setInputText("");
 
-    // Append user message
     setMessages((prev) => [...prev, { id: Date.now().toString(), sender: "USER", text: userText }]);
 
     try {
