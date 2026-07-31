@@ -1,15 +1,6 @@
 import React, { useState } from 'react';
-import { z } from 'zod';
 import { IClient } from '@shared-domain/client/client.entity';
-
-// Define strict validation schema using Zod
-const clientFormSchema = z.object({
-  firstName: z.string().min(2, 'Must be at least 2 characters').regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s'-]+$/, 'Must contain only letters'),
-  lastName: z.string().min(2, 'Must be at least 2 characters').regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s'-]+$/, 'Must contain only letters'),
-  address: z.string().min(5, 'Address must be at least 5 characters long'),
-  whatsapp: z.string().regex(/^\+?[0-9\s-]{10,15}$/, 'Valid phone required (e.g. +1234567890)'),
-  nationalId: z.string().min(5, 'ID must be at least 5 chars').regex(/^[a-zA-Z0-9-]+$/, 'Invalid characters (use V-12345678)'),
-});
+import { clientFormSchema } from '../../modules/client/client.schema';
 
 interface ClientFormProps {
   client?: IClient;
@@ -28,21 +19,18 @@ export const ClientForm: React.FC<ClientFormProps> = ({
   onSubmit,
   submitButtonText = 'Save Changes',
 }) => {
-  // Local state for basic fields
   const [firstName, setFirstName] = useState(client ? String(client.firstName) : '');
   const [lastName, setLastName] = useState(client ? String(client.lastName) : '');
   const [address, setAddress] = useState(client ? String(client.address) : '');
   const [whatsapp, setWhatsapp] = useState(client ? String(client.whatsapp) : '');
   const [nationalId, setNationalId] = useState(client ? String(client.nationalId) : '');
 
-  // Validation error state
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
 
-    // Validate using Zod
     const validationResult = clientFormSchema.safeParse({
       firstName,
       lastName,
@@ -62,7 +50,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({
       return;
     }
 
-    // Call submit
     onSubmit({
       firstName,
       lastName,

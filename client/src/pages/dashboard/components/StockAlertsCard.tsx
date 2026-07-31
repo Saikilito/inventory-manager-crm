@@ -2,13 +2,13 @@ import React from 'react';
 import { AlertTriangle, Package, ArrowRight } from 'lucide-react';
 import { useQuery } from '@apollo/client';
 import { useNavigate } from 'react-router-dom';
+import { match } from 'ts-pattern';
 import { PRODUCTS_QUERY } from '@modules/product/infrastructure/graphql/queries';
 
 interface StockAlertsCardProps {
   contextId?: string;
 }
 
-// Threshold for low stock (can be made configurable later)
 const LOW_STOCK_THRESHOLD = 5;
 const CRITICAL_STOCK_THRESHOLD = 2;
 
@@ -22,7 +22,6 @@ export const StockAlertsCard: React.FC<StockAlertsCardProps> = () => {
 
   const products = data?.getAllProducts || [];
 
-  // Filter products with low stock
   const stockAlerts = products
     .filter((p: { stock: number }) => p.stock <= LOW_STOCK_THRESHOLD)
     .map((p: { _id: string; name: string; stock: number }) => ({
@@ -34,27 +33,17 @@ export const StockAlertsCard: React.FC<StockAlertsCardProps> = () => {
     .sort((a: { currentStock: number }, b: { currentStock: number }) => a.currentStock - b.currentStock)
     .slice(0, 5);
 
-  const getAlertColor = (status: string) => {
-    switch (status) {
-      case 'critical':
-        return 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20';
-      case 'low':
-        return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';
-      default:
-        return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20';
-    }
-  };
+  const getAlertColor = (status: string) =>
+    match(status)
+      .with('critical', () => 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20')
+      .with('low', () => 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20')
+      .otherwise(() => 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20');
 
-  const getAlertLabel = (status: string) => {
-    switch (status) {
-      case 'critical':
-        return 'URGENTE';
-      case 'low':
-        return 'BAJO';
-      default:
-        return 'VIGILAR';
-    }
-  };
+  const getAlertLabel = (status: string) =>
+    match(status)
+      .with('critical', () => 'URGENTE')
+      .with('low', () => 'BAJO')
+      .otherwise(() => 'VIGILAR');
 
   if (loading) {
     return (

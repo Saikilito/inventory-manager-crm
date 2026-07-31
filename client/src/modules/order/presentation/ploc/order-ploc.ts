@@ -6,9 +6,18 @@ import { UpdateOrderUseCase } from '@modules/order/application/use-cases/update-
 import { IdVO } from '@shared-domain/shared/value-objects/id.vo';
 import { makeOrder, OrderStatus, IOrder } from '@shared-domain/order/order.entity';
 
+export interface CreateOrderParams {
+  clientId: string;
+  items: Array<{ productId: string; quantity: number }>;
+  total: number;
+  sellerId: string;
+  contextId?: string;
+  deliveryCost?: number;
+}
+
 export interface OrdersPloc extends Ploc<OrdersState> {
   loadClientOrders(clientId: string): Promise<void>;
-  createOrder(clientId: string, items: Array<{ productId: string; quantity: number }>, total: number, sellerId: string, contextId?: string, deliveryCost?: number): Promise<void>;
+  createOrder(params: CreateOrderParams): Promise<void>;
   updateOrderStatus(order: IOrder, newStatus: OrderStatus, cancellationObservation?: string): Promise<void>;
 }
 
@@ -38,14 +47,14 @@ export function makeOrdersPloc(
     }
   };
 
-  const createOrder = async (
-    clientId: string,
-    items: Array<{ productId: string; quantity: number }>,
-    total: number,
-    sellerId: string,
-    contextId?: string,
-    deliveryCost?: number
-  ) => {
+  const createOrder = async ({
+    clientId,
+    items,
+    total,
+    sellerId,
+    contextId,
+    deliveryCost,
+  }: CreateOrderParams) => {
     ploc.changeState({ kind: OrdersStateKind.LOADING });
 
     try {

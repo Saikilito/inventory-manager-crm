@@ -19,18 +19,15 @@ import Spinkit from '@components/Spinkit';
 import Alert from '@components/Alert';
 import { Link } from 'react-router-dom';
 
-// Modals
 import { CreateAccountModal } from './components/CreateAccountModal';
 import { AdjustAccountModal } from './components/AdjustAccountModal';
 import { CreateTransactionDrawer } from './components/CreateTransactionDrawer';
 import { ExchangeRateModal } from './components/ExchangeRateModal';
 import { TransferFundsDrawer } from './components/TransferFundsDrawer';
 
-// Components
 import { AccountsOverview } from './components/AccountsOverview';
 import { TransactionJournal } from './components/TransactionJournal';
 
-// Hook
 import { useFinancialDashboardLogic } from './hooks/useFinancialDashboardLogic';
 
 export const FinancialDashboardPage: React.FC = () => {

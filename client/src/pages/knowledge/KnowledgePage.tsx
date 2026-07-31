@@ -8,21 +8,14 @@ import { KnowledgeStatus } from '@shared-domain/knowledge';
 import Spinkit from '../../components/Spinkit';
 import KnowledgeList from '../../modules/knowledge/infrastructure/components/KnowledgeList';
 import PendingKnowledgeList from '../../modules/knowledge/infrastructure/components/PendingKnowledgeList';
+import { isGraphUiEnabled } from '../../modules/knowledge/infrastructure/utils/is-graph-ui-enabled';
+import { usePositionOverrides } from '../../modules/knowledge/infrastructure/components/KnowledgeGraph/use-position-overrides';
 
 const KnowledgeGraph = React.lazy(() =>
   import('../../modules/knowledge/infrastructure/components/KnowledgeGraph/KnowledgeGraph').then(
     (m) => ({ default: m.KnowledgeGraph }),
   ),
 );
-
-const isGraphUiEnabled = (): boolean => {
-  try {
-    const flag = (import.meta.env.VITE_GRAPH_UI_ENABLED as string | undefined) ?? 'true';
-    return ['1', 'true', 'yes', 'on'].includes(String(flag).toLowerCase());
-  } catch {
-    return true;
-  }
-};
 
 type KnowledgeTab = 'all' | 'pending' | 'graph';
 
@@ -40,6 +33,7 @@ export const KnowledgePage: React.FC = () => {
   const [authorized, setAuthorized] = useState(false);
   const [activeTab, setActiveTab] = useState<KnowledgeTab>('all');
   const graphEnabled = isGraphUiEnabled();
+  const { positionOverrides, setPositionOverride } = usePositionOverrides();
 
   useEffect(() => {
     if (state.kind === AuthStateKind.AUTHENTICATED) {
@@ -126,7 +120,11 @@ export const KnowledgePage: React.FC = () => {
                 </div>
               }
             >
-              <KnowledgeGraph status={KnowledgeStatus.ACTIVE} />
+              <KnowledgeGraph
+                status={KnowledgeStatus.ACTIVE}
+                positionOverrides={positionOverrides}
+                onNodePositionChange={setPositionOverride}
+              />
             </React.Suspense>
           ))
           .exhaustive()}

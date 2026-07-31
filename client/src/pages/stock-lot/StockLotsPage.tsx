@@ -7,6 +7,7 @@ import { useStockLotsLogic } from "./hooks/useStockLotsLogic";
 import { StockLotsTable } from "./components/StockLotsTable";
 import { CreateStockLotModal } from "./components/CreateStockLotModal";
 import { useState } from "react";
+import type { StockLot } from "@modules/product/infrastructure/graphql/stock-lot-types";
 
 export const StockLotsPage: React.FC = () => {
   const {
@@ -31,14 +32,14 @@ export const StockLotsPage: React.FC = () => {
   } = useStockLotsLogic();
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [editingDraft, setEditingDraft] = useState<any>(undefined);
+  const [editingDraft, setEditingDraft] = useState<StockLot | undefined>(undefined);
 
   const openCreateModal = () => {
     setEditingDraft(undefined);
     setIsCreateModalOpen(true);
   };
 
-  const openEditModal = (draft: any) => {
+  const openEditModal = (draft: StockLot) => {
     setEditingDraft(draft);
     setIsCreateModalOpen(true);
   };
@@ -50,7 +51,6 @@ export const StockLotsPage: React.FC = () => {
     }
   };
 
-  // Calculate counts for the status tabs based on current date and supplier filters
   const baseFilteredLots = stockLots.filter((lot) => {
     const matchesDate = lot.purchaseDate === selectedDate;
     const matchesSupplier = !supplierFilter || lot.supplier.toLowerCase().includes(supplierFilter.toLowerCase());

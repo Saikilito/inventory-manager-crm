@@ -39,12 +39,11 @@ export const AccountsPayablesPage: React.FC = () => {
     setIsPayModalOpen(false);
   };
 
-  const handlePayment = async (accountsPayableId: string, amount: number, accountId: string) => {
+  const handlePayment = async (accountsPayableId: string, amount: number, accountId: string): Promise<void> => {
     const result = await handlePayAccountsPayable(accountsPayableId, amount, accountId);
     if (result?.success) {
       handleClosePayModal();
     }
-    return result;
   };
 
   return (

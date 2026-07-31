@@ -13,7 +13,7 @@ interface PayModalProps {
   isOpen: boolean;
   onClose: () => void;
   accountsPayable: AccountsPayable;
-  onPay: (accountsPayableId: string, amount: number, accountId: string) => Promise<any>;
+  onPay: (accountsPayableId: string, amount: number, accountId: string) => Promise<void>;
   loading: boolean;
   accounts: AccountShape[];
 }
@@ -51,10 +51,8 @@ export const PayModal: React.FC<PayModalProps> = ({
       return;
     }
 
-    const result = await onPay(accountsPayable.id, numAmount, accountId);
-    if (result?.success) {
-      handleClose();
-    }
+    await onPay(accountsPayable.id, numAmount, accountId);
+    handleClose();
   };
 
   const handleClose = () => {

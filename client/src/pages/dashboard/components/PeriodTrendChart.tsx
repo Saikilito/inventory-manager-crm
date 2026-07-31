@@ -1,6 +1,7 @@
 import React from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { useQuery } from '@apollo/client';
+import { match } from 'ts-pattern';
 import { GET_CONTEXT_METRICS } from '@modules/product/infrastructure/graphql/queries';
 import { formatCurrency } from '@utils/formatters';
 
@@ -30,20 +31,14 @@ export const PeriodTrendChart: React.FC<PeriodTrendChartProps> = ({
 
   const metrics = data?.getContextMetrics;
 
-  // Get the right period array based on selectedPeriod
   const getPeriodsData = (): PeriodMetric[] => {
     if (!metrics?.periods) return [];
-    
-    switch (selectedPeriod) {
-      case 'DAILY':
-        return metrics.periods.daily || [];
-      case 'WEEKLY':
-        return metrics.periods.weekly || [];
-      case 'MONTHLY':
-        return metrics.periods.monthly || [];
-      default:
-        return metrics.periods.monthly || [];
-    }
+
+    return match(selectedPeriod)
+      .with('DAILY', () => metrics.periods.daily || [])
+      .with('WEEKLY', () => metrics.periods.weekly || [])
+      .with('MONTHLY', () => metrics.periods.monthly || [])
+      .otherwise(() => metrics.periods.monthly || []);
   };
 
   const periods = getPeriodsData();
@@ -53,33 +48,26 @@ export const PeriodTrendChart: React.FC<PeriodTrendChartProps> = ({
   const profitTrend = metrics?.profitTrend;
   const totalRevenue = metrics?.totalRevenue || 0;
 
-  const getPeriodLabel = (period: string) => {
-    switch (period) {
-      case 'DAILY':
-        return 'días';
-      case 'WEEKLY':
-        return 'semanas';
-      default:
-        return 'meses';
-    }
-  };
+  const getPeriodLabel = (period: string) =>
+    match(period)
+      .with('DAILY', () => 'días')
+      .with('WEEKLY', () => 'semanas')
+      .otherwise(() => 'meses');
 
   const formatPeriodName = (period: string, periodType: string) => {
-    // Period comes as "2024-01" or "2024-W01" or "2024-01-15"
     try {
       if (periodType === 'DAILY') {
         const date = new Date(period);
         return date.toLocaleDateString('es-DO', { day: '2-digit', month: 'short' });
       } else if (periodType === 'WEEKLY') {
-        // Format: "2024-W01"
         return period.replace('W', 'Sem ');
       } else {
-        // Monthly: "2024-01"
         const [year, month] = period.split('-');
         const date = new Date(parseInt(year), parseInt(month) - 1);
         return date.toLocaleDateString('es-DO', { month: 'short', year: '2-digit' });
       }
-    } catch {
+    } catch (err) {
+      console.warn('[PeriodTrendChart] Failed to format period name:', err);
       return period;
     }
   };

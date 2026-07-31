@@ -1,3 +1,5 @@
+import { match } from "ts-pattern";
+
 export interface DateRange {
   startDate: string;
   endDate: string;
@@ -5,22 +7,20 @@ export interface DateRange {
 
 export const parsePeriodToDateRange = (period?: string | null): DateRange => {
   const now = new Date();
-  let start = new Date(now);
-  let end = new Date(now);
-
   const p = period?.toUpperCase() || "MONTHLY";
 
-  switch (p) {
-    case "DAILY": {
+  const { start, end } = match(p)
+    .with("DAILY", () => {
+      const start = new Date(now);
       start.setHours(0, 0, 0, 0);
+      const end = new Date(now);
       end.setHours(23, 59, 59, 999);
-      break;
-    }
-    case "WEEKLY": {
+      return { start, end };
+    })
+    .with("WEEKLY", () => {
       const day = now.getDay();
-      // Monday is 1, Sunday is 0 (convert Sunday to 7)
       const diffToMonday = now.getDate() - (day === 0 ? 6 : day - 1);
-      start = new Date(
+      const start = new Date(
         now.getFullYear(),
         now.getMonth(),
         diffToMonday,
@@ -29,7 +29,7 @@ export const parsePeriodToDateRange = (period?: string | null): DateRange => {
         0,
         0,
       );
-      end = new Date(
+      const end = new Date(
         now.getFullYear(),
         now.getMonth(),
         diffToMonday + 6,
@@ -38,60 +38,58 @@ export const parsePeriodToDateRange = (period?: string | null): DateRange => {
         59,
         999,
       );
-      break;
-    }
-    case "MONTHLY": {
-      start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-      end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-      break;
-    }
-    case "QUARTERLY": {
-      const currentQuarter = Math.floor(now.getMonth() / 3); // 0-based
-      start = new Date(now.getFullYear(), currentQuarter * 3, 1, 0, 0, 0, 0);
-      end = new Date(
-        now.getFullYear(),
-        (currentQuarter + 1) * 3,
-        0,
-        23,
-        59,
-        59,
-        999,
-      );
-      break;
-    }
-    case "SEMESTRALLY": {
+      return { start, end };
+    })
+    .with("MONTHLY", () => ({
+      start: new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0),
+      end: new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999),
+    }))
+    .with("QUARTERLY", () => {
+      const currentQuarter = Math.floor(now.getMonth() / 3);
+      return {
+        start: new Date(now.getFullYear(), currentQuarter * 3, 1, 0, 0, 0, 0),
+        end: new Date(
+          now.getFullYear(),
+          (currentQuarter + 1) * 3,
+          0,
+          23,
+          59,
+          59,
+          999,
+        ),
+      };
+    })
+    .with("SEMESTRALLY", () => {
       const isSecondSemester = now.getMonth() >= 6;
-      start = new Date(
-        now.getFullYear(),
-        isSecondSemester ? 6 : 0,
-        1,
-        0,
-        0,
-        0,
-        0,
-      );
-      end = new Date(
-        now.getFullYear(),
-        isSecondSemester ? 12 : 6,
-        0,
-        23,
-        59,
-        59,
-        999,
-      );
-      break;
-    }
-    case "ANNUALLY": {
-      start = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
-      end = new Date(now.getFullYear(), 12, 0, 23, 59, 59, 999);
-      break;
-    }
-    default: {
-      // Fallback: Monthly range
-      start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-      end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-    }
-  }
+      return {
+        start: new Date(
+          now.getFullYear(),
+          isSecondSemester ? 6 : 0,
+          1,
+          0,
+          0,
+          0,
+          0,
+        ),
+        end: new Date(
+          now.getFullYear(),
+          isSecondSemester ? 12 : 6,
+          0,
+          23,
+          59,
+          59,
+          999,
+        ),
+      };
+    })
+    .with("ANNUALLY", () => ({
+      start: new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0),
+      end: new Date(now.getFullYear(), 12, 0, 23, 59, 59, 999),
+    }))
+    .otherwise(() => ({
+      start: new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0),
+      end: new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999),
+    }));
 
   return {
     startDate: start.toISOString(),

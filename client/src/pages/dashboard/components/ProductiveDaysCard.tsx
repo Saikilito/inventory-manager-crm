@@ -1,6 +1,7 @@
 import React from 'react';
 import { Calendar, TrendingUp } from 'lucide-react';
 import { useQuery } from '@apollo/client';
+import { match } from 'ts-pattern';
 import { GET_CONTEXT_METRICS } from '@modules/product/infrastructure/graphql/queries';
 import { formatCurrency } from '@utils/formatters';
 
@@ -23,21 +24,18 @@ export const ProductiveDaysCard: React.FC<ProductiveDaysCardProps> = ({
 
   const metrics = data?.getContextMetrics;
 
-  // Get daily periods for productive days analysis
   const dailyPeriods = metrics?.periods?.daily || [];
 
-  // Sort by revenue to find most productive days
   const productiveDays = [...dailyPeriods]
     .sort((a, b) => b.revenue - a.revenue)
     .slice(0, 3)
     .map((p: { period: string; revenue: number; salesCount: number }) => {
-      // Parse period to get day name
       let dayName = p.period;
       try {
         const date = new Date(p.period);
         dayName = date.toLocaleDateString('es-DO', { weekday: 'long', day: 'numeric' });
-      } catch {
-        // Keep original if parsing fails
+      } catch (err) {
+        console.warn('[ProductiveDaysCard] Failed to parse day name:', err);
       }
       
       return {
@@ -47,16 +45,11 @@ export const ProductiveDaysCard: React.FC<ProductiveDaysCardProps> = ({
       };
     });
 
-  const getPeriodText = () => {
-    switch (selectedPeriod) {
-      case 'DAILY':
-        return 'últimas horas';
-      case 'WEEKLY':
-        return 'días de la semana';
-      default:
-        return 'días del mes';
-    }
-  };
+  const getPeriodText = () =>
+    match(selectedPeriod)
+      .with('DAILY', () => 'últimas horas')
+      .with('WEEKLY', () => 'días de la semana')
+      .otherwise(() => 'días del mes');
 
   if (loading) {
     return (

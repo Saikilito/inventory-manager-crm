@@ -91,14 +91,14 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({ session }) => 
     }));
 
     try {
-      await ploc.createOrder(
-        String(currentClientId),
+      await ploc.createOrder({
+        clientId: String(currentClientId),
         items,
         total,
-        session._id,
-        selectedContextId || undefined,
-        deliveryFee,
-      );
+        sellerId: session._id,
+        contextId: selectedContextId || undefined,
+        deliveryCost: deliveryFee,
+      });
       navigate('/orders');
     } catch (e) {
       console.error(e);

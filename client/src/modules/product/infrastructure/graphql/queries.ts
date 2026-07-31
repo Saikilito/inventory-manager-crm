@@ -18,18 +18,6 @@ export const PRODUCTS_QUERY = gql`
   }
 `;
 
-export const PRODUCT_STATS_QUERY = gql`
-  query getProductStats($contextId: ID) {
-    productStats(contextId: $contextId) {
-      totalProducts
-      totalStock
-      totalStockValue
-      totalPotentialProfit
-      averageMargin
-    }
-  }
-`;
-
 export const SINGLE_PRODUCT_QUERY = gql`
   query getProduct($id: ID!) {
     getProduct(_id: $id) {

@@ -32,6 +32,7 @@ import NewProduct from "@pages/product/NewProduct";
 import EditProduct from "@pages/product/EditProduct";
 import EditClient from "@pages/client/EditClient";
 import AgentChatPage from "@pages/chat/AgentChatPage";
+import KnowledgeBrainPage from "@pages/chat/KnowledgeBrainPage";
 import { ProfitDetailPage } from "@pages/dashboard/ProfitDetailPage";
 import { AnalyticsPage } from "@pages/dashboard/AnalyticsPage";
 import { RentalsPage } from "@pages/rental/RentalsPage";
@@ -117,6 +118,7 @@ const AppView: React.FC = () => {
                   <Route path="/accounts-payable" element={<AccountsPayablesPage />} />
                   <Route path="/expenses" element={<ExpenseRouteWrapper />} />
                   <Route path="/chat" element={<AgentChatPage />} />
+                  <Route path="/chat/knowledge-brain" element={<KnowledgeBrainPage />} />
                   <Route path="/users" element={<UsersPage />} />
                   <Route
                     path="/admin/knowledge"
