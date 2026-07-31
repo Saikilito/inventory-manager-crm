@@ -6,6 +6,7 @@ import { pubSubInstance } from "./pubsub.js";
 import { IdVO } from "../../../../../shared-domain/src/shared/value-objects/id.vo.js";
 import { NonEmptyStringVO } from "../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js";
 import { ChatSessionStatus } from "../application/repositories/chat-session.repository.js";
+import { AgentRole } from "../application/repositories/agent.repository.js";
 import { ChatMessageSender } from "../application/repositories/chat-message.repository.js";
 import { WhatsAppConstants } from "./services/whatsapp-constants.js";
 import {
@@ -151,7 +152,7 @@ export const Mutation = {
       "crm-operator",
       text,
       [],
-      { isFromCrm: true },
+      { isFromCrm: true, profile: AgentRole.CRM_OPERATOR },
     );
     if (result.isFailure) throw new Error(result.getError().message);
     return result.getValue().reply;
@@ -175,7 +176,7 @@ export const Mutation = {
       "crm-operator",
       text,
       sandboxHistory,
-      { isFromCrm: true, systemPrompt: agent.systemPrompt, enabledTools: agent.enabledTools },
+      { isFromCrm: true, profile: agent.role, systemPrompt: agent.systemPrompt, enabledTools: agent.enabledTools },
     );
     if (result.isFailure) throw new Error(result.getError().message);
     const reply = result.getValue().reply;

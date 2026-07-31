@@ -4,6 +4,7 @@ import { IAgent } from "../application/repositories/agent.repository.js";
 import { IChatMessage } from "../application/repositories/chat-message.repository.js";
 import { NonEmptyStringVO } from "../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js";
 import { PositiveNumberVO } from "../../../../../shared-domain/src/shared/value-objects/positive-number.vo.js";
+import { UserRole } from "../../../../../shared-domain/src/shared/value-objects/role.vo.js";
 import { MongoQueryConstants } from "./services/gemini.constants.js";
 
 export const chatSessionDocToResponse = (doc: IChatSessionDocument) => ({
@@ -40,6 +41,27 @@ const requireAuth = async (token: () => Promise<unknown>): Promise<unknown> => {
     throw new Error("Unauthenticated: Access Denied");
   }
   return user;
+};
+
+interface DecodedToken {
+  email: string;
+}
+
+const requireAdmin = async ({ container, token }: IContext): Promise<void> => {
+  const decoded = (await requireAuth(token)) as DecodedToken;
+
+  const currentUserRes = await container.user.getUserByEmail(decoded.email);
+  if (currentUserRes.isFailure || !currentUserRes.getValue()) {
+    throw new Error("Unauthenticated: Access Denied");
+  }
+
+  const currentUser = currentUserRes.getValue()!;
+  if (currentUser.disabled === true) {
+    throw new Error("Account is disabled");
+  }
+  if (String(currentUser.role) !== UserRole.ADMIN) {
+    throw new Error("Unauthorized: Admin role required");
+  }
 };
 
 export const Query = {
@@ -134,5 +156,15 @@ export const Query = {
       throw new Error(res.getError().message);
     }
     return agentDocToResponse(res.getValue());
+  },
+
+  getGeminiKeyMetrics: async (
+    _parent: unknown,
+    _args: unknown,
+    context: IContext,
+  ) => {
+    await requireAdmin(context);
+
+    return context.container.chat.llmAdapter.getKeyMetrics?.() ?? [];
   },
 };

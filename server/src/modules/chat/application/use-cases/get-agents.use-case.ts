@@ -23,7 +23,15 @@ const DEFAULT_SLAYER_PROMPT = `You are Slayer, the elite Sales Assistant for "Re
 Your goal is to quickly and concisely answer stock inquiries, calculate delivery fees, and create draft orders for clients.
 Always be polite, direct, and focused on closing the sale. Use Markdown formatting.
 If the user asks for stock, use searchStock.
+CRITICAL STOCK GUARDRAIL: NEVER reveal exact stock numerical quantities to the client (e.g. NEVER say "We have 20 units available"). Confirming existence/availability is sufficient (e.g., "Yes, we have it in stock"). If requested quantity exceeds stock, state that stock is insufficient for that quantity without stating exact numbers.
+DELIVERY DEFAULT: NEVER offer physical store pickup unless the client explicitly requests it. Always assume delivery. When the client confirms an order, ask for their order details in a form format: Full Name, ID/National Document, Delivery Address, WhatsApp/Google Maps static location (Pin/link), and Payment Method.
 If they ask for delivery costs, use calculateDeliveryFee.`;
+
+const DEFAULT_LIBRARIAN_PROMPT = `You are Knowledge Librarian, the research and information specialist for Repuestos Caracas.
+Your goal is to organize, analyze, research, and maintain the company's Knowledge Brain and product catalog database.
+You have access to queryMongoDB to inspect products and collections, webFetch to search the web and perform online compatibility research, navigateKnowledgeBrain to navigate knowledge trees, and createKnowledgeEntry to store articles.
+When asked to research or search information on the internet or web, ALWAYS call webFetch directly with query: "your search query". Do NOT ask the user for a URL.
+Always respond professionally, concisely, and execute tool calls directly to answer data and knowledge queries.`;
 
 export const makeGetAgents = (agentRepository: IAgentRepository): GetAgents => {
   return async (input: GetAgentsInput) => {
@@ -43,9 +51,8 @@ export const makeGetAgents = (agentRepository: IAgentRepository): GetAgents => {
 
       const agents = res.getValue().items;
 
-      // Auto-Seeding: If no agents exist, create the default Slayer Sales agent
       if (agents.length === 0) {
-        const defaultAgent = makeAgent({
+        const defaultSales = makeAgent({
           name: 'Slayer Sales',
           systemPrompt: DEFAULT_SLAYER_PROMPT,
           status: AgentStatus.ACTIVE,
@@ -58,15 +65,32 @@ export const makeGetAgents = (agentRepository: IAgentRepository): GetAgents => {
           ],
         });
 
+        const defaultLibrarian = makeAgent({
+          name: 'Knowledge Librarian',
+          systemPrompt: DEFAULT_LIBRARIAN_PROMPT,
+          status: AgentStatus.ACTIVE,
+          role: AgentRole.LIBRARIAN,
+          enabledTools: [
+            AgentTool.QUERY_MONGO_DB,
+            AgentTool.WEB_FETCH,
+            AgentTool.NAVIGATE_KNOWLEDGE_BRAIN,
+            AgentTool.CREATE_KNOWLEDGE_ENTRY,
+            AgentTool.SEARCH_STOCK,
+          ],
+        });
+
         const systemActorId = IdVO.generateNil();
-        const createRes = await agentRepository.create(defaultAgent, systemActorId);
+        await agentRepository.create(defaultSales, systemActorId);
+        await agentRepository.create(defaultLibrarian, systemActorId);
 
-        if (createRes.isFailure) {
-          console.error('Failed to auto-seed default Slayer agent:', createRes.getError().message);
-          return Result.ok<IAgent[], DomainError>([]); // Return empty if seed fails safely
+        const updatedRes = await agentRepository.getAll({
+          limit: PositiveNumberVO.create(limitNum),
+          page: PositiveNumberVO.create(pageNum),
+        });
+
+        if (!updatedRes.isFailure) {
+          return Result.ok<IAgent[], DomainError>(updatedRes.getValue().items);
         }
-
-        return Result.ok<IAgent[], DomainError>([createRes.getValue()]);
       }
 
       return Result.ok<IAgent[], DomainError>(agents);

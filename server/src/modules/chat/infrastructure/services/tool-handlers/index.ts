@@ -8,12 +8,13 @@ import { handleWebFetch } from './web-fetch.handler.js';
 import { handleNavigateKnowledgeBrain } from './navigate-knowledge-brain.handler.js';
 import { handleCreateKnowledgeEntry } from './create-knowledge-entry.handler.js';
 import { ToolName } from '../tool-names.js';
+import type { ToolPermissionContext } from '../tool-permissions.js';
 
 export type ToolHandler = (
   args: Record<string, unknown>,
   from: string,
   dependencies: ToolDispatcherDependencies,
-  options?: { isFromCrm?: boolean },
+  options?: ToolPermissionContext,
 ) => Promise<Record<string, unknown>>;
 
 const handlers: Record<string, ToolHandler> = {

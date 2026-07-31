@@ -3,17 +3,20 @@ import { createDomainError, DomainError } from "../../../../../../shared-domain/
 import { Result } from "../../../../../../shared-domain/src/shared/result.js";
 import { IWhatsAppGateway } from "../../infrastructure/services/baileys.gateway.js";
 import { ProcessIncomingMessage } from "./process-incoming-message.use-case.js";
+import { IIncomingMessageCollector } from "../../infrastructure/services/incoming-message-collector.js";
 
 export type InitializeWhatsApp = UseCase<void, void, DomainError>;
 
 export const makeInitializeWhatsApp = (dependencies: {
   whatsAppGateway: IWhatsAppGateway;
   processIncomingMessage: ProcessIncomingMessage;
+  incomingMessageCollector?: IIncomingMessageCollector;
 }): InitializeWhatsApp => {
   return async () => {
     try {
       const initResult = await dependencies.whatsAppGateway.initialize(
-        dependencies.processIncomingMessage
+        dependencies.processIncomingMessage,
+        dependencies.incomingMessageCollector
       );
 
       if (initResult.isFailure) {

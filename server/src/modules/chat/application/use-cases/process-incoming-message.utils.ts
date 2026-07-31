@@ -1,6 +1,27 @@
+import type { IChatSession } from "../repositories/chat-session.repository.js";
 
 export const potentialCedulaRegex =
   /\b(?:[vVeE]-?)?\d{1,3}(?:\.\d{3}){2}\b|\b(?:[vVeE]-?)?\d{7,9}\b/;
+
+export const buildChatSessionUpdatedPayload = (
+  session: IChatSession,
+  tagsOverride?: string[]
+) => ({
+  chatSessionUpdated: {
+    id: session.id?.toString(),
+    _id: session.id?.toString(),
+    whatsappId: session.whatsappId.toString(),
+    status: session.status,
+    driftCount: session.driftCount,
+    assignedUserId: session.assignedUserId?.toString() || null,
+    assignedAgentId: session.assignedAgentId?.toString() || null,
+    contactName: session.contactName?.toString() || null,
+    extractedData: session.extractedData || null,
+    tags: tagsOverride ?? (session.tags || []),
+    createdAt: session.createdAt?.toString() || new Date().toISOString(),
+    updatedAt: session.updatedAt?.toString() || new Date().toISOString(),
+  },
+});
 
 export const splitMessageIntoChunks = (text: string, targetWordCount = 50): string[] => {
   const words = text.split(/\s+/).filter(Boolean);

@@ -106,12 +106,31 @@ input UpdateAgentInput {
   enabledTools: [AgentTool!]
 }
 
+enum GeminiKeyStatus {
+  ACTIVE
+  RATE_LIMITED
+  QUOTA_EXHAUSTED
+  INVALID
+}
+
+type GeminiKeyMetric {
+  maskedKey: String!
+  envVarName: String
+  status: GeminiKeyStatus!
+  requestCount: Int!
+  failureCount: Int!
+  coolDownUntil: Float
+  quotaResetAt: Float
+  lastUsedAt: Float
+}
+
 type Query {
   getChatSessions: [ChatSession!]!
   getChatMessages(whatsappId: String!): [ChatMessage!]!
   getWhatsAppConnectionState: WhatsAppConnectionState!
   getAgents: [Agent!]!
   getAgent(id: ID!): Agent!
+  getGeminiKeyMetrics: [GeminiKeyMetric!]!
 }
 
 type Mutation {

@@ -2,6 +2,15 @@ import { IdVO } from '../../../../../../../shared-domain/src/shared/value-object
 import { getSpanishSingular } from '../gemini.utils.js';
 import { MAX_PRODUCT_SEARCH_LIMIT } from '../gemini.constants.js';
 import type { ToolDispatcherDependencies } from '../types.js';
+import type { IProduct } from '../../../../../../../shared-domain/src/product/product.entity.js';
+
+const SPANISH_STOP_WORDS = new Set([
+  'que', 'qué', 'cuantos', 'cuántos', 'cuantas', 'cuántas', 'cual', 'cuál', 'cuales', 'cuáles',
+  'tenemos', 'tenemo', 'tienen', 'tienes', 'hay', 'existe', 'existen', 'busco', 'necesito',
+  'en', 'el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 'de', 'del', 'para', 'por',
+  'stock', 'inventario', 'disponible', 'disponibles', 'favor', 'porfavor', 'hola', 'buenas',
+  'me', 'nos', 'te', 'se', 'les', 'mi', 'su', 'sus', 'tu', 'tus',
+]);
 
 export async function handleSearchStock(
   args: Record<string, unknown>,
@@ -14,9 +23,16 @@ export async function handleSearchStock(
   const motoModel = (args.motoModel as string) || '';
   const partBrand = (args.partBrand as string) || '';
 
-  const tokens = query
+  const rawTokens = query
     .trim()
     .split(/\s+/)
+    .map((t: string) => t.toLowerCase().replace(/[^a-z0-9áéíóúñ]/g, ''))
+    .filter((t: string) => t.length > 0);
+
+  const significantWords = rawTokens.filter((w) => !SPANISH_STOP_WORDS.has(w));
+  const candidateWords = significantWords.length > 0 ? significantWords : rawTokens;
+
+  const tokens = candidateWords
     .map((t: string) => getSpanishSingular(t))
     .filter((t: string) => t.length > 0);
 
@@ -36,14 +52,14 @@ export async function handleSearchStock(
   };
 
   const searchResult = await dependencies.productRepository.searchByTokens(searchTokens);
-  let matchingProducts = searchResult.items;
+  let matchingProducts = extractProductItems(searchResult);
 
   if (matchingProducts.length === 0 && cleanedTokens.length > 1) {
     const relaxed = await dependencies.productRepository.searchByTokens({
+      ...searchTokens,
       nameTokens: [cleanedTokens[0]!],
-      limit: MAX_PRODUCT_SEARCH_LIMIT,
     });
-    matchingProducts = relaxed.items;
+    matchingProducts = extractProductItems(relaxed);
   }
 
   if (matchingProducts.length === 0) {
@@ -66,6 +82,25 @@ export async function handleSearchStock(
       stock: unwrapNumberValue(p.stock),
     })),
   };
+}
+
+function extractProductItems(res: unknown): IProduct[] {
+  if (!res) return [];
+  if (typeof res === 'object' && res !== null && 'getValue' in res && typeof (res as { getValue: unknown }).getValue === 'function') {
+    const isFailure = (res as { isFailure?: boolean }).isFailure;
+    if (isFailure) return [];
+    const val = (res as { getValue: () => unknown }).getValue();
+    if (Array.isArray(val)) return val as IProduct[];
+    if (typeof val === 'object' && val !== null && 'items' in val && Array.isArray(val.items)) {
+      return val.items as IProduct[];
+    }
+    return [];
+  }
+  if (typeof res === 'object' && res !== null && 'items' in res && Array.isArray((res as { items: unknown }).items)) {
+    return (res as { items: IProduct[] }).items;
+  }
+  if (Array.isArray(res)) return res as IProduct[];
+  return [];
 }
 
 function unwrapNumberValue(value: unknown): number {

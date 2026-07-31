@@ -1,9 +1,9 @@
 import { BaseRepository } from "../../../../../../shared-domain/src/shared/repository.js";
 import { Result } from "../../../../../../shared-domain/src/shared/result.js";
 import { DatabaseError } from "../../../../../../shared-domain/src/shared/errors.js";
-import { Id, IdVO } from "../../../../../../shared-domain/src/shared/value-objects/id.vo.js";
-import { NonEmptyString, NonEmptyStringVO } from "../../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js";
-import { DateTime, DateTimeVO } from "../../../../../../shared-domain/src/shared/value-objects/date-time.vo.js";
+import { Id } from "../../../../../../shared-domain/src/shared/value-objects/id.vo.js";
+import { NonEmptyString } from "../../../../../../shared-domain/src/shared/value-objects/non-empty-string.vo.js";
+import { DateTime } from "../../../../../../shared-domain/src/shared/value-objects/date-time.vo.js";
 import { ChatThreadStatus } from "./chat-thread-status.js";
 
 export const ChatMessageSender = {
@@ -40,26 +40,6 @@ export interface IChatThread {
   status: ChatThreadStatus;
   messages: IChatThreadMessage[];
 }
-
-export const makeChatMessage = (props: {
-  id?: string;
-  whatsappId: string;
-  text: string;
-  sender: string;
-  isPrivate?: boolean;
-  createdAt?: string | Date;
-  updatedAt?: string | Date;
-}): IChatMessage => {
-  return {
-    id: props.id ? IdVO.create(props.id) : undefined,
-    whatsappId: NonEmptyStringVO.create(props.whatsappId),
-    text: NonEmptyStringVO.create(props.text),
-    sender: props.sender as ChatMessageSender,
-    isPrivate: props.isPrivate ?? false,
-    createdAt: props.createdAt ? DateTimeVO.create(props.createdAt) : undefined,
-    updatedAt: props.updatedAt ? DateTimeVO.create(props.updatedAt) : undefined,
-  };
-};
 
 export interface IChatMessageRepository extends BaseRepository<IChatMessage> {
   getMessagesByWhatsappId(

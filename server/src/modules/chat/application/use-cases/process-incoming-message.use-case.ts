@@ -11,10 +11,20 @@ import { IAgentRepository } from "../repositories/agent.repository.js";
 import { IClientRepository } from "../../../client/application/repositories/client.repository.js";
 import { CheckWorkingHours } from "./check-working-hours.use-case.js";
 import { HandoverToHuman } from "./handover-to-human.use-case.js";
-import { ChatSessionTag } from "./process-incoming-message.constants.js";
+import {
+  ChatSessionTag, MAX_INCOMING_MESSAGE_LENGTH, MAX_REPLY_WORDS,
+  UNSUPPORTED_MEDIA_MESSAGES,
+} from "./process-incoming-message.constants.js";
+import type { WhatsappRateLimiter } from "../services/whatsapp-rate-limiter.js";
+import type { AgentRole } from "../../../../../../shared-domain/src/chat/agent.entity.js";
+import {
+  buildCompactionTranscript,
+  buildPublicActiveHistory,
+  COMPACTION_THREAD_BATCH_SIZE,
+} from "./process-incoming-message-history.js";
 export type {
   IPubSub, IWhatsAppGateway, IExtractedClient, IExtractedCartItem,
-  IExtractedData, ILlmAdapter, ProcessIncomingMessageInput,
+  IExtractedData, ILlmAdapter, ILlmKeyMetric, ProcessIncomingMessageInput,
   ProcessIncomingMessageOutput, ProcessIncomingMessage,
 } from "./process-incoming-message.types.js";
 import type {
@@ -28,7 +38,7 @@ export {
 } from "./process-incoming-message.utils.js";
 import {
   splitMessageIntoChunks, getCaracasDateStr,
-  potentialCedulaRegex,
+  potentialCedulaRegex, buildChatSessionUpdatedPayload,
 } from "./process-incoming-message.utils.js";
 export const makeProcessIncomingMessage = (dependencies: {
   chatSessionRepository: IChatSessionRepository;
@@ -40,6 +50,7 @@ export const makeProcessIncomingMessage = (dependencies: {
   checkWorkingHours: CheckWorkingHours;
   handoverToHuman: HandoverToHuman;
   pubSub?: IPubSub;
+  whatsappRateLimiter?: WhatsappRateLimiter;
 }): ProcessIncomingMessage => {
   return async (input: ProcessIncomingMessageInput) => {
     const phoneResult = WhatsappIdVO.createResult(input.from);
@@ -51,7 +62,22 @@ export const makeProcessIncomingMessage = (dependencies: {
       );
     }
 
-    const matchedToken = input.text.match(potentialCedulaRegex);
+    const isRateLimited = dependencies.whatsappRateLimiter
+      ? !dependencies.whatsappRateLimiter.checkAndRecord(input.from)
+      : false;
+    if (isRateLimited) {
+      console.warn(`[ProcessIncomingMessage] Rate limit exceeded for whatsappId=${input.from}`);
+    }
+
+    let text = input.text;
+    if (text.length > MAX_INCOMING_MESSAGE_LENGTH) {
+      console.warn(
+        `[ProcessIncomingMessage] Truncating incoming message: length=${text.length}, max=${MAX_INCOMING_MESSAGE_LENGTH}`
+      );
+      text = text.slice(0, MAX_INCOMING_MESSAGE_LENGTH);
+    }
+
+    const matchedToken = text.match(potentialCedulaRegex);
     if (matchedToken) {
       const token = matchedToken[0];
       if (/^[vVeE]-?\d/.test(token)) {
@@ -85,22 +111,17 @@ export const makeProcessIncomingMessage = (dependencies: {
     const sessionIdStr = session.id?.toString() || "";
 
     const activeThreadsRes = await dependencies.chatMessageRepository.getActiveThreads(whatsappIdVO);
+    let activeThreads: IChatThread[] = [];
+    const archivedDateStrs = new Set<string>();
     if (!activeThreadsRes.isFailure) {
-      const activeThreads = activeThreadsRes.getValue();
+      activeThreads = activeThreadsRes.getValue();
       const todayDateStr = getCaracasDateStr();
       const todayThread = activeThreads.find((t: IChatThread) => t.dateStr === todayDateStr);
       const priorActiveThreads = activeThreads.filter((t: IChatThread) => t.dateStr !== todayDateStr);
 
-      if (priorActiveThreads.length >= 3 && !todayThread) {
-        const threadsToCompact = priorActiveThreads.slice(0, 3);
-        let chatScriptText = "";
-        for (const thread of threadsToCompact) {
-          chatScriptText += `--- Fecha: ${thread.dateStr} ---\n`;
-          for (const msg of thread.messages) {
-            const roleName = msg.sender === ChatMessageSender.CUSTOMER ? "Cliente" : "Asistente";
-            chatScriptText += `[${msg.createdAt ? new Date(msg.createdAt).toISOString() : ""}] ${roleName}: ${msg.text}\n`;
-          }
-        }
+      if (priorActiveThreads.length >= COMPACTION_THREAD_BATCH_SIZE && !todayThread) {
+        const threadsToCompact = priorActiveThreads.slice(0, COMPACTION_THREAD_BATCH_SIZE);
+        const chatScriptText = buildCompactionTranscript(threadsToCompact);
 
         const compactionRes = await dependencies.llmAdapter.compactMemory(
           session.historicalSummary,
@@ -117,6 +138,7 @@ export const makeProcessIncomingMessage = (dependencies: {
           );
 
           const dateStrsToArchive = threadsToCompact.map((t: IChatThread) => t.dateStr);
+          dateStrsToArchive.forEach((dateStr) => archivedDateStrs.add(dateStr));
           await dependencies.chatMessageRepository.archiveThreads(
             whatsappIdVO,
             dateStrsToArchive
@@ -133,22 +155,7 @@ export const makeProcessIncomingMessage = (dependencies: {
         systemActorId
       );
       if (dependencies.pubSub) {
-        await dependencies.pubSub.publish("CHAT_SESSION_UPDATED", {
-          chatSessionUpdated: {
-            id: session.id?.toString(),
-            _id: session.id?.toString(),
-            whatsappId: session.whatsappId.toString(),
-            status: session.status,
-            driftCount: session.driftCount,
-            assignedUserId: session.assignedUserId?.toString() || null,
-            assignedAgentId: session.assignedAgentId?.toString() || null,
-            contactName: session.contactName?.toString() || null,
-            extractedData: session.extractedData || null,
-            tags: [],
-            createdAt: session.createdAt?.toString() || new Date().toISOString(),
-            updatedAt: session.updatedAt?.toString() || new Date().toISOString(),
-          }
-        });
+        await dependencies.pubSub.publish("CHAT_SESSION_UPDATED", buildChatSessionUpdatedPayload(session, []));
       }
     }
 
@@ -156,7 +163,7 @@ export const makeProcessIncomingMessage = (dependencies: {
       const incomingMsgRes = await dependencies.chatMessageRepository.create(
         {
           whatsappId: whatsappIdVO,
-          text: NonEmptyStringVO.create(input.text),
+          text: NonEmptyStringVO.create(text),
           sender: ChatMessageSender.CUSTOMER,
         },
         systemActorId
@@ -166,11 +173,73 @@ export const makeProcessIncomingMessage = (dependencies: {
       }
     }
 
+    if (isRateLimited) {
+      return Result.ok<ProcessIncomingMessageOutput, DomainError>({
+        sessionId: sessionIdStr,
+        status: session.status,
+        driftCount: session.driftCount,
+      });
+    }
+
     if (session.status !== ChatSessionStatus.BOT) {
       return Result.ok<ProcessIncomingMessageOutput, DomainError>({
         sessionId: sessionIdStr,
         status: session.status,
         driftCount: session.driftCount,
+      });
+    }
+
+    const saveAndSendResponse = async (responseText: string): Promise<Result<void, DomainError>> => {
+      const chunks = splitMessageIntoChunks(responseText, MAX_REPLY_WORDS);
+
+      for (const chunk of chunks) {
+        const botMsgRes = await dependencies.chatMessageRepository.create(
+          {
+            whatsappId: whatsappIdVO,
+            text: NonEmptyStringVO.create(chunk),
+            sender: ChatMessageSender.BOT,
+          },
+          systemActorId
+        );
+        if (botMsgRes.isFailure) {
+          return Result.fail(botMsgRes.getError());
+        }
+
+        const savedBotMsg = botMsgRes.getValue();
+        const botMsgId = savedBotMsg?.id?.toString();
+
+        const sendRes = await dependencies.whatsAppGateway.sendMessage(
+          input.from,
+          chunk,
+          { alreadySaved: true, messageId: botMsgId }
+        );
+        if (sendRes.isFailure) {
+          return Result.fail(createDomainError(sendRes.getError().message));
+        }
+      }
+
+      return Result.ok();
+    };
+
+    if (input.mediaType === "audio" || input.mediaType === "image") {
+      const handoverRes = await dependencies.handoverToHuman(input.from);
+      if (handoverRes.isFailure) {
+        return Result.fail(handoverRes.getError());
+      }
+
+      const mediaNotice = input.mediaType === "audio"
+        ? UNSUPPORTED_MEDIA_MESSAGES.AUDIO
+        : UNSUPPORTED_MEDIA_MESSAGES.IMAGE;
+
+      const saveSendRes = await saveAndSendResponse(mediaNotice);
+      if (saveSendRes.isFailure) {
+        return Result.fail(saveSendRes.getError());
+      }
+
+      return Result.ok<ProcessIncomingMessageOutput, DomainError>({
+        sessionId: sessionIdStr,
+        status: ChatSessionStatus.PENDING_HUMAN,
+        driftCount: 0,
       });
     }
 
@@ -191,34 +260,27 @@ export const makeProcessIncomingMessage = (dependencies: {
     if (clientRes.isFailure) {
       return Result.fail(clientRes.getError());
     }
-    const historyRes = await dependencies.chatMessageRepository.getMessagesByWhatsappId(whatsappIdVO);
-    let history: Array<{ role: string; text: string }> = [];
-    if (!historyRes.isFailure) {
-      const dbMessages = historyRes.getValue();
-      const previousMessages = dbMessages.slice(0, -1);
-      
-      history = previousMessages.map((m) => ({
-        role: m.sender === ChatMessageSender.CUSTOMER ? "user" : "model",
-        text: m.text.toString(),
-      }));
-    }
+    const history = buildPublicActiveHistory(activeThreads, archivedDateStrs);
 
     let systemPrompt: string | undefined;
     let enabledTools: string[] | undefined;
+    let profile: AgentRole | undefined;
     if (session.assignedAgentId && dependencies.agentRepository) {
       const agentRes = await dependencies.agentRepository.getById(session.assignedAgentId);
       if (!agentRes.isFailure && agentRes.getValue()) {
         const agent = agentRes.getValue()!;
         systemPrompt = agent.systemPrompt.toString();
         enabledTools = agent.enabledTools;
+        profile = agent.role;
       }
     }
     const llmRes = await dependencies.llmAdapter.generateResponse(
       input.from,
-      input.text,
+      text,
       history,
       {
         isOutOfHours,
+        profile,
         systemPrompt,
         enabledTools,
         historicalSummary: session.historicalSummary,
@@ -262,55 +324,9 @@ export const makeProcessIncomingMessage = (dependencies: {
       const freshSessionRes = await dependencies.chatSessionRepository.getById(session.id!);
       if (!freshSessionRes.isFailure && freshSessionRes.getValue() && dependencies.pubSub) {
         const freshSession = freshSessionRes.getValue()!;
-        await dependencies.pubSub.publish("CHAT_SESSION_UPDATED", {
-          chatSessionUpdated: {
-            id: freshSession.id?.toString(),
-            _id: freshSession.id?.toString(),
-            whatsappId: freshSession.whatsappId.toString(),
-            status: freshSession.status,
-            driftCount: freshSession.driftCount,
-            assignedUserId: freshSession.assignedUserId?.toString() || null,
-            assignedAgentId: freshSession.assignedAgentId?.toString() || null,
-            contactName: freshSession.contactName?.toString() || null,
-            extractedData: freshSession.extractedData || null,
-            tags: freshSession.tags || [],
-            createdAt: freshSession.createdAt?.toString() || new Date().toISOString(),
-            updatedAt: freshSession.updatedAt?.toString() || new Date().toISOString(),
-          }
-        });
+        await dependencies.pubSub.publish("CHAT_SESSION_UPDATED", buildChatSessionUpdatedPayload(freshSession));
       }
     }
-    const saveAndSendResponse = async (text: string): Promise<Result<void, DomainError>> => {
-      const chunks = splitMessageIntoChunks(text, 50);
-
-      for (const chunk of chunks) {
-        const botMsgRes = await dependencies.chatMessageRepository.create(
-          {
-            whatsappId: whatsappIdVO,
-            text: NonEmptyStringVO.create(chunk),
-            sender: ChatMessageSender.BOT,
-          },
-          systemActorId
-        );
-        if (botMsgRes.isFailure) {
-          return Result.fail(botMsgRes.getError());
-        }
-
-        const savedBotMsg = botMsgRes.getValue();
-        const botMsgId = savedBotMsg?.id?.toString();
-
-        const sendRes = await dependencies.whatsAppGateway.sendMessage(
-          input.from,
-          chunk,
-          { alreadySaved: true, messageId: botMsgId }
-        );
-        if (sendRes.isFailure) {
-          return Result.fail(createDomainError(sendRes.getError().message));
-        }
-      }
-
-      return Result.ok();
-    };
 
     if (isDrift) {
       const newDriftCount = session.driftCount + 1;

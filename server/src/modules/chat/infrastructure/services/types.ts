@@ -13,4 +13,5 @@ export interface ToolDispatcherDependencies {
   getDefaultSellerId: (whatsappId: string) => Promise<string>;
   productRepository: IProductRepository;
   clientRepository: IClientRepository;
+  alreadyInjectedKnowledgeTitles?: ReadonlySet<string>;
 }

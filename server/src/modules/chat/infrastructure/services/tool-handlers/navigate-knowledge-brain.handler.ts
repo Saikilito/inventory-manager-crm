@@ -1,10 +1,13 @@
 import { KnowledgeModel } from '../../../../knowledge/infrastructure/knowledge.model.js';
 import type { ToolDispatcherDependencies } from '../types.js';
 
+export const ALREADY_INJECTED_KNOWLEDGE_MARKER =
+  '[Contenido ya incluido en el contexto inicial de este turno — no repetir]';
+
 export async function handleNavigateKnowledgeBrain(
   args: Record<string, unknown>,
   _from: string,
-  _dependencies: ToolDispatcherDependencies,
+  dependencies: ToolDispatcherDependencies,
 ): Promise<Record<string, unknown>> {
   const nodeTitle = args.nodeTitle as string | undefined;
 
@@ -12,7 +15,7 @@ export async function handleNavigateKnowledgeBrain(
     if (!nodeTitle || nodeTitle.trim() === '') {
       return await fetchRootNodes();
     }
-    return await fetchNodeByTitle(nodeTitle);
+    return await fetchNodeByTitle(nodeTitle, dependencies);
   } catch (err: unknown) {
     return { error: `Knowledge navigation failed: ${err instanceof Error ? err.message : String(err)}` };
   }
@@ -39,7 +42,10 @@ async function fetchRootNodes(): Promise<Record<string, unknown>> {
   };
 }
 
-async function fetchNodeByTitle(nodeTitle: string): Promise<Record<string, unknown>> {
+async function fetchNodeByTitle(
+  nodeTitle: string,
+  dependencies: ToolDispatcherDependencies,
+): Promise<Record<string, unknown>> {
   const node = await KnowledgeModel.findOne({ title: nodeTitle, isActive: true }).lean().exec();
 
   if (!node) {
@@ -55,12 +61,14 @@ async function fetchNodeByTitle(nodeTitle: string): Promise<Record<string, unkno
     .lean()
     .exec();
 
+  const wasAlreadyInjected = dependencies.alreadyInjectedKnowledgeTitles?.has(node.title) ?? false;
+
   return {
     currentLocation: {
       title: node.title,
       type: node.metadata?.hierarchyLevel,
       category: node.category,
-      content: node.content,
+      content: wasAlreadyInjected ? ALREADY_INJECTED_KNOWLEDGE_MARKER : node.content,
     },
     subDirectoriesAndFiles: children.map((c: { title: string; category: string; metadata?: { hierarchyLevel?: string } }) => ({
       title: c.title,

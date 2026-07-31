@@ -59,6 +59,4 @@ export const BaileysKeyModel =
   (mongoose.models.BaileysKey as mongoose.Model<IBaileysKeyDocument>) ||
   mongoose.model<IBaileysKeyDocument>("BaileysKey", baileysKeySchema);
 
-// Keep standard export for backward compatibility
-export const BaileysAuthModel = BaileysCredsModel;
 export default BaileysCredsModel;

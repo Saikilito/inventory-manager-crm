@@ -2,6 +2,7 @@ import { DomainError } from "../../../../../../shared-domain/src/shared/errors.j
 import { Result } from "../../../../../../shared-domain/src/shared/result.js";
 import { UseCase } from "../../../../../../shared-domain/src/shared/use-case.js";
 import { ChatSessionStatus } from "../repositories/chat-session.repository.js";
+import type { AgentRole } from "../../../../../../shared-domain/src/chat/agent.entity.js";
 
 export interface IPubSub {
   publish(triggerName: string, payload: unknown): Promise<void>;
@@ -34,6 +35,19 @@ export interface IExtractedData {
   cart?: IExtractedCartItem[] | null;
 }
 
+export type LlmKeyStatus = "ACTIVE" | "RATE_LIMITED" | "QUOTA_EXHAUSTED" | "INVALID";
+
+export interface ILlmKeyMetric {
+  maskedKey: string;
+  envVarName?: string;
+  status: LlmKeyStatus;
+  requestCount: number;
+  failureCount: number;
+  coolDownUntil?: number;
+  quotaResetAt?: number;
+  lastUsedAt?: number;
+}
+
 export interface ILlmAdapter {
   generateResponse(
     from: string,
@@ -42,6 +56,7 @@ export interface ILlmAdapter {
     options?: {
       isFromCrm?: boolean;
       isOutOfHours?: boolean;
+      profile?: AgentRole;
       systemPrompt?: string;
       enabledTools?: string[];
       historicalSummary?: string | null;
@@ -51,12 +66,14 @@ export interface ILlmAdapter {
     previousSummary: string | null | undefined,
     historyText: string
   ): Promise<Result<string, DomainError>>;
+  getKeyMetrics?(): ILlmKeyMetric[];
 }
 
 export interface ProcessIncomingMessageInput {
   from: string;
   text: string;
   alreadySaved?: boolean;
+  mediaType?: "audio" | "image" | "video" | "document" | null;
 }
 
 export interface ProcessIncomingMessageOutput {

@@ -22,7 +22,7 @@ export interface ToolDeclaration {
   };
 }
 
-export function buildToolDeclarations(isFromCrm?: boolean): ToolDeclaration[] {
+export function buildToolDeclarations(_isFromCrm?: boolean): ToolDeclaration[] {
   const declarations: ToolDeclaration[] = [
     buildSearchStockDeclaration(),
     buildCalculateDeliveryFeeDeclaration(),
@@ -31,11 +31,8 @@ export function buildToolDeclarations(isFromCrm?: boolean): ToolDeclaration[] {
     buildWebFetchDeclaration(),
     buildNavigateKnowledgeBrainDeclaration(),
     buildCreateKnowledgeEntryDeclaration(),
+    buildQueryMongoDbDeclaration(),
   ];
-
-  if (isFromCrm) {
-    declarations.push(buildQueryMongoDbDeclaration());
-  }
 
   return declarations;
 }
@@ -148,16 +145,22 @@ function buildCreateOrderDeclaration(): ToolDeclaration {
 function buildWebFetchDeclaration(): ToolDeclaration {
   return {
     name: ToolName.WEB_FETCH,
-    description: 'Navega e investiga en internet. Descarga el contenido de una URL y devuelve su texto.',
+    description:
+      'Navega, investiga y busca información en internet/Google. Puedes usar el parámetro "query" para realizar búsquedas generales en la web (ej. preguntas sobre compatibilidad de repuestos, marcas de motos, especificaciones, etc.) o el parámetro "url" para descargar el contenido directo de una página web específica.',
     parameters: {
       type: 'OBJECT',
       properties: {
         url: {
           type: 'STRING',
-          description: 'La URL completa (comenzando con http:// o https://) que se desea investigar.',
+          description:
+            'Opcional: La URL completa (comenzando con http:// o https://) que se desea investigar.',
+        },
+        query: {
+          type: 'STRING',
+          description:
+            'Opcional: Términos o pregunta para buscar en internet (ej. "para que motos sirven las bujias CR8E", "compatibilidad Keeway Horse 150"). Usar preferiblemente para cualquier pregunta abierta que requiera investigar en internet.',
         },
       },
-      required: ['url'],
     },
   };
 }
@@ -213,7 +216,7 @@ function buildQueryMongoDbDeclaration(): ToolDeclaration {
   return {
     name: ToolName.QUERY_MONGODB,
     description:
-      'Exclusivo para uso interno del CRM. Ejecuta consultas agregadas o de lectura simple en las colecciones de MongoDB (Product, Client, Order, Expense, FinancialDay, ChatSession, UnsatisfiedDemand) para responder preguntas analíticas, métricas de venta, mejores clientes, etc.',
+      'Exclusivo para uso interno del CRM. Ejecuta consultas agregadas o de lectura simple en las colecciones de MongoDB (Product, Client, Order, Expense, FinancialDay, ChatSession, UnsatisfiedDemand) para responder preguntas analíticas, métricas de venta, mejores clientes, etc. NOTA: En la colección "products", el campo para el nombre del producto es "name".',
     parameters: {
       type: 'OBJECT',
       properties: {

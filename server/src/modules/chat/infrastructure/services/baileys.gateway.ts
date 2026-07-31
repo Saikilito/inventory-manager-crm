@@ -10,6 +10,7 @@ import { IdVO } from "../../../../../../shared-domain/src/shared/value-objects/i
 import { IBaileysAuthRepository } from "../../application/repositories/baileys-auth.repository.js";
 import { ChatMessageSender, IChatMessageRepository } from "../../application/repositories/chat-message.repository.js";
 import { ProcessIncomingMessage } from "../../application/use-cases/process-incoming-message.use-case.js";
+import { IIncomingMessageCollector } from "./incoming-message-collector.js";
 import { useMongooseAuthState } from "./baileys-auth-state.js";
 import { pubSubInstance } from "../pubsub.js";
 import { WhatsAppConstants } from "./whatsapp-constants.js";
@@ -20,7 +21,10 @@ export interface IWhatsAppGateway {
     text: string,
     options?: { alreadySaved?: boolean; skipPublish?: boolean; messageId?: string }
   ): Promise<Result<void, Error>>;
-  initialize(processIncomingMessage: ProcessIncomingMessage): Promise<Result<void, Error>>;
+  initialize(
+    processIncomingMessage: ProcessIncomingMessage,
+    incomingMessageCollector?: IIncomingMessageCollector
+  ): Promise<Result<void, Error>>;
   getSocket(): WASocket | null;
   getConnectionState(): { status: "DISCONNECTED" | "CONNECTING" | "QR" | "CONNECTED"; qr: string | null };
 }
@@ -39,10 +43,12 @@ const phoneToJid = (phone: string): string => {
 export const makeBaileysGateway = (dependencies: {
   baileysAuthRepository: IBaileysAuthRepository;
   chatMessageRepository: IChatMessageRepository;
+  incomingMessageCollector?: IIncomingMessageCollector;
 }): IWhatsAppGateway => {
   let sock: WASocket | null = null;
   let isInitializing = false;
   let reconnectTimeout: NodeJS.Timeout | null = null;
+  let activeCollector: IIncomingMessageCollector | undefined = dependencies.incomingMessageCollector;
   const sessionId = WhatsAppConstants.DEFAULT_BAILEYS_SESSION_ID;
 
   let connectionState: {
@@ -64,8 +70,12 @@ export const makeBaileysGateway = (dependencies: {
   };
 
   const initialize = async (
-    processIncomingMessage: ProcessIncomingMessage
+    processIncomingMessage: ProcessIncomingMessage,
+    incomingMessageCollector?: IIncomingMessageCollector
   ): Promise<Result<void, Error>> => {
+    if (incomingMessageCollector) {
+      activeCollector = incomingMessageCollector;
+    }
     if (isInitializing) {
       return Result.ok<void, Error>();
     }
@@ -178,7 +188,16 @@ export const makeBaileysGateway = (dependencies: {
                 msg.message.extendedTextMessage?.text ||
                 "";
 
-              if (!text && msg.message.locationMessage) {
+              let mediaType: "audio" | "image" | null = null;
+
+              if (msg.message.audioMessage) {
+                mediaType = "audio";
+                text = "🎵 [Audio recibido]";
+              } else if (msg.message.imageMessage) {
+                mediaType = "image";
+                const caption = msg.message.imageMessage.caption;
+                text = caption ? `📷 [Imagen recibida]: ${caption}` : "📷 [Imagen recibida]";
+              } else if (!text && msg.message.locationMessage) {
                 const lat = msg.message.locationMessage.degreesLatitude;
                 const lng = msg.message.locationMessage.degreesLongitude;
                 if (lat !== undefined && lng !== undefined) {
@@ -215,31 +234,40 @@ export const makeBaileysGateway = (dependencies: {
                   chatMessageReceived: msgObj,
                 });
 
-                const processRes = await processIncomingMessage({
-                  from: cleanPhone,
-                  text,
-                  alreadySaved: true,
-                });
-
-                if (processRes.isFailure) {
-                  console.error(
-                    `❌ [Gateway] Failed to process incoming message from ${cleanPhone}:`,
-                    processRes.getError().message
-                  );
-                } else {
-                  const output = processRes.getValue();
-
-                  pubSubInstance.publish("CHAT_SESSION_UPDATED", {
-                    chatSessionUpdated: {
-                      id: output.sessionId,
-                      _id: output.sessionId,
-                      whatsappId: cleanPhone,
-                      status: output.status,
-                      driftCount: output.driftCount,
-                      createdAt: new Date().toISOString(),
-                      updatedAt: new Date().toISOString(),
-                    },
+                if (activeCollector) {
+                  await activeCollector.enqueue({
+                    from: cleanPhone,
+                    text,
+                    mediaType,
                   });
+                } else {
+                  const processRes = await processIncomingMessage({
+                    from: cleanPhone,
+                    text,
+                    mediaType,
+                    alreadySaved: true,
+                  });
+
+                  if (processRes.isFailure) {
+                    console.error(
+                      `❌ [Gateway] Failed to process incoming message from ${cleanPhone}:`,
+                      processRes.getError().message
+                    );
+                  } else {
+                    const output = processRes.getValue();
+
+                    pubSubInstance.publish("CHAT_SESSION_UPDATED", {
+                      chatSessionUpdated: {
+                        id: output.sessionId,
+                        _id: output.sessionId,
+                        whatsappId: cleanPhone,
+                        status: output.status,
+                        driftCount: output.driftCount,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                      },
+                    });
+                  }
                 }
               }
             }

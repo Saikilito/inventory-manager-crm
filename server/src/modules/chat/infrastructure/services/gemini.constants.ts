@@ -1,7 +1,9 @@
 export const GeminiConstants = {
   MAX_COMPACTION_WORDS: 150,
-  MAX_REPLY_WORDS: 50,
+  MAX_KEY_COOLDOWN_WAIT_MS: 30_000,
 } as const;
+
+export { MAX_REPLY_WORDS } from '../../application/use-cases/process-incoming-message.constants.js';
 
 export const MAX_PRODUCT_SEARCH_LIMIT = 10;
 
@@ -31,12 +33,15 @@ export type MongoQueryConstants = (typeof MongoQueryConstants)[keyof typeof Mong
 
 const ProductsAllowedFields = [
   "name",
+  "productName",
   "category",
   "stock",
   "price",
+  "sellingPrice",
   "status",
   "contextId",
   "customAttributes.motoBrand",
+  "customAttributes.motoModel",
   "customAttributes.partBrand",
   "createdAt",
   "updatedAt",
@@ -132,24 +137,6 @@ const AllowedAggregateStages = [
   "$sort",
   "$limit",
   "$count",
-  "$sum",
-  "$avg",
-  "$min",
-  "$max",
-  "$first",
-  "$last",
-  "$cond",
-  "$ifNull",
-  "$eq",
-  "$ne",
-  "$gt",
-  "$gte",
-  "$lt",
-  "$lte",
-  "$in",
-  "$and",
-  "$or",
-  "$not",
 ] as const;
 
 export const MongoQueryToolAllowlist = {

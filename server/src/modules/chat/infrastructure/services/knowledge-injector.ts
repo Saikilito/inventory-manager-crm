@@ -26,7 +26,12 @@ export interface KnowledgeInjectorDeps {
   cognitiveRouter: CognitiveRouter;
 }
 
-export type KnowledgeInjector = (options: KnowledgeInjectorOptions) => Promise<string>;
+export interface KnowledgeInjectorResult {
+  block: string;
+  includedTitles: string[];
+}
+
+export type KnowledgeInjector = (options: KnowledgeInjectorOptions) => Promise<KnowledgeInjectorResult>;
 
 const formatEntry = (entry: { knowledge: IKnowledge; score: number }): string => {
   const category = entry.knowledge.category.toString();
@@ -68,17 +73,20 @@ export const makeKnowledgeInjector = (deps: KnowledgeInjectorDeps): KnowledgeInj
     });
 
     if (results.length === 0) {
-      return KNOWLEDGE_CONTEXT_EMPTY;
+      return { block: KNOWLEDGE_CONTEXT_EMPTY, includedTitles: [] };
     }
 
     const headerChars = KNOWLEDGE_CONTEXT_HEADER.length + KNOWLEDGE_CONTEXT_FOOTER.length + 4;
     const perEntryChars = Math.max(80, Math.floor((charBudget - headerChars) / results.length));
     const entries = results.map((entry) => truncate(formatEntry(entry), perEntryChars));
+    const includedTitles = results.map((entry) => entry.knowledge.title.toString());
 
-    return [
+    const block = [
       KNOWLEDGE_CONTEXT_HEADER,
       entries.join('\n\n---\n\n'),
       KNOWLEDGE_CONTEXT_FOOTER,
     ].join('\n\n');
+
+    return { block, includedTitles };
   };
 };

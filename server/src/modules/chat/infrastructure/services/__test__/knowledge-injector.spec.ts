@@ -36,7 +36,8 @@ describe('makeKnowledgeInjector', () => {
 
     const result = await injector({ query: 'warranty' });
 
-    expect(result).toBe(KNOWLEDGE_CONTEXT_EMPTY);
+    expect(result.block).toBe(KNOWLEDGE_CONTEXT_EMPTY);
+    expect(result.includedTitles).toEqual([]);
   });
 
   it('should format a context block with header, entries, and footer', async () => {
@@ -48,12 +49,13 @@ describe('makeKnowledgeInjector', () => {
 
     const result = await injector({ query: 'warranty' });
 
-    expect(result).toContain(KNOWLEDGE_CONTEXT_HEADER);
-    expect(result).toContain(KNOWLEDGE_CONTEXT_FOOTER);
-    expect(result).toContain('[SALES] Warranty');
-    expect(result).toContain('[SALES] Returns');
-    expect(result).toContain('relevancia: 85%');
-    expect(result).toContain('relevancia: 65%');
+    expect(result.block).toContain(KNOWLEDGE_CONTEXT_HEADER);
+    expect(result.block).toContain(KNOWLEDGE_CONTEXT_FOOTER);
+    expect(result.block).toContain('[SALES] Warranty');
+    expect(result.block).toContain('[SALES] Returns');
+    expect(result.block).toContain('relevancia: 85%');
+    expect(result.block).toContain('relevancia: 65%');
+    expect(result.includedTitles).toEqual(['Warranty', 'Returns']);
   });
 
   it('should pass topN through to the cognitive router', async () => {
@@ -107,7 +109,7 @@ describe('makeKnowledgeInjector', () => {
       tokenBudget: 100,
     });
 
-    expect(result.length).toBeLessThan(longContent.length + 200);
-    expect(result).toContain('...');
+    expect(result.block.length).toBeLessThan(longContent.length + 200);
+    expect(result.block).toContain('...');
   });
 });
