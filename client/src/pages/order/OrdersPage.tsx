@@ -55,24 +55,26 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ session }) => {
 
   const { data: clientsData } = useQuery(CLIENTS_QUERY, {
     variables: { limit: 1000 },
-    fetchPolicy: 'cache-first',
+    fetchPolicy: 'cache-and-network',
   });
 
   const { data: productsData } = useQuery(PRODUCTS_QUERY, {
     variables: { limit: 1000 },
-    fetchPolicy: 'cache-first',
+    fetchPolicy: 'cache-and-network',
   });
 
   const [updateOrder, { loading: isUpdating }] = useMutation(UPDATE_ORDER);
 
   const contextMap = new Map<string, string>();
   (contextsData?.getAllContexts || []).forEach((ctx: GQLContext) => {
-    contextMap.set(ctx._id, ctx.name);
+    if (ctx._id) contextMap.set(ctx._id, ctx.name);
   });
 
   const clientMap = new Map<string, { firstName: string; lastName: string }>();
   (clientsData?.getAllClients || []).forEach((c: GQLClient) => {
-    clientMap.set(c._id, { firstName: c.firstName, lastName: c.lastName });
+    const value = { firstName: c.firstName, lastName: c.lastName };
+    if (c._id) clientMap.set(c._id, value);
+    if (c.id) clientMap.set(c.id, value);
   });
 
   const filteredOrders = (ordersData?.getAllOrders || [])

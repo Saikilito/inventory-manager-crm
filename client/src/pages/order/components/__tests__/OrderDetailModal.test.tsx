@@ -143,7 +143,12 @@ describe("OrderDetailModal Presenter", () => {
 
     const statusSelect = screen.getByRole("combobox", { name: /change order status/i });
     fireEvent.change(statusSelect, { target: { value: OrderStatus.COMPLETED } });
-    expect(onStatusChange).toHaveBeenCalledWith(OrderStatus.COMPLETED);
+    expect(onStatusChange).toHaveBeenCalledWith({
+      newStatus: OrderStatus.COMPLETED,
+      newPaymentStatus: undefined,
+      newDeliveryStatus: undefined,
+      payments: undefined,
+    });
   });
 
   it("opens CancelOrderModal when CANCELLED status is selected", async () => {

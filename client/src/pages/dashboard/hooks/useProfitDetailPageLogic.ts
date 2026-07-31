@@ -1,42 +1,41 @@
-import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import { useQuery } from "@apollo/client";
-import { GET_ALL_CONTEXTS } from "@modules/product/infrastructure/graphql/queries";
-import { CLIENTS_QUERY } from "@modules/client/infrastructure/graphql/queries";
-import { useProfitDetail } from "@modules/dashboard/infrastructure/hooks/useProfitDetail";
-import { GroupedOrder } from "../types";
+import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useQuery } from '@apollo/client';
+import { GET_ALL_CONTEXTS } from '@modules/product/infrastructure/graphql/queries';
+import { CLIENTS_QUERY } from '@modules/client/infrastructure/graphql/queries';
+import { useProfitDetail } from '@modules/dashboard/infrastructure/hooks/useProfitDetail';
+import { GroupedOrder } from '../types';
 
 export const useProfitDetailPageLogic = () => {
   const [searchParams] = useSearchParams();
-  const period = searchParams.get("period") || "MONTHLY";
-  const contextId = searchParams.get("contextId") || "";
+  const period = searchParams.get('period') || 'MONTHLY';
+  const contextId = searchParams.get('contextId') || '';
 
   const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>({});
 
-  // Fetch Profit Detail data from custom hook
   const { loading, error, summary, transactionLines, refetch } = useProfitDetail();
 
-  // Fetch Contexts for title display
-  const { data: contextsData } = useQuery(GET_ALL_CONTEXTS, { fetchPolicy: "cache-first" });
-  
+  const { data: contextsData } = useQuery(GET_ALL_CONTEXTS, { fetchPolicy: 'cache-first' });
+
   const activeContextName = useMemo(() => {
-    if (!contextId) return "General (All Contexts)";
+    if (!contextId) return 'General (All Contexts)';
     const contexts = contextsData?.getAllContexts || [];
     const found = contexts.find((c: { _id: string }) => c._id.toString() === contextId);
-    return found ? found.name : "Unknown Context";
+    return found ? found.name : 'Unknown Context';
   }, [contextsData, contextId]);
 
-  // Fetch Clients for Client Name resolution
   const { data: clientsData } = useQuery(CLIENTS_QUERY, {
     variables: { limit: 1000 },
-    fetchPolicy: "cache-first",
+    fetchPolicy: 'cache-and-network',
   });
-  
+
   const clientsMap = useMemo(() => {
     const map = new Map<string, string>();
     const list = clientsData?.getAllClients || [];
-    list.forEach((c: { _id: string; firstName: string; lastName: string }) => {
-      map.set(c._id.toString(), `${c.firstName} ${c.lastName}`);
+    list.forEach((c: { _id?: string; id?: string; firstName: string; lastName: string }) => {
+      const name = `${c.firstName} ${c.lastName}`;
+      if (c._id) map.set(c._id.toString(), name);
+      if (c.id) map.set(c.id.toString(), name);
     });
     return map;
   }, [clientsData]);
@@ -54,7 +53,7 @@ export const useProfitDetailPageLogic = () => {
           orderId,
           shortId: orderId.substring(0, 8).toUpperCase(),
           createdAt: line.createdAt,
-          clientName: "Unknown Client", // Resolved later
+          clientName: 'Unknown Client', // Resolved later
           revenue: 0,
           totalCOGS: 0,
           netProfit: 0,
@@ -68,13 +67,13 @@ export const useProfitDetailPageLogic = () => {
       orderGroup.revenue += line.revenue;
       orderGroup.totalCOGS += line.totalCOGS;
       orderGroup.netProfit += line.netMargin;
-      
+
       if (line.isFallback) {
         orderGroup.hasFallback = true;
       }
 
       orderGroup.items.push({
-        productId: line.id.split("-")[1] || "",
+        productId: line.id.split('-')[1] || '',
         productName: line.productName,
         quantity: line.quantity,
         unitPrice: line.unitPrice,
@@ -98,9 +97,9 @@ export const useProfitDetailPageLogic = () => {
     return groupedOrders.map((g) => {
       // Find the clientId from the transaction lines belonging to this order
       const lineWithClientId = transactionLines.find((line) => line.orderId === g.orderId);
-      const clientId = lineWithClientId ? lineWithClientId.clientId : "";
-      const clientName = clientId ? clientsMap.get(clientId.toString()) || "Unknown Client" : "Unknown Client";
-      
+      const clientId = lineWithClientId ? lineWithClientId.clientId : '';
+      const clientName = clientId ? clientsMap.get(clientId.toString()) || 'Unknown Client' : 'Unknown Client';
+
       return {
         ...g,
         clientName,
