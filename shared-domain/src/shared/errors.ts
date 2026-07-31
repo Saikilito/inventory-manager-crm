@@ -25,16 +25,6 @@ export const createNotFoundError = (message: string): NotFoundError => {
   return new NotFoundError(message);
 }
 
-export class ConflictError extends DomainError {
-  constructor(message: string) {
-    super(message, 'ConflictError');
-  }
-}
-
-export const createConflictError = (message: string): ConflictError => {
-  return new ConflictError(message);
-}
-
 export class DatabaseError extends DomainError {
   constructor(message: string) {
     super(message, 'DatabaseError');
@@ -43,16 +33,6 @@ export class DatabaseError extends DomainError {
 
 export const createDatabaseError = (message: string): DatabaseError => {
   return new DatabaseError(message);
-}
-
-export class UnauthorizedError extends DomainError {
-  constructor(message: string) {
-    super(message, 'UnauthorizedError');
-  }
-}
-
-export const createUnauthorizedError = (message: string): UnauthorizedError => {
-  return new UnauthorizedError(message);
 }
 
 export class SchemaIntegrityError extends DomainError {

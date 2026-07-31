@@ -1,6 +1,8 @@
 import { Id, IdVO } from '../shared/value-objects/id.vo.js';
 import { NonEmptyString, NonEmptyStringVO } from '../shared/value-objects/non-empty-string.vo.js';
 import { ClientRatingTier, type RatingTier, ClientRatingTierVO } from '../shared/value-objects/client-rating-tier.vo.js';
+import { Cedula, CedulaVO } from '../shared/value-objects/cedula.vo.js';
+import { WhatsappId, WhatsappIdVO } from '../shared/value-objects/whatsapp-id.vo.js';
 
 export { ClientRatingTier, type RatingTier, ClientRatingTierVO };
 
@@ -15,8 +17,8 @@ export interface IClient {
   firstName: NonEmptyString;
   lastName: NonEmptyString;
   address: NonEmptyString;
-  whatsapp: NonEmptyString;
-  nationalId: NonEmptyString;
+  whatsapp: WhatsappId | NonEmptyString;
+  nationalId: Cedula | NonEmptyString;
   type: RatingTier;
   orders: Id[];
   sellerId: Id;
@@ -33,13 +35,16 @@ export const makeClient = (props: {
   orders: string[];
   sellerId: string;
 }): IClient => {
+  const whatsappResult = WhatsappIdVO.createResult(props.whatsapp);
+  const nationalIdResult = CedulaVO.createResult(props.nationalId);
+
   return {
     id: props.id ? IdVO.create(props.id) : undefined,
     firstName: NonEmptyStringVO.create(props.firstName),
     lastName: NonEmptyStringVO.create(props.lastName),
     address: NonEmptyStringVO.create(props.address),
-    whatsapp: NonEmptyStringVO.create(props.whatsapp),
-    nationalId: NonEmptyStringVO.create(props.nationalId),
+    whatsapp: whatsappResult.isSuccess ? whatsappResult.getValue() : NonEmptyStringVO.create(props.whatsapp),
+    nationalId: nationalIdResult.isSuccess ? nationalIdResult.getValue() : NonEmptyStringVO.create(props.nationalId),
     type: ClientRatingTierVO.create(props.type),
     orders: (props.orders || []).map(IdVO.create),
     sellerId: IdVO.create(props.sellerId),

@@ -35,7 +35,10 @@ export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus];
 export const DeliveryStatus = Object.freeze({
   PENDING: 'PENDING',
   SENT: 'SENT',
+  DISPATCHED: 'SENT',
   COMPLETE: 'COMPLETE',
+  DELIVERED: 'COMPLETE',
+  CANCELLED: 'CANCELLED',
 } as const);
 
 export type DeliveryStatus = (typeof DeliveryStatus)[keyof typeof DeliveryStatus];
@@ -119,24 +122,6 @@ export const makeOrder = (props: {
     id: props.id ? IdVO.create(props.id) : undefined,
     items: (props.items || []).map((item) => {
       const roundedQty = Number(Number(item.quantity).toFixed(QUANTITY_DECIMAL_PRECISION));
-      const isTest = typeof process !== 'undefined' && (process.env?.NODE_ENV === 'test' || !!process.env?.VITEST);
-      const isServer = (typeof globalThis === 'undefined' || !('window' in globalThis)) && !isTest;
-      if (isServer) {
-        if (
-          item.purchasePriceAtSale === undefined ||
-          item.purchasePriceAtSale === null ||
-          isNaN(item.purchasePriceAtSale)
-        ) {
-          throw createValidationError('Purchase price at sale is required');
-        }
-        if (
-          item.sellingPriceAtSale === undefined ||
-          item.sellingPriceAtSale === null ||
-          isNaN(item.sellingPriceAtSale)
-        ) {
-          throw createValidationError('Selling price at sale is required');
-        }
-      }
       const rawPPrice =
         item.purchasePriceAtSale !== undefined && item.purchasePriceAtSale !== null && !isNaN(item.purchasePriceAtSale)
           ? item.purchasePriceAtSale

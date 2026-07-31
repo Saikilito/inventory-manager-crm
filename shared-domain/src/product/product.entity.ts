@@ -4,7 +4,6 @@ import { NonNegativeNumber, NonNegativeNumberVO } from '../shared/value-objects/
 import { PositiveNumber, PositiveNumberVO } from '../shared/value-objects/positive-number.vo.js';
 import { UnitOfMeasure } from '../shared/value-objects/unit-of-measure.vo.js';
 import { PackagingType } from '../shared/value-objects/packaging-type.vo.js';
-import { ValidationError, createValidationError } from '../shared/validation-error.js';
 
 export const PRICE_DECIMAL_PRECISION = 2;
 export const QUANTITY_DECIMAL_PRECISION = 4;
@@ -44,18 +43,6 @@ export const makeProduct = (props: {
     contentUom: string;
   };
 }): IProduct => {
-  const isTest = typeof process !== 'undefined' && (process.env?.NODE_ENV === 'test' || !!process.env?.VITEST);
-  const isServer = (typeof globalThis === 'undefined' || !('window' in globalThis)) && !isTest;
-
-  if (isServer) {
-    if (props.sellingPrice === undefined) {
-      throw createValidationError('Selling price is required');
-    }
-    if (props.purchasePrice === undefined) {
-      throw createValidationError('Purchase price is required');
-    }
-  }
-
   const rawSellingPrice = props.sellingPrice !== undefined ? props.sellingPrice : PRODUCT_DEFAULT_PRICE_FALLBACK;
   const rawPurchasePrice = props.purchasePrice !== undefined ? props.purchasePrice : PRODUCT_DEFAULT_PRICE_FALLBACK;
 

@@ -23,13 +23,22 @@ export const DeliveryStatusVO = {
       z.enum([
         DeliveryStatus.PENDING,
         DeliveryStatus.DISPATCHED,
+        DeliveryStatus.SENT,
         DeliveryStatus.DELIVERED,
+        DeliveryStatus.COMPLETE,
         DeliveryStatus.CANCELLED,
       ]).safeParse(normalized).error
     ) {
       return Result.fail(createValidationError(`Unsupported delivery status: ${value}`));
     }
 
-    return Result.ok(normalized as DeliveryStatusType);
+    const canonical =
+      normalized === 'SENT'
+        ? DeliveryStatus.DISPATCHED
+        : normalized === 'COMPLETE'
+          ? DeliveryStatus.DELIVERED
+          : normalized;
+
+    return Result.ok(canonical as DeliveryStatusType);
   },
 };

@@ -6,14 +6,14 @@ import { ValidationError, createValidationError } from '../validation-error.js';
 export type Cedula = Opaque<string, 'Cedula'>;
 
 export const CedulaVO = {
-  create: (value: string) => {
+  create: (value: string): Result<Cedula, ValidationError> => {
     const result = CedulaVO.createResult(value);
 
     if (result.isFailure) {
-      throw result.getError();
+      return Result.fail(result.getError());
     }
 
-    return result.getValue();
+    return Result.ok(result.getValue());
   },
 
   createResult: (value: string): Result<Cedula, ValidationError> => {

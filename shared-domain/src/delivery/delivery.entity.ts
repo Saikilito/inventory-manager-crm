@@ -9,7 +9,9 @@ import { getErrorMessage } from '../shared/error-utils.js';
 export const DeliveryStatus = {
   PENDING: 'PENDING',
   DISPATCHED: 'DISPATCHED',
+  SENT: 'DISPATCHED',
   DELIVERED: 'DELIVERED',
+  COMPLETE: 'DELIVERED',
   CANCELLED: 'CANCELLED',
 } as const;
 
