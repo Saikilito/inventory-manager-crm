@@ -11,6 +11,8 @@ import { makeCalculateDeliveryFee } from '../../modules/chat/application/use-cas
 import { makeHandoverToHuman } from '../../modules/chat/application/use-cases/handover-to-human.use-case.js';
 import { makeLogUnsatisfiedDemand } from '../../modules/chat/application/use-cases/log-unsatisfied-demand.use-case.js';
 import { makeProcessIncomingMessage } from '../../modules/chat/application/use-cases/process-incoming-message.use-case.js';
+import { makeWhatsappRateLimiter } from '../../modules/chat/application/services/whatsapp-rate-limiter.js';
+import { makeIncomingMessageCollector } from '../../modules/chat/infrastructure/services/incoming-message-collector.js';
 import { makeInitializeWhatsApp } from '../../modules/chat/application/use-cases/initialize-whatsapp.use-case.js';
 import { makeCreateAgent } from '../../modules/chat/application/use-cases/create-agent.use-case.js';
 import { makeUpdateAgent } from '../../modules/chat/application/use-cases/update-agent.use-case.js';
@@ -37,6 +39,7 @@ export interface ChatSubContainer {
   handoverToHuman: ReturnType<typeof makeHandoverToHuman>;
   logUnsatisfiedDemand: ReturnType<typeof makeLogUnsatisfiedDemand>;
   processIncomingMessage: ReturnType<typeof makeProcessIncomingMessage>;
+  incomingMessageCollector: ReturnType<typeof makeIncomingMessageCollector>;
   initializeWhatsApp: ReturnType<typeof makeInitializeWhatsApp>;
   createAgent: ReturnType<typeof makeCreateAgent>;
   updateAgent: ReturnType<typeof makeUpdateAgent>;
@@ -64,7 +67,16 @@ export interface ChatModuleDependencies {
   clientRepository: IClientRepository;
   pubSubInstance: IPubSub;
   knowledgeRepository: IKnowledgeRepository;
-  config: Pick<IConfig, 'knowledgeInjectionEnabled' | 'knowledgeInjectionTopN' | 'knowledgeInjectionTokenBudget'>;
+  config: Pick<
+    IConfig,
+    | 'knowledgeInjectionEnabled'
+    | 'knowledgeInjectionTopN'
+    | 'knowledgeInjectionTokenBudget'
+    | 'chatMessageDebounceMs'
+    | 'chatMessageMaxWaitMs'
+    | 'chatMessageMaxCount'
+    | 'geminiApiKeys'
+  >;
 }
 
 export const buildChatModule = (deps: ChatModuleDependencies): ChatSubContainer => {
@@ -109,6 +121,7 @@ export const buildChatModule = (deps: ChatModuleDependencies): ChatSubContainer 
 
   const checkWorkingHours = makeCheckWorkingHours();
   const handoverToHuman = makeHandoverToHuman({ chatSessionRepository, whatsAppGateway, pubSub });
+  const whatsappRateLimiter = makeWhatsappRateLimiter();
 
   const processIncomingMessage = makeProcessIncomingMessage({
     chatSessionRepository,
@@ -120,9 +133,23 @@ export const buildChatModule = (deps: ChatModuleDependencies): ChatSubContainer 
     checkWorkingHours,
     handoverToHuman,
     pubSub,
+    whatsappRateLimiter,
   });
 
-  const initializeWhatsApp = makeInitializeWhatsApp({ whatsAppGateway, processIncomingMessage });
+  const incomingMessageCollector = makeIncomingMessageCollector({
+    processIncomingMessage,
+    handoverToHuman,
+    pubSub,
+    debounceMs: config.chatMessageDebounceMs,
+    maxWaitMs: config.chatMessageMaxWaitMs,
+    maxMessageCount: config.chatMessageMaxCount,
+  });
+
+  const initializeWhatsApp = makeInitializeWhatsApp({
+    whatsAppGateway,
+    processIncomingMessage,
+    incomingMessageCollector,
+  });
   const createAgent = makeCreateAgent(agentRepository);
   const updateAgent = makeUpdateAgent(agentRepository);
   const deleteAgent = makeDeleteAgent(agentRepository);
@@ -147,6 +174,7 @@ export const buildChatModule = (deps: ChatModuleDependencies): ChatSubContainer 
     handoverToHuman,
     logUnsatisfiedDemand,
     processIncomingMessage,
+    incomingMessageCollector,
     initializeWhatsApp,
     createAgent,
     updateAgent,

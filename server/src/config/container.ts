@@ -208,6 +208,10 @@ export const makeContainer = (overrides: ContainerDependencies = {}): Container 
       knowledgeInjectionEnabled: config.knowledgeInjectionEnabled,
       knowledgeInjectionTopN: config.knowledgeInjectionTopN,
       knowledgeInjectionTokenBudget: config.knowledgeInjectionTokenBudget,
+      chatMessageDebounceMs: config.chatMessageDebounceMs,
+      chatMessageMaxWaitMs: config.chatMessageMaxWaitMs,
+      chatMessageMaxCount: config.chatMessageMaxCount,
+      geminiApiKeys: config.geminiApiKeys,
     },
   });
 

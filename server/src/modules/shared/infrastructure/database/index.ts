@@ -58,8 +58,4 @@ export const closeDB = async (): Promise<Result<void, DatabaseError>> => {
   return lastFailure ?? Result.ok();
 };
 
-export const getActiveConnections = (): readonly DatabaseConnection[] => {
-  return activeConnections;
-};
-
 export * from './types.js';
