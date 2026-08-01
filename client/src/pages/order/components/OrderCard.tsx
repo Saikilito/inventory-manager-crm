@@ -1,8 +1,14 @@
 import React from "react";
 import { Package, Eye, Store } from "lucide-react";
-import { OrderStatus, PaymentStatus, DeliveryStatus } from "@shared-domain/order/order.entity";
+import { OrderStatus, PaymentStatus } from "@shared-domain/order/order.entity";
 import type { GQLOrder, GQLOrderItem } from "@modules/order/infrastructure/graphql/types";
 import { formatCurrency } from "@utils/formatters";
+import {
+  DELIVERY_STATUS_LABEL,
+  DELIVERY_STATUS_BADGE_CLASSES,
+  NO_DELIVERY_LABEL,
+  NO_DELIVERY_BADGE_CLASSES,
+} from "../../delivery/delivery-status.presentation";
 
 export type { GQLOrder as Order, GQLOrderItem as OrderItem };
 
@@ -27,12 +33,6 @@ const paymentColors: Record<PaymentStatus, string> = {
   PENDING: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
   PAID: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
   REFUNDED: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
-};
-
-const deliveryColors: Record<DeliveryStatus, string> = {
-  PENDING: "bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-300",
-  SENT: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300",
-  COMPLETE: "bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300",
 };
 
 export const OrderCard: React.FC<OrderCardProps> = ({
@@ -68,8 +68,12 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold ${paymentColors[order.paymentStatus] || "bg-stone-100 text-stone-600"}`}>
           {order.paymentStatus}
         </span>
-        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold ${deliveryColors[order.deliveryStatus] || "bg-stone-100 text-stone-600"}`}>
-          {order.deliveryStatus}
+        <span
+          className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold ${
+            order.deliveryStatus ? DELIVERY_STATUS_BADGE_CLASSES[order.deliveryStatus] : NO_DELIVERY_BADGE_CLASSES
+          }`}
+        >
+          {order.deliveryStatus ? DELIVERY_STATUS_LABEL[order.deliveryStatus] : NO_DELIVERY_LABEL}
         </span>
         {contextName && (
           <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300">

@@ -5,7 +5,6 @@ import {
   makeOrder,
   OrderStatus,
   PaymentStatus,
-  DeliveryStatus,
   ORDER_DEFAULT_PRICE_FALLBACK,
 } from '../../../../../../shared-domain/src/order/order.entity.js';
 import OrderModel, { IOrderDocument } from '../order.model.js';
@@ -39,7 +38,6 @@ const mapToDomain = (doc: IOrderDocument): IOrder => {
     clientId: doc.clientId.toString(),
     status: doc.status as OrderStatus,
     paymentStatus: doc.paymentStatus || PaymentStatus.PENDING,
-    deliveryStatus: doc.deliveryStatus || DeliveryStatus.PENDING,
     sellerId: doc.sellerId.toString(),
     contextId: doc.contextId?.toString(),
     deliveryId: doc.deliveryId?.toString(),
@@ -71,7 +69,6 @@ export const makeOrderMongooseRepository = (): IOrderRepository => {
       if (order.total !== undefined) data.total = order.total;
       if (order.status !== undefined) data.status = order.status;
       if (order.paymentStatus !== undefined) data.paymentStatus = order.paymentStatus;
-      if (order.deliveryStatus !== undefined) data.deliveryStatus = order.deliveryStatus;
 
       if (order.clientId !== undefined) {
         data.clientId = new mongoose.Types.ObjectId(order.clientId);

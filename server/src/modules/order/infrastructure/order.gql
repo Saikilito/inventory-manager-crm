@@ -44,12 +44,6 @@ enum PaymentStatus {
   REFUNDED
 }
 
-enum DeliveryStatus {
-  PENDING
-  SENT
-  COMPLETE
-}
-
 type Query {
   getOrderClient(clientId: ID!): [Order]!
   getAllOrders(limit: Int, offset: Int, date: String): [Order]!
@@ -60,6 +54,8 @@ type Query {
 input OrderItemInput {
   productId: ID!
   quantity: Int
+  sellingPriceAtSale: Float
+  purchasePriceAtSale: Float
 }
 
 input OrderPaymentInput {
@@ -80,6 +76,7 @@ input OrderInput {
   sellerId: ID!
   contextId: ID
   deliveryCost: Float
+  customDeliveryAddress: String
   payments: [OrderPaymentInput]
   cancellationObservation: String
 }

@@ -2,7 +2,8 @@ import React from "react";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { formatCurrency } from "@utils/formatters";
 import { calculateDistance, DEFAULT_ORIGIN_LAT, DEFAULT_ORIGIN_LNG } from "@shared-domain/delivery/delivery-calculator";
-import { CARACAS_ZONES } from "./DraftOrderTab";
+import { DeliveryMethod } from "@shared-domain/delivery/delivery.entity";
+import { CARACAS_ZONES, CUSTOM_ZONE_NAME } from "../../action-panel/delivery-zones";
 import type { LiveCartItem, LiveEditableField, LiveEditedClient } from "./LiveAiCoPilotTab.types";
 
 export const LiveCoPilotHeader: React.FC = () => (
@@ -209,8 +210,8 @@ export const LiveCartTable: React.FC<LiveCartTableProps> = ({
 };
 
 interface DeliverySectionProps {
-  deliveryType: "pickup" | "delivery";
-  setDeliveryType: (type: "pickup" | "delivery") => void;
+  deliveryType: DeliveryMethod;
+  setDeliveryType: (type: DeliveryMethod) => void;
   selectedZoneIndex: number;
   setSelectedZoneIndex: (index: number) => void;
 }
@@ -227,7 +228,7 @@ export const DeliverySection: React.FC<DeliverySectionProps> = ({
         Delivery Method
       </label>
       <div className="flex bg-zinc-900 p-0.5 rounded-lg text-xs font-bold border border-zinc-800">
-        {(["pickup", "delivery"] as const).map((option) => (
+        {[DeliveryMethod.PICKUP, DeliveryMethod.DELIVERY].map((option) => (
           <button
             key={option}
             type="button"
@@ -238,12 +239,12 @@ export const DeliverySection: React.FC<DeliverySectionProps> = ({
                 : "text-stone-400 hover:text-stone-200"
             }`}
           >
-            {option === "pickup" ? "Pickup" : "Delivery"}
+            {option === DeliveryMethod.PICKUP ? "Pickup" : "Delivery"}
           </button>
         ))}
       </div>
     </div>
-    {deliveryType === "delivery" && (
+    {deliveryType === DeliveryMethod.DELIVERY && (
       <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl space-y-3 animate-[fadeIn_0.2s_ease-out]">
         <div>
           <label className="block text-[10px] font-bold text-stone-400 uppercase mb-1">
@@ -257,7 +258,7 @@ export const DeliverySection: React.FC<DeliverySectionProps> = ({
             {CARACAS_ZONES.map((zone, i) => (
               <option key={zone.name} value={i}>
                 {zone.name}{" "}
-                {zone.name !== "Custom Coordinates"
+                {zone.name !== CUSTOM_ZONE_NAME
                   ? `(${calculateDistance(DEFAULT_ORIGIN_LAT, DEFAULT_ORIGIN_LNG, zone.lat, zone.lng).toFixed(1)} km)`
                   : ""}
               </option>

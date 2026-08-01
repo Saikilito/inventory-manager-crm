@@ -1,5 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { IOrder } from '../../../../../shared-domain/src/order/order.entity.js';
+import { ORDER_STATUSES, PAYMENT_STATUSES } from '../../../../../shared-domain/src/order/order-status.js';
 
 export interface IOrderDocument
   extends Omit<IOrder, 'id' | 'clientId' | 'sellerId' | 'contextId' | 'deliveryId' | 'items' | 'payments'>, Document {
@@ -47,17 +48,12 @@ const orderSchema = new Schema<IOrderDocument>({
   },
   status: {
     type: String,
-    enum: ['PENDING', 'COMPLETED', 'ACTIVE', 'CANCELLED'],
+    enum: ORDER_STATUSES,
     default: 'PENDING',
   },
   paymentStatus: {
     type: String,
-    enum: ['PENDING', 'PAID', 'REFUNDED'],
-    default: 'PENDING',
-  },
-  deliveryStatus: {
-    type: String,
-    enum: ['PENDING', 'SENT', 'COMPLETE'],
+    enum: PAYMENT_STATUSES,
     default: 'PENDING',
   },
   sellerId: { type: Schema.Types.ObjectId, ref: 'User', required: true },

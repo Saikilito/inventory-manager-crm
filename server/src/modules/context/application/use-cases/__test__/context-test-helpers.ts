@@ -2,9 +2,9 @@ import { Result } from '../../../../../../../shared-domain/src/shared/result.js'
 import { toError } from '../../../../../../../shared-domain/src/shared/error-utils.js';
 import { IContext, makeContext } from '../../../../../../../shared-domain/src/context/context.entity.js';
 import { IProduct, makeProduct } from '../../../../../../../shared-domain/src/product/product.entity.js';
-import { IOrder, makeOrder, OrderStatus, PaymentStatus, DeliveryStatus } from '../../../../../../../shared-domain/src/order/order.entity.js';
+import { IOrder, makeOrder, OrderStatus, PaymentStatus } from '../../../../../../../shared-domain/src/order/order.entity.js';
 import { IPdfReportService } from '../../services/pdf-report-service.interface.js';
-import { IContextRepository } from '../../../domain/repositories/context.repository.js';
+import { IContextRepository } from '../../repositories/context.repository.js';
 import { IProductRepository } from '../../../../product/application/repositories/product.repository.js';
 import { IOrderRepository } from '../../../../order/application/repositories/order.repository.js';
 import { IExpenseRepository } from '../../../../expense/application/repositories/expense.repository.js';
@@ -64,7 +64,6 @@ export const createMockOrders = (): IOrder[] => {
       sellerId: SELLER_ID,
       status: OrderStatus.ACTIVE,
       paymentStatus: PaymentStatus.PAID,
-      deliveryStatus: DeliveryStatus.COMPLETE,
       createdAt: '2026-06-15T10:00:00Z', // local Caracas: 2026-06-15T06:00:00.000-04:00 (Monthly: 2026-06, Weekly: 2026-W25)
       total: 12.00,
       items: [
@@ -93,7 +92,6 @@ export const createMockOrders = (): IOrder[] => {
       sellerId: SELLER_ID,
       status: OrderStatus.ACTIVE,
       paymentStatus: PaymentStatus.PAID,
-      deliveryStatus: DeliveryStatus.COMPLETE,
       createdAt: '2026-07-20T14:00:00Z', // local Caracas: 2026-07-20T10:00:00.000-04:00 (Monthly: 2026-07, Weekly: 2026-W30)
       total: 5.00,
       items: [
@@ -116,7 +114,6 @@ export const createMockOrders = (): IOrder[] => {
       status: OrderStatus.CANCELLED,
       cancellationObservation: 'Cancelación solicitada por el cliente',
       paymentStatus: PaymentStatus.PENDING,
-      deliveryStatus: DeliveryStatus.PENDING,
       createdAt: '2026-06-16T10:00:00Z',
       total: 2.50,
       items: [
@@ -135,7 +132,6 @@ export const createMockOrders = (): IOrder[] => {
       sellerId: SELLER_ID,
       status: OrderStatus.ACTIVE,
       paymentStatus: PaymentStatus.PENDING,
-      deliveryStatus: DeliveryStatus.COMPLETE,
       createdAt: '2026-06-17T10:00:00Z',
       total: 2.50,
       items: [
@@ -154,7 +150,6 @@ export const createMockOrders = (): IOrder[] => {
       sellerId: SELLER_ID,
       status: OrderStatus.ACTIVE,
       paymentStatus: PaymentStatus.PAID,
-      deliveryStatus: DeliveryStatus.SENT,
       createdAt: '2026-06-18T10:00:00Z',
       total: 2.50,
       items: [

@@ -134,7 +134,7 @@ describe('Logistics & Delivery Use Cases', () => {
     const repo = makeMockDeliveryRepository();
     const scheduleDelivery = makeScheduleDelivery(repo);
     const mockOrderRepo = {
-      getById: async () => Result.ok({ id: VALID_ORDER_UUID, deliveryStatus: 'PENDING', status: 'ACTIVE' } as any),
+      getById: async () => Result.ok({ id: VALID_ORDER_UUID, paymentStatus: 'PENDING', status: 'ACTIVE' } as any),
       updateById: async () => Result.ok(void 0)
     } as any;
     const mockRecordDeliveryPayment = makeMockRecordDeliveryPayment();
@@ -151,15 +151,15 @@ describe('Logistics & Delivery Use Cases', () => {
 
     const updateResult = await updateDeliveryStatus({
       id: deliveryId,
-      status: 'DISPATCHED',
+      status: 'SENT',
     });
 
     expect(updateResult.isFailure).toBe(false);
-    expect(updateResult.getValue().status).toBe(DeliveryStatus.DISPATCHED);
+    expect(updateResult.getValue().status).toBe(DeliveryStatus.SENT);
 
     const getResult = await getDelivery(deliveryId);
     expect(getResult.isFailure).toBe(false);
-    expect(getResult.getValue().status).toBe(DeliveryStatus.DISPATCHED);
+    expect(getResult.getValue().status).toBe(DeliveryStatus.SENT);
   });
 
   it('should fail update status when status string is invalid', async () => {

@@ -1,14 +1,10 @@
-import {
-  OrderStatus,
-  PaymentStatus,
-  DeliveryStatus,
-} from "../../../../../../shared-domain/src/order/order.entity.js";
-import { IProduct } from "../../../../../../shared-domain/src/product/product.entity.js";
-import { IOrder } from "../../../../../../shared-domain/src/order/order.entity.js";
-import { IExpense } from "../../../../../../shared-domain/src/expense/expense.entity.js";
-import { IAccount } from "../../../../../../shared-domain/src/financial/account.entity.js";
-import { AccountDistribution } from "./context-metrics.types.js";
-import { ContextMetricsConstants } from "./context-metrics.constants.js";
+import { OrderStatus, PaymentStatus } from '../../../../../../shared-domain/src/order/order.entity.js';
+import { IProduct } from '../../../../../../shared-domain/src/product/product.entity.js';
+import { IOrder } from '../../../../../../shared-domain/src/order/order.entity.js';
+import { IExpense } from '../../../../../../shared-domain/src/expense/expense.entity.js';
+import { IAccount } from '../../../../../../shared-domain/src/financial/account.entity.js';
+import { AccountDistribution } from './context-metrics.types.js';
+import { ContextMetricsConstants } from './context-metrics.constants.js';
 
 export function calculateTrends(params: {
   period: string | undefined;
@@ -67,17 +63,10 @@ export function calculateTrends(params: {
     }
 
     for (const order of orders) {
-      // Paid orders count for financial trends (money in hand)
-      // Only exclude CANCELLED orders - PENDING/ACTIVE both valid if PAID
-      if (
-        order.status === OrderStatus.CANCELLED ||
-        order.paymentStatus !== PaymentStatus.PAID
-      ) {
+      if (order.status === OrderStatus.CANCELLED || order.paymentStatus !== PaymentStatus.PAID) {
         continue;
       }
-      const orderItemsInContext = order.items.filter((item) =>
-        contextProductIds.has(item.productId.toString()),
-      );
+      const orderItemsInContext = order.items.filter((item) => contextProductIds.has(item.productId.toString()));
       if (orderItemsInContext.length === 0) continue;
 
       if (!order.createdAt) continue;
@@ -145,9 +134,7 @@ export function calculateAccountDistribution(
   const accountVolumeMap = new Map<string, number>();
 
   for (const order of completedOrders) {
-    const orderItemsInContext = order.items.filter((item) =>
-      contextProductIds.has(item.productId.toString()),
-    );
+    const orderItemsInContext = order.items.filter((item) => contextProductIds.has(item.productId.toString()));
     if (orderItemsInContext.length === 0) {
       continue;
     }
@@ -174,8 +161,8 @@ export function calculateAccountDistribution(
 
   for (const [accIdStr, vol] of accountVolumeMap.entries()) {
     const acc = accountMap.get(accIdStr);
-    const accountName = acc?.name.toString() || "Unknown Account";
-    const currency = acc?.currency.toString() || "USD";
+    const accountName = acc?.name.toString() || 'Unknown Account';
+    const currency = acc?.currency.toString() || 'USD';
 
     const percentage = totalPaymentVolumeUsd > 0 ? (vol / totalPaymentVolumeUsd) * 100 : 0;
 

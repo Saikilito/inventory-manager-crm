@@ -1,5 +1,6 @@
 import React from "react";
 import { Loader2 } from "lucide-react";
+import { DeliveryMethod } from "@shared-domain/delivery/delivery.entity";
 import type {
   LiveCartItem,
   LiveEditableField,
@@ -24,8 +25,8 @@ export interface LiveAiCoPilotTabProps {
   cartItems: LiveCartItem[];
   handleUpdateLiveQty: (productId: string, delta: number) => void;
   handleRemoveLiveItem: (productId: string) => void;
-  deliveryType: "pickup" | "delivery";
-  setDeliveryType: (type: "pickup" | "delivery") => void;
+  deliveryType: DeliveryMethod;
+  setDeliveryType: (type: DeliveryMethod) => void;
   selectedZoneIndex: number;
   setSelectedZoneIndex: (index: number) => void;
   deliveryCost: number;
@@ -54,7 +55,7 @@ export const LiveAiCoPilotTab: React.FC<LiveAiCoPilotTabProps> = ({
   handleSyncAll,
   syncing,
 }) => {
-  const showShipping = deliveryType === "delivery";
+  const showShipping = deliveryType === DeliveryMethod.DELIVERY;
 
   return (
     <div className="space-y-6">

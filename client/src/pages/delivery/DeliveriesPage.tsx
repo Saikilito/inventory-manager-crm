@@ -4,12 +4,18 @@ import {
   Calendar,
   Coins,
 } from "lucide-react";
-import { DeliveryStatus } from "@shared-domain/delivery/delivery.entity";
+import { DELIVERY_STATUSES } from "@shared-domain/delivery/delivery-status";
 import Spinkit from "../../components/Spinkit";
 import Alert from "../../components/Alert";
-import { useDeliveriesLogic } from "./hooks/useDeliveriesLogic";
+import { useDeliveriesLogic, FILTER_ALL_DELIVERIES } from "./hooks/useDeliveriesLogic";
 import { DeliveriesTable } from "./components/DeliveriesTable";
 import { DateNavigator } from "../../components/ui/DateNavigator";
+import { DELIVERY_STATUS_LABEL } from "./delivery-status.presentation";
+
+const DELIVERY_FILTER_TABS = [
+  { label: "All", value: FILTER_ALL_DELIVERIES },
+  ...DELIVERY_STATUSES.map((status) => ({ label: DELIVERY_STATUS_LABEL[status], value: status })),
+];
 
 export const DeliveriesPage: React.FC = () => {
   const {
@@ -51,13 +57,7 @@ export const DeliveriesPage: React.FC = () => {
           <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mr-1">
             Status:
           </span>
-          {[
-            { label: "All", value: "ALL" },
-            { label: "Pending", value: DeliveryStatus.PENDING },
-            { label: "Dispatched", value: DeliveryStatus.DISPATCHED },
-            { label: "Delivered", value: DeliveryStatus.DELIVERED },
-            { label: "Cancelled", value: DeliveryStatus.CANCELLED },
-          ].map((tab) => (
+          {DELIVERY_FILTER_TABS.map((tab) => (
             <button
               key={tab.value}
               onClick={() => setStatusFilter(tab.value)}

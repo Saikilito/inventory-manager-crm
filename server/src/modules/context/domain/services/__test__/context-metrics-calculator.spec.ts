@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { calculateContextMetrics } from '../context-metrics-calculator.js';
 import { IProduct } from '../../../../../../../shared-domain/src/product/product.entity.js';
-import { IOrder, OrderStatus, PaymentStatus, DeliveryStatus } from '../../../../../../../shared-domain/src/order/order.entity.js';
+import { IOrder, OrderStatus, PaymentStatus } from '../../../../../../../shared-domain/src/order/order.entity.js';
+import { DeliveryStatus } from '../../../../../../../shared-domain/src/delivery/delivery-status.js';
 import { IExpense } from '../../../../../../../shared-domain/src/expense/expense.entity.js';
 import { IAccount } from '../../../../../../../shared-domain/src/financial/account.entity.js';
 
@@ -39,7 +40,7 @@ describe('ContextMetricsCalculator (Pure Domain Service)', () => {
         sellerId: 'seller-1',
         status: OrderStatus.ACTIVE,
         paymentStatus: PaymentStatus.PAID,
-        deliveryStatus: DeliveryStatus.COMPLETE,
+        deliveryStatus: DeliveryStatus.DELIVERED,
         createdAt: '2026-06-15T10:00:00Z',
         total: 11.00,
         items: [

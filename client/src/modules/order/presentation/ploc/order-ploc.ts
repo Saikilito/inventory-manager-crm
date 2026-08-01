@@ -8,7 +8,12 @@ import { makeOrder, OrderStatus, IOrder } from '@shared-domain/order/order.entit
 
 export interface CreateOrderParams {
   clientId: string;
-  items: Array<{ productId: string; quantity: number }>;
+  items: Array<{
+    productId: string;
+    quantity: number;
+    sellingPriceAtSale?: number;
+    purchasePriceAtSale?: number;
+  }>;
   total: number;
   sellerId: string;
   contextId?: string;

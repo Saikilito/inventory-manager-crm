@@ -1,4 +1,5 @@
-import { OrderStatus, PaymentStatus, DeliveryStatus } from '@shared-domain/order/order.entity';
+import { OrderStatus, PaymentStatus } from '@shared-domain/order/order.entity';
+import { DeliveryStatus } from '@shared-domain/delivery/delivery.entity';
 import type { GQLOrder, GQLOrderItem } from '@modules/order/infrastructure/graphql/types';
 import type { GQLClient } from '@modules/client/infrastructure/graphql/types';
 import type { GQLProduct } from '@modules/product/infrastructure/graphql/types';

@@ -81,5 +81,30 @@ export const DateTimeVO = {
       .replace('ss', second)
       .replace('SSS', ms)
       .replace('ZZ', offset);
-  }
+  },
+
+  toFormattedTime: (input?: string | Date | number, timezone?: string): string => {
+    const tz = timezone || DEFAULT_TIMEZONE;
+    const date = typeof input === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(input)
+      ? new Date(`${input}T12:00:00`)
+      : new Date(input ?? Date.now());
+
+    if (isNaN(date.getTime())) {
+      return '09:00';
+    }
+
+    try {
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz,
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+      });
+      const parts = formatter.formatToParts(date);
+      const partMap = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+      return `${partMap.hour}:${partMap.minute}`;
+    } catch {
+      return '09:00';
+    }
+  },
 };

@@ -5,17 +5,12 @@ import { DateTime, DateTimeVO } from '../shared/value-objects/date-time.vo.js';
 import { Result } from '../shared/result.js';
 import { ValidationError, createValidationError } from '../shared/validation-error.js';
 import { getErrorMessage } from '../shared/error-utils.js';
+import { DeliveryStatusVO } from '../shared/value-objects/delivery-status.vo.js';
+import { DeliveryStatus } from './delivery-status.js';
 
-export const DeliveryStatus = {
-  PENDING: 'PENDING',
-  DISPATCHED: 'DISPATCHED',
-  SENT: 'DISPATCHED',
-  DELIVERED: 'DELIVERED',
-  COMPLETE: 'DELIVERED',
-  CANCELLED: 'CANCELLED',
-} as const;
-
-export type DeliveryStatus = typeof DeliveryStatus[keyof typeof DeliveryStatus];
+export { DeliveryStatus } from './delivery-status.js';
+export { DeliveryMethod, DELIVERY_METHODS } from './delivery-method.js';
+export { DeliveryMethodVO, type DeliveryMethodType } from '../shared/value-objects/delivery-method.vo.js';
 
 export interface IDelivery {
   id?: Id;
@@ -32,15 +27,15 @@ export const makeDelivery = (props: {
   id?: string;
   orderId: string;
   scheduledDate: string | Date | number;
-  deliveryTime: string;
+  deliveryTime?: string;
   address: string;
   status: string;
   notes?: string;
   deliveryCost?: number;
 }): Result<IDelivery, ValidationError> => {
-  const statusStr = props.status.toUpperCase();
-  if (!(Object.values(DeliveryStatus) as readonly string[]).includes(statusStr)) {
-    return Result.fail(createValidationError(`Invalid delivery status: ${props.status}`));
+  const statusResult = DeliveryStatusVO.createResult(props.status);
+  if (statusResult.isFailure) {
+    return Result.fail(statusResult.getError());
   }
 
   try {
@@ -48,9 +43,9 @@ export const makeDelivery = (props: {
       id: props.id ? IdVO.create(props.id) : undefined,
       orderId: IdVO.create(props.orderId),
       scheduledDate: DateTimeVO.create(props.scheduledDate),
-      deliveryTime: props.deliveryTime,
+      deliveryTime: props.deliveryTime || '',
       address: NonEmptyStringVO.create(props.address),
-      status: statusStr as DeliveryStatus,
+      status: statusResult.getValue() as DeliveryStatus,
       notes: props.notes || '',
       deliveryCost: props.deliveryCost !== undefined && props.deliveryCost > 0 
         ? NonNegativeNumberVO.create(props.deliveryCost) 

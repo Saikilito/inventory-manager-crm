@@ -126,7 +126,7 @@ export const makeCreateOrder = (
       const deliveryResult = makeDelivery({
         orderId: savedOrder.id.toString(),
         scheduledDate: DateTimeVO.create(new Date()).toString(),
-        deliveryTime: '09:00',
+        deliveryTime: '',
         address: deliveryAddress,
         status: DeliveryStatus.PENDING,
         notes: 'Auto-created from order',
@@ -150,7 +150,6 @@ export const makeCreateOrder = (
             clientId: savedOrder.clientId.toString(),
             status: savedOrder.status,
             paymentStatus: savedOrder.paymentStatus,
-            deliveryStatus: savedOrder.deliveryStatus,
             sellerId: savedOrder.sellerId.toString(),
             contextId: savedOrder.contextId?.toString(),
             deliveryId: savedDeliveryResult.getValue().id?.toString(),

@@ -1,5 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { IDelivery } from '../../../../../shared-domain/src/delivery/delivery.entity.js';
+import { DELIVERY_STATUSES } from '../../../../../shared-domain/src/delivery/delivery-status.js';
 
 export interface IDeliveryDocument extends Omit<IDelivery, 'id' | 'orderId'>, Document {
   _id: mongoose.Types.ObjectId;
@@ -11,12 +12,12 @@ const deliverySchema = new Schema<IDeliveryDocument>(
   {
     orderId: { type: Schema.Types.ObjectId, ref: 'Order', required: true },
     scheduledDate: { type: String, required: true }, // Saved as ISO/Caracas string from DateTimeVO
-    deliveryTime: { type: String, required: true },
+    deliveryTime: { type: String, default: '' },
     address: { type: String, required: true },
     status: {
       type: String,
       required: true,
-      enum: ['PENDING', 'DISPATCHED', 'DELIVERED', 'CANCELLED'],
+      enum: DELIVERY_STATUSES,
       default: 'PENDING',
     },
     notes: { type: String, default: '' },

@@ -1,10 +1,6 @@
 import { IContext } from '../../../config/apollo.js';
-import {
-  IOrder,
-  OrderStatus,
-  PaymentStatus,
-  DeliveryStatus,
-} from '../../../../../shared-domain/src/order/order.entity.js';
+import { IOrder, OrderStatus, PaymentStatus } from '../../../../../shared-domain/src/order/order.entity.js';
+import { DeliveryStatus } from '../../../../../shared-domain/src/delivery/delivery-status.js';
 import OrderModel from './order.model.js';
 
 interface PopulatedOrderItem {
@@ -12,6 +8,11 @@ interface PopulatedOrderItem {
   quantity: number;
   sellingPriceAtSale?: number;
   purchasePriceAtSale?: number;
+}
+
+interface PopulatedDeliveryRef {
+  _id: string;
+  status: DeliveryStatus;
 }
 
 interface PopulatedOrder {
@@ -22,10 +23,9 @@ interface PopulatedOrder {
   clientId: string;
   status: OrderStatus;
   paymentStatus: string;
-  deliveryStatus: string;
   sellerId: string;
   contextId?: string;
-  deliveryId?: string;
+  deliveryId?: PopulatedDeliveryRef | string;
   deliveryCost?: number;
   customDeliveryAddress?: string;
   payments?: Array<{ accountId: string; amount: number; exchangeRate: number }>;
@@ -35,6 +35,8 @@ interface PopulatedOrder {
 interface OrderItemInput {
   productId: string;
   quantity: number;
+  sellingPriceAtSale?: number;
+  purchasePriceAtSale?: number;
 }
 
 interface SetOrderInput {
@@ -44,6 +46,7 @@ interface SetOrderInput {
   sellerId: string;
   contextId?: string;
   deliveryCost?: number;
+  customDeliveryAddress?: string;
 }
 
 interface OrderPaymentInput {
@@ -63,6 +66,7 @@ interface UpdateOrderInput {
   sellerId?: string;
   contextId?: string;
   deliveryCost?: number;
+  customDeliveryAddress?: string;
   payments?: OrderPaymentInput[];
   cancellationObservation?: string;
 }
@@ -88,7 +92,7 @@ const mapToGql = (order: IOrder) => {
     clientId: order.clientId,
     status: order.status,
     paymentStatus: order.paymentStatus,
-    deliveryStatus: order.deliveryStatus,
+    deliveryStatus: null,
     sellerId: order.sellerId,
     contextId: order.contextId,
     deliveryId: order.deliveryId,
@@ -119,10 +123,10 @@ const mapPopulatedToGql = (order: PopulatedOrder) => {
     clientId: order.clientId,
     status: order.status,
     paymentStatus: order.paymentStatus,
-    deliveryStatus: order.deliveryStatus,
+    deliveryStatus: typeof order.deliveryId === 'object' && order.deliveryId ? order.deliveryId.status : null,
     sellerId: order.sellerId,
     contextId: order.contextId,
-    deliveryId: order.deliveryId,
+    deliveryId: typeof order.deliveryId === 'object' && order.deliveryId ? order.deliveryId._id : order.deliveryId,
     deliveryCost: order.deliveryCost,
     customDeliveryAddress: order.customDeliveryAddress,
     payments: order.payments?.map((p) => ({
@@ -137,7 +141,10 @@ const mapPopulatedToGql = (order: PopulatedOrder) => {
 export default {
   Query: {
     getOrder: async (_parent: unknown, { _id }: { _id: string }, { container }: IContext) => {
-      const populatedOrder = await OrderModel.findById(_id).populate('items.productId', 'name').lean<PopulatedOrder>();
+      const populatedOrder = await OrderModel.findById(_id)
+        .populate('items.productId', 'name')
+        .populate('deliveryId', 'status')
+        .lean<PopulatedOrder>();
 
       if (!populatedOrder) {
         const result = await container.order.getOrder(_id);
@@ -153,6 +160,7 @@ export default {
     getOrderClient: async (_parent: unknown, { clientId }: { clientId: string }, { container }: IContext) => {
       const populatedOrders = await OrderModel.find({ clientId })
         .populate('items.productId', 'name')
+        .populate('deliveryId', 'status')
         .lean<PopulatedOrder[]>();
 
       if (populatedOrders && populatedOrders.length > 0) {
@@ -181,6 +189,7 @@ export default {
       const populatedOrders = await query
         .sort({ createdAt: -1 })
         .populate('items.productId', 'name')
+        .populate('deliveryId', 'status')
         .lean<PopulatedOrder[]>();
 
       if (populatedOrders && populatedOrders.length > 0) {
@@ -212,6 +221,7 @@ export default {
         sellerId: input.sellerId,
         contextId: input.contextId,
         deliveryCost: input.deliveryCost,
+        customDeliveryAddress: input.customDeliveryAddress,
       });
       return !result.isFailure;
     },

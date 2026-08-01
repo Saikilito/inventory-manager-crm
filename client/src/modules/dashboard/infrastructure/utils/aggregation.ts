@@ -35,7 +35,6 @@ export const calculateTransactionLines = (
     createdAt?: string;
     status: string;
     paymentStatus?: string;
-    deliveryStatus?: string;
     items: {
       productId: string;
       quantity: number;

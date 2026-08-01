@@ -16,6 +16,8 @@ import {
 import { UserRole } from "../../../shared-domain/src/shared/value-objects/role.vo.js";
 import { DateTimeVO } from "../../../shared-domain/src/shared/value-objects/date-time.vo.js";
 import { IdVO } from "../../../shared-domain/src/shared/value-objects/id.vo.js";
+import { OrderStatus, PaymentStatus } from "../../../shared-domain/src/order/order-status.js";
+import { DeliveryStatus } from "../../../shared-domain/src/delivery/delivery-status.js";
 import {
   buildProductsData,
   buildSellersData,
@@ -187,11 +189,11 @@ export const seedOrders = async (
         orderTotal += sellingPriceAtSale * quantity;
       }
 
-      const statuses = ["PENDING", "SHIPPED", "PAID", "CANCELLED"] as const;
-      const status =
-        o === 0 ? "PAID" : faker.helpers.arrayElement(statuses);
+      const statuses = [OrderStatus.PENDING, OrderStatus.COMPLETED, OrderStatus.ACTIVE, OrderStatus.CANCELLED];
+      const status = o === 0 ? OrderStatus.COMPLETED : faker.helpers.arrayElement(statuses);
+      const paymentStatus = status === OrderStatus.COMPLETED ? PaymentStatus.PAID : PaymentStatus.PENDING;
 
-      if (status === "SHIPPED" || status === "PAID") {
+      if (status === OrderStatus.COMPLETED) {
         completedOrdersCount++;
       }
 
@@ -202,6 +204,7 @@ export const seedOrders = async (
         total: parseFloat(orderTotal.toFixed(2)),
         clientId: client._id,
         status,
+        paymentStatus,
         sellerId: client.sellerId,
         createdAt: new Date(localCaracasDate as string),
         isTesting: true,
@@ -229,7 +232,7 @@ export const seedDeliveries = async (
 ) => {
   console.warn("🌱 [Seeder] Seeding scheduled bookings...");
 
-  const pendingOrders = seededOrders.filter((o) => o.status === "PENDING");
+  const pendingOrders = seededOrders.filter((o) => o.status === OrderStatus.PENDING);
   const deliveryPromises = [];
 
   for (let i = 0; i < Math.min(pendingOrders.length, 4); i++) {
@@ -244,7 +247,7 @@ export const seedDeliveries = async (
         scheduledDate: localCaracasDate,
         deliveryTime: i % 2 === 0 ? "10:00 AM" : "03:30 PM",
         address: faker.location.streetAddress(),
-        status: "PENDING",
+        status: DeliveryStatus.PENDING,
         notes: "Dejar en caseta de seguridad. Recibir bidones vacíos.",
         isTesting: true,
       }).save(),

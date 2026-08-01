@@ -1,42 +1,22 @@
 import React from "react";
-import { useMutation } from "@apollo/client";
 import { Minus, Plus, Trash2, ShoppingBag, Loader2 } from "lucide-react";
-import { CREATE_ORDER } from "../../../../modules/order/infrastructure/graphql/mutations";
 import { calculateDistance, DEFAULT_ORIGIN_LAT, DEFAULT_ORIGIN_LNG } from "@shared-domain/delivery/delivery-calculator";
 import { formatCurrency } from "@utils/formatters";
-import { DEFAULT_SELLER_ID } from "@shared-domain/chat/agent.entity";
+import { DeliveryMethod } from "@shared-domain/delivery/delivery.entity";
+import { CARACAS_ZONES, CUSTOM_ZONE_NAME } from "../../action-panel/delivery-zones";
+import type { ActionPanelClient, DraftOrderItem } from "../../action-panel/action-panel.types";
 
-// Defined the same as ActionPanelDrawer
-export const CARACAS_ZONES = [
-  { name: "Custom Coordinates", lat: DEFAULT_ORIGIN_LAT, lng: DEFAULT_ORIGIN_LNG },
-  { name: "Altamira (Close)", lat: 10.496, lng: -66.848 },
-  { name: "Las Mercedes (Medium)", lat: 10.484, lng: -66.862 },
-  { name: "El Hatillo (Far)", lat: 10.428, lng: -66.825 },
-  { name: "Catia", lat: 10.518, lng: -66.945 },
-  { name: "Petare", lat: 10.479, lng: -66.795 },
-];
-
-export interface OrderItem {
-  product: {
-    _id: string;
-    id?: string;
-    name: string;
-    price: number;
-    sellingPrice: number;
-    purchasePrice?: number;
-    stock: number;
-  };
-  quantity: number;
-}
+export type { DraftOrderItem as OrderItem } from "../../action-panel/action-panel.types";
 
 interface DraftOrderTabProps {
-  clients: Array<{ _id: string; id?: string; firstName: string; lastName: string; whatsapp: string }>;
+  clients: ActionPanelClient[];
   selectedClientId: string;
   setSelectedClientId: (id: string) => void;
-  orderItems: OrderItem[];
-  setOrderItems: React.Dispatch<React.SetStateAction<OrderItem[]>>;
-  deliveryType: "pickup" | "delivery";
-  setDeliveryType: (type: "pickup" | "delivery") => void;
+  orderItems: DraftOrderItem[];
+  onUpdateItemQty: (productId: string, delta: number) => void;
+  onRemoveOrderItem: (productId: string) => void;
+  deliveryType: DeliveryMethod;
+  setDeliveryType: (type: DeliveryMethod) => void;
   selectedZoneIndex: number;
   setSelectedZoneIndex: (index: number) => void;
   customLat: number;
@@ -46,8 +26,10 @@ interface DraftOrderTabProps {
   deliveryCost: number;
   deliveryAddress: string;
   setDeliveryAddress: (address: string) => void;
-  onSuccess: (msg: string) => void;
-  onError: (msg: string) => void;
+  subtotal: number;
+  total: number;
+  submitting: boolean;
+  onSubmit: () => void;
 }
 
 export const DraftOrderTab: React.FC<DraftOrderTabProps> = ({
@@ -55,7 +37,8 @@ export const DraftOrderTab: React.FC<DraftOrderTabProps> = ({
   selectedClientId,
   setSelectedClientId,
   orderItems,
-  setOrderItems,
+  onUpdateItemQty,
+  onRemoveOrderItem,
   deliveryType,
   setDeliveryType,
   selectedZoneIndex,
@@ -67,89 +50,15 @@ export const DraftOrderTab: React.FC<DraftOrderTabProps> = ({
   deliveryCost,
   deliveryAddress,
   setDeliveryAddress,
-  onSuccess,
-  onError,
+  subtotal,
+  total,
+  submitting,
+  onSubmit,
 }) => {
-  const [createOrder, { loading: creatingOrder }] = useMutation(CREATE_ORDER);
-
-  const handleUpdateItemQty = (productId: string, delta: number) => {
-    setOrderItems((prev) =>
-      prev
-        .map((item) => {
-          if (item.product._id === productId) {
-            const nextQty = item.quantity + delta;
-            if (nextQty <= 0) return null;
-            return { ...item, quantity: Math.min(nextQty, item.product.stock) };
-          }
-          return item;
-        })
-        .filter((item): item is OrderItem => item !== null)
-    );
-  };
-
-  const handleRemoveOrderItem = (productId: string) => {
-    setOrderItems((prev) => prev.filter((item) => item.product._id !== productId));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!selectedClientId) {
-      onError("Please select or register a client first.");
-      return;
-    }
-    if (orderItems.length === 0) {
-      onError("Order items cannot be empty.");
-      return;
-    }
-
-    const itemsInput = orderItems.map((item) => ({
-      productId: item.product._id,
-      quantity: item.quantity,
-      sellingPriceAtSale: item.product.sellingPrice,
-      purchasePriceAtSale: item.product.purchasePrice || (item.product.sellingPrice * 0.7),
-    }));
-
-    const itemsSubtotal = orderItems.reduce(
-      (sum, item) => sum + item.quantity * item.product.sellingPrice,
-      0
-    );
-
-    const totalOrder = itemsSubtotal + deliveryCost;
-
-    try {
-      await createOrder({
-        variables: {
-          input: {
-            clientId: selectedClientId,
-            items: itemsInput,
-            total: totalOrder,
-            sellerId: DEFAULT_SELLER_ID,
-            deliveryCost: deliveryCost,
-            deliveryAddress: deliveryType === "delivery" ? deliveryAddress : "PICKUP",
-            status: "PENDING",
-            paymentStatus: "UNPAID",
-            deliveryStatus: deliveryType === "delivery" ? "PENDING" : "DELIVERED",
-          },
-        },
-      });
-      onSuccess("Draft Order created successfully!");
-      setOrderItems([]);
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        onError(err.message || "Failed to create order.");
-      } else {
-        onError("Failed to create order.");
-      }
-    }
+    onSubmit();
   };
-
-  const manualItemsSubtotal = orderItems.reduce(
-    (sum, item) => sum + item.quantity * item.product.sellingPrice,
-    0
-  );
-
-  const manualFinalTotal = manualItemsSubtotal + deliveryCost;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
@@ -193,7 +102,7 @@ export const DraftOrderTab: React.FC<DraftOrderTabProps> = ({
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => handleUpdateItemQty(product._id, -1)}
+                    onClick={() => onUpdateItemQty(product._id, -1)}
                     className="p-1 hover:bg-stone-100 dark:hover:bg-stone-850 rounded-lg text-stone-500"
                   >
                     <Minus className="w-3.5 h-3.5" />
@@ -201,14 +110,14 @@ export const DraftOrderTab: React.FC<DraftOrderTabProps> = ({
                   <span className="text-xs font-bold text-stone-800 dark:text-stone-200">{quantity}</span>
                   <button
                     type="button"
-                    onClick={() => handleUpdateItemQty(product._id, 1)}
+                    onClick={() => onUpdateItemQty(product._id, 1)}
                     className="p-1 hover:bg-stone-100 dark:hover:bg-stone-850 rounded-lg text-stone-500"
                   >
                     <Plus className="w-3.5 h-3.5" />
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleRemoveOrderItem(product._id)}
+                    onClick={() => onRemoveOrderItem(product._id)}
                     className="p-1 hover:bg-red-50 dark:hover:bg-red-950/20 text-red-500 rounded-lg"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -228,9 +137,9 @@ export const DraftOrderTab: React.FC<DraftOrderTabProps> = ({
           <div className="flex bg-stone-100 dark:bg-stone-950 p-0.5 rounded-lg text-xs font-bold">
             <button
               type="button"
-              onClick={() => setDeliveryType("pickup")}
+              onClick={() => setDeliveryType(DeliveryMethod.PICKUP)}
               className={`px-3 py-1 rounded-md transition-colors ${
-                deliveryType === "pickup"
+                deliveryType === DeliveryMethod.PICKUP
                   ? "bg-white dark:bg-stone-800 text-stone-900 dark:text-white shadow-xs"
                   : "text-stone-400 hover:text-stone-600 dark:hover:text-stone-300"
               }`}
@@ -239,9 +148,9 @@ export const DraftOrderTab: React.FC<DraftOrderTabProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => setDeliveryType("delivery")}
+              onClick={() => setDeliveryType(DeliveryMethod.DELIVERY)}
               className={`px-3 py-1 rounded-md transition-colors ${
-                deliveryType === "delivery"
+                deliveryType === DeliveryMethod.DELIVERY
                   ? "bg-white dark:bg-stone-800 text-stone-900 dark:text-white shadow-xs"
                   : "text-stone-400 hover:text-stone-600 dark:hover:text-stone-300"
               }`}
@@ -251,7 +160,7 @@ export const DraftOrderTab: React.FC<DraftOrderTabProps> = ({
           </div>
         </div>
 
-        {deliveryType === "delivery" && (
+        {deliveryType === DeliveryMethod.DELIVERY && (
           <div className="space-y-3 animate-[fadeIn_0.2s_ease-out]">
             <div>
               <label className="block text-xs font-bold text-stone-600 dark:text-stone-400 uppercase mb-1">
@@ -264,13 +173,13 @@ export const DraftOrderTab: React.FC<DraftOrderTabProps> = ({
               >
                 {CARACAS_ZONES.map((zone, i) => (
                   <option key={zone.name} value={i}>
-                    {zone.name} {zone.name !== "Custom Coordinates" ? `(${calculateDistance(DEFAULT_ORIGIN_LAT, DEFAULT_ORIGIN_LNG, zone.lat, zone.lng).toFixed(1)} km)` : ""}
+                    {zone.name} {zone.name !== CUSTOM_ZONE_NAME ? `(${calculateDistance(DEFAULT_ORIGIN_LAT, DEFAULT_ORIGIN_LNG, zone.lat, zone.lng).toFixed(1)} km)` : ""}
                   </option>
                 ))}
               </select>
             </div>
 
-            {CARACAS_ZONES[selectedZoneIndex].name === "Custom Coordinates" && (
+            {CARACAS_ZONES[selectedZoneIndex].name === CUSTOM_ZONE_NAME && (
               <div className="grid grid-cols-2 gap-3 animate-[fadeIn_0.2s_ease-out]">
                 <div>
                   <label className="block text-[10px] font-bold text-stone-500 uppercase mb-0.5">Latitude</label>
@@ -315,7 +224,7 @@ export const DraftOrderTab: React.FC<DraftOrderTabProps> = ({
       <div className="p-4 bg-stone-50 dark:bg-stone-950/60 rounded-xl space-y-2 border border-stone-100 dark:border-stone-850">
         <div className="flex justify-between text-xs font-semibold text-stone-500 dark:text-stone-400">
           <span>Subtotal:</span>
-          <span>{formatCurrency(manualItemsSubtotal)}</span>
+          <span>{formatCurrency(subtotal)}</span>
         </div>
         <div className="flex justify-between text-xs font-semibold text-stone-500 dark:text-stone-400">
           <span>Shipping Fee:</span>
@@ -323,16 +232,16 @@ export const DraftOrderTab: React.FC<DraftOrderTabProps> = ({
         </div>
         <div className="flex justify-between text-sm font-black text-stone-900 dark:text-stone-100 pt-2 border-t border-stone-200 dark:border-stone-800">
           <span>Total:</span>
-          <span>{formatCurrency(manualFinalTotal)}</span>
+          <span>{formatCurrency(total)}</span>
         </div>
       </div>
 
       <button
         type="submit"
-        disabled={creatingOrder || orderItems.length === 0}
+        disabled={submitting || orderItems.length === 0}
         className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold rounded-xl text-sm transition-colors flex items-center justify-center gap-2 shadow-xs disabled:opacity-50"
       >
-        {creatingOrder ? (
+        {submitting ? (
           <>
             <Loader2 className="w-4 h-4 animate-spin" />
             Creating draft...

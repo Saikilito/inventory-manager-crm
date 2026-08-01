@@ -1,5 +1,6 @@
 import { Result } from '../shared/result.js';
 import { ValidationError, createValidationError } from '../shared/validation-error.js';
+import { OrderStatus } from './order-status.js';
 
 export const validateCancellationObservation = (observation: string | undefined): Result<string, ValidationError> => {
   if (!observation) {
@@ -18,7 +19,7 @@ export const validateCancellationObservationForStatus = (
   observation: string | undefined,
   status: string,
 ): Result<string | undefined, ValidationError> => {
-  if (status !== 'CANCELLED') {
+  if (status !== OrderStatus.CANCELLED) {
     return Result.ok(observation);
   }
 

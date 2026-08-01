@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { makeOrder, OrderStatus, PaymentStatus, DeliveryStatus } from '../order.entity.js';
+import { makeOrder, OrderStatus, PaymentStatus } from '../order.entity.js';
 import { ValidationError } from '../../shared/validation-error.js';
 
 describe('makeOrder - Cancellation Observation', () => {
@@ -100,7 +100,6 @@ describe('makeOrder - Cancellation Observation', () => {
         ...validOrderProps,
         status: OrderStatus.COMPLETED,
         paymentStatus: PaymentStatus.PAID,
-        deliveryStatus: DeliveryStatus.COMPLETE,
       });
       expect(order.status).toBe(OrderStatus.COMPLETED);
     });

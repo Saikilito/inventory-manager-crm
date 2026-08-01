@@ -9,6 +9,8 @@ import { CREATE_ORDER, UPDATE_ORDER } from '../graphql/mutations';
 interface GQLOrderItem {
   productId: string;
   quantity: number;
+  sellingPriceAtSale?: number;
+  purchasePriceAtSale?: number;
 }
 
 interface GQLOrder {
@@ -21,6 +23,7 @@ interface GQLOrder {
   sellerId: string;
   contextId?: string;
   deliveryCost?: number;
+  customDeliveryAddress?: string;
   cancellationObservation?: string;
 }
 
@@ -38,6 +41,8 @@ export function makeApolloOrderRepository(
       items: gqlOrder.items.map((i) => ({
         productId: i.productId,
         quantity: i.quantity,
+        sellingPriceAtSale: i.sellingPriceAtSale,
+        purchasePriceAtSale: i.purchasePriceAtSale,
       })),
       total: gqlOrder.total,
       createdAt: gqlOrder.createdAt,
@@ -46,6 +51,7 @@ export function makeApolloOrderRepository(
       sellerId: gqlOrder.sellerId,
       contextId: gqlOrder.contextId,
       deliveryCost: gqlOrder.deliveryCost,
+      customDeliveryAddress: gqlOrder.customDeliveryAddress,
       cancellationObservation: gqlOrder.cancellationObservation,
     });
   };
@@ -76,6 +82,8 @@ export function makeApolloOrderRepository(
                 items: order.items.map((i) => ({
                   productId: String(i.productId),
                   quantity: Number(i.quantity),
+                  sellingPriceAtSale: i.sellingPriceAtSale !== undefined ? Number(i.sellingPriceAtSale) : undefined,
+                  purchasePriceAtSale: i.purchasePriceAtSale !== undefined ? Number(i.purchasePriceAtSale) : undefined,
                 })),
                 total: Number(order.total),
                 clientId: String(order.clientId),
@@ -83,6 +91,7 @@ export function makeApolloOrderRepository(
                 sellerId: String(order.sellerId),
                 contextId: order.contextId ? String(order.contextId) : null,
                 deliveryCost: order.deliveryCost !== undefined ? Number(order.deliveryCost) : null,
+                customDeliveryAddress: order.customDeliveryAddress ? String(order.customDeliveryAddress) : null,
               },
             },
           });
@@ -104,6 +113,8 @@ export function makeApolloOrderRepository(
                 items: order.items.map((i) => ({
                   productId: String(i.productId),
                   quantity: Number(i.quantity),
+                  sellingPriceAtSale: i.sellingPriceAtSale !== undefined ? Number(i.sellingPriceAtSale) : undefined,
+                  purchasePriceAtSale: i.purchasePriceAtSale !== undefined ? Number(i.purchasePriceAtSale) : undefined,
                 })),
                 total: Number(order.total),
                 clientId: String(order.clientId),
@@ -111,6 +122,7 @@ export function makeApolloOrderRepository(
                 sellerId: String(order.sellerId),
                 contextId: order.contextId ? String(order.contextId) : null,
                 deliveryCost: order.deliveryCost !== undefined ? Number(order.deliveryCost) : null,
+                customDeliveryAddress: order.customDeliveryAddress ? String(order.customDeliveryAddress) : null,
                 cancellationObservation: order.cancellationObservation || undefined,
               },
             },

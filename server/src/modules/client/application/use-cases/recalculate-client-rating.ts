@@ -7,7 +7,7 @@ import { NonEmptyStringVO } from '../../../../../../shared-domain/src/shared/val
 import { PositiveNumberVO } from '../../../../../../shared-domain/src/shared/value-objects/positive-number.vo.js';
 import { WhereField } from '../../../../../../shared-domain/src/shared/repository.js';
 import { IClient, calculateClientRatingTier, makeClient } from '../../../../../../shared-domain/src/client/client.entity.js';
-import { OrderStatus, PaymentStatus, DeliveryStatus } from '../../../../../../shared-domain/src/order/order.entity.js';
+import { OrderStatus } from '../../../../../../shared-domain/src/order/order.entity.js';
 import { IClientRepository } from '../repositories/client.repository.js';
 import { IOrderRepository } from '../../../order/application/repositories/order.repository.js';
 
@@ -36,17 +36,7 @@ export const makeRecalculateClientRating = (
           },
           {
             field: NonEmptyStringVO.create('status'),
-            value: OrderStatus.ACTIVE,
-            operator: '=',
-          },
-          {
-            field: NonEmptyStringVO.create('paymentStatus'),
-            value: PaymentStatus.PAID,
-            operator: '=',
-          },
-          {
-            field: NonEmptyStringVO.create('deliveryStatus'),
-            value: DeliveryStatus.COMPLETE,
+            value: OrderStatus.COMPLETED,
             operator: '=',
           },
         ];

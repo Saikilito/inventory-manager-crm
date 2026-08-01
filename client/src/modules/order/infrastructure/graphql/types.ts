@@ -1,4 +1,5 @@
-import { OrderStatus, PaymentStatus, DeliveryStatus } from '@shared-domain/order/order.entity';
+import { OrderStatus, PaymentStatus } from '@shared-domain/order/order.entity';
+import { DeliveryStatus } from '@shared-domain/delivery/delivery.entity';
 
 export { OrderStatus, PaymentStatus, DeliveryStatus };
 
@@ -23,7 +24,7 @@ export interface GQLOrder {
   createdAt: string | number;
   status: OrderStatus;
   paymentStatus: PaymentStatus;
-  deliveryStatus: DeliveryStatus;
+  deliveryStatus: DeliveryStatus | null;
   contextId?: string;
   deliveryId?: string;
   total: number;

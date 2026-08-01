@@ -1,10 +1,17 @@
 import React, { useMemo } from "react";
 import { match } from "ts-pattern";
-import { OrderStatus, PaymentStatus, DeliveryStatus } from "@shared-domain/order/order.entity";
+import { OrderStatus, PaymentStatus } from "@shared-domain/order/order.entity";
+import { DeliveryStatus } from "@shared-domain/delivery/delivery.entity";
 import { Order, OrdersTableProps } from "../types";
 import { User, Calendar, Eye, Trash2, CheckCircle2, Clock } from "lucide-react";
 import { getFullName } from "@utils/formatters";
 import { formatDate, formatCurrency } from "@utils/formatters";
+import {
+  DELIVERY_STATUS_TABLE_LABEL,
+  DELIVERY_STATUS_BADGE_CLASSES,
+  NO_DELIVERY_LABEL,
+  NO_DELIVERY_BADGE_CLASSES,
+} from "../../delivery/delivery-status.presentation";
 
 export const OrdersTable: React.FC<OrdersTableProps> = ({
   orders,
@@ -72,26 +79,26 @@ export const OrdersTable: React.FC<OrdersTableProps> = ({
       .exhaustive();
   };
 
-  const getDeliveryStatusBadge = (status: DeliveryStatus) => {
-    return match(status)
-      .with(DeliveryStatus.PENDING, () => (
-        <span className="bg-stone-50 dark:bg-stone-900/40 text-stone-500 dark:text-stone-400 border border-stone-200 dark:border-stone-800 px-2 py-0.5 rounded-md text-[10px] font-semibold inline-flex items-center gap-1">
-          Pending Deliv.
+  const getDeliveryStatusBadge = (status: DeliveryStatus | null) => {
+    if (status === null) {
+      return (
+        <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold inline-flex items-center gap-1 border ${NO_DELIVERY_BADGE_CLASSES}`}>
+          {NO_DELIVERY_LABEL}
         </span>
-      ))
-      .with(DeliveryStatus.SENT, () => (
-        <span className="bg-blue-50 dark:bg-blue-950/20 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-900/30 px-2 py-0.5 rounded-md text-[10px] font-semibold inline-flex items-center gap-1">
-          <Clock className="w-3 h-3" />
-          Sent
-        </span>
-      ))
-      .with(DeliveryStatus.COMPLETE, () => (
-        <span className="bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/30 px-2 py-0.5 rounded-md text-[10px] font-semibold inline-flex items-center gap-1">
-          <CheckCircle2 className="w-3 h-3" />
-          Delivered
-        </span>
-      ))
-      .exhaustive();
+      );
+    }
+
+    const icon = match(status)
+      .with(DeliveryStatus.SENT, () => <Clock className="w-3 h-3" />)
+      .with(DeliveryStatus.DELIVERED, () => <CheckCircle2 className="w-3 h-3" />)
+      .otherwise(() => null);
+
+    return (
+      <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold inline-flex items-center gap-1 border ${DELIVERY_STATUS_BADGE_CLASSES[status]}`}>
+        {icon}
+        {DELIVERY_STATUS_TABLE_LABEL[status]}
+      </span>
+    );
   };
 
   return (
@@ -170,7 +177,7 @@ export const OrdersTable: React.FC<OrdersTableProps> = ({
                     <div className="flex flex-col sm:flex-row gap-1.5 flex-wrap">
                       {getStatusBadge(order.status)}
                       {getPaymentStatusBadge(order.paymentStatus || 'PENDING')}
-                      {getDeliveryStatusBadge(order.deliveryStatus || 'PENDING')}
+                      {getDeliveryStatusBadge(order.deliveryStatus ?? null)}
                     </div>
                   </td>
                   <td className="px-6 py-4 text-sm">

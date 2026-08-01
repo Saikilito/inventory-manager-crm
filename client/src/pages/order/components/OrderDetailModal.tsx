@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery } from '@apollo/client';
-import { OrderStatus, PaymentStatus, DeliveryStatus } from '@shared-domain/order/order.entity';
+import { OrderStatus, PaymentStatus } from '@shared-domain/order/order.entity';
+import { DeliveryStatus } from '@shared-domain/delivery/delivery.entity';
 import { OrderDetailModalProps, PaymentSplit } from '../types';
 import { X, XCircle } from 'lucide-react';
 import Alert from '../../../components/Alert';
@@ -166,7 +167,7 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
           <OrderStatusSelects
             orderStatus={order.status}
             paymentStatus={order.paymentStatus || PaymentStatus.PENDING}
-            deliveryStatus={order.deliveryStatus || DeliveryStatus.PENDING}
+            deliveryStatus={order.deliveryStatus ?? null}
             isUpdating={isUpdating}
             onStatusChange={handleStatusChange}
           />

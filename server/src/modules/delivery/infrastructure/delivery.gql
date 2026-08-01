@@ -1,6 +1,6 @@
 enum DeliveryStatus {
   PENDING
-  DISPATCHED
+  SENT
   DELIVERED
   CANCELLED
 }
@@ -10,7 +10,7 @@ type Delivery {
   _id: ID!
   orderId: ID!
   scheduledDate: String!
-  deliveryTime: String!
+  deliveryTime: String
   address: String!
   status: DeliveryStatus!
   notes: String

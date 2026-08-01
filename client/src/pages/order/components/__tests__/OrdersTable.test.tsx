@@ -2,7 +2,8 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { OrdersTable } from "../OrdersTable";
 import { Order, Client } from "../../types";
-import { OrderStatus, PaymentStatus, DeliveryStatus } from "@shared-domain/order/order.entity";
+import { OrderStatus, PaymentStatus } from "@shared-domain/order/order.entity";
+import { DeliveryStatus } from "@shared-domain/delivery/delivery.entity";
 
 describe("OrdersTable Presenter", () => {
   const mockClients: Client[] = [
@@ -18,7 +19,7 @@ describe("OrdersTable Presenter", () => {
       total: 123.45,
       status: OrderStatus.ACTIVE,
       paymentStatus: PaymentStatus.PAID,
-      deliveryStatus: DeliveryStatus.COMPLETE,
+      deliveryStatus: DeliveryStatus.DELIVERED,
       items: [],
       sellerId: "seller1",
     },

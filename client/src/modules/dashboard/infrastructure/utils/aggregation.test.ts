@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { OrderStatus, PaymentStatus, DeliveryStatus } from "@shared-domain/order/order.entity";
+import { OrderStatus, PaymentStatus } from "@shared-domain/order/order.entity";
 import { calculateTransactionLines } from "./aggregation";
 
 describe("calculateTransactionLines", () => {
@@ -16,7 +16,6 @@ describe("calculateTransactionLines", () => {
       createdAt: "2026-07-09T10:00:00Z",
       status: OrderStatus.ACTIVE,
       paymentStatus: PaymentStatus.PAID,
-      deliveryStatus: DeliveryStatus.COMPLETE,
       items: [
         {
           productId: "p1",
@@ -39,7 +38,6 @@ describe("calculateTransactionLines", () => {
       createdAt: "2026-07-09T11:00:00Z",
       status: OrderStatus.ACTIVE,
       paymentStatus: PaymentStatus.PENDING,
-      deliveryStatus: DeliveryStatus.COMPLETE,
       items: [
         {
           productId: "p1",

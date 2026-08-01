@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { Result } from '../../../../../../../shared-domain/src/shared/result.js';
 import { DatabaseError, createDatabaseError } from '../../../../../../../shared-domain/src/shared/errors.js';
-import { IOrder, makeOrder, OrderStatus, PaymentStatus, DeliveryStatus } from '../../../../../../../shared-domain/src/order/order.entity.js';
+import { IOrder, makeOrder, OrderStatus, PaymentStatus } from '../../../../../../../shared-domain/src/order/order.entity.js';
+import { DeliveryStatus } from '../../../../../../../shared-domain/src/delivery/delivery-status.js';
 import { IProduct, makeProduct } from '../../../../../../../shared-domain/src/product/product.entity.js';
 import { IdVO } from '../../../../../../../shared-domain/src/shared/value-objects/id.vo.js';
 import { IOrderRepository } from '../../repositories/order.repository.js';
@@ -202,7 +203,7 @@ describe('Order Use Cases (TDD)', () => {
       id: VALID_ORDER_UUID, 
       status: OrderStatus.COMPLETED,
       paymentStatus: PaymentStatus.PAID,
-      deliveryStatus: DeliveryStatus.COMPLETE
+      deliveryStatus: DeliveryStatus.DELIVERED
     });
     expect(result.isFailure).toBe(false);
 

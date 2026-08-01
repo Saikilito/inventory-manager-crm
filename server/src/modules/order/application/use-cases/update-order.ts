@@ -11,16 +11,21 @@ import {
   makeOrder,
   OrderStatus,
   PaymentStatus,
-  DeliveryStatus,
   ORDER_DEFAULT_PRICE_FALLBACK,
 } from '../../../../../../shared-domain/src/order/order.entity.js';
+import {
+  resolveOrderStatus,
+  assertOrderCancellable,
+} from '../../../../../../shared-domain/src/order/order-status.rules.js';
 import { IOrderRepository } from '../repositories/order.repository.js';
 import { IProductRepository } from '../../../product/application/repositories/product.repository.js';
 import { makeProduct } from '../../../../../../shared-domain/src/product/product.entity.js';
 import { RecalculateClientRating } from '../../../client/application/use-cases/recalculate-client-rating.js';
 import { StockOperation } from './update-order.constants.js';
 import { IDeliveryRepository } from '../../../delivery/application/repositories/delivery.repository.js';
-import { DeliveryStatus as SharedDeliveryStatus } from '../../../../../../shared-domain/src/delivery/delivery.entity.js';
+import { makeDelivery, IDelivery } from '../../../../../../shared-domain/src/delivery/delivery.entity.js';
+import { DeliveryStatus } from '../../../../../../shared-domain/src/delivery/delivery-status.js';
+import { DateTimeVO } from '../../../../../../shared-domain/src/shared/value-objects/date-time.vo.js';
 import { RecordOrderPaymentUseCase } from '../../../financial/application/use-cases/record-order-payment.js';
 import { ReverseOrderPaymentUseCase } from '../../../financial/application/use-cases/reverse-order-payment.js';
 
@@ -69,6 +74,14 @@ export const makeUpdateOrder = (
       validateExisting: IOrder;
     };
 
+    let currentDelivery: IDelivery | null = null;
+    if (deliveryRepository && existing.deliveryId) {
+      const currentDeliveryResult = await deliveryRepository.getById(existing.deliveryId);
+      if (!currentDeliveryResult.isFailure) {
+        currentDelivery = currentDeliveryResult.getValue() ?? null;
+      }
+    }
+
     const itemsToProcess = input.items || existing.items;
 
     // Auto-heal missing prices for legacy/broken orders
@@ -107,22 +120,39 @@ export const makeUpdateOrder = (
 
     const nextStatus = input.status !== undefined ? input.status : existing.status;
     const nextPaymentStatus = input.paymentStatus !== undefined ? input.paymentStatus : existing.paymentStatus;
-    const nextDeliveryStatus = input.deliveryStatus !== undefined ? input.deliveryStatus : existing.deliveryStatus;
+    const nextDeliveryStatus = input.deliveryStatus;
 
-    let finalStatus = nextStatus;
-
-    if (nextPaymentStatus === PaymentStatus.REFUNDED) {
-      finalStatus = OrderStatus.CANCELLED;
-    } else if (nextStatus === OrderStatus.COMPLETED) {
-      if (nextPaymentStatus !== PaymentStatus.PAID || nextDeliveryStatus !== DeliveryStatus.COMPLETE) {
-        finalStatus = OrderStatus.ACTIVE;
+    let prospectiveDeliveryStatus: DeliveryStatus | null;
+    if (existing.deliveryId) {
+      if (input.deliveryCost === 0) {
+        prospectiveDeliveryStatus = null;
+      } else if (currentDelivery) {
+        prospectiveDeliveryStatus =
+          nextDeliveryStatus === DeliveryStatus.SENT ? DeliveryStatus.SENT : currentDelivery.status;
+      } else {
+        prospectiveDeliveryStatus = null;
       }
-    } else if (
-      nextPaymentStatus === PaymentStatus.PAID &&
-      nextDeliveryStatus === DeliveryStatus.COMPLETE &&
-      nextStatus !== OrderStatus.CANCELLED
-    ) {
-      finalStatus = OrderStatus.COMPLETED;
+    } else if (input.deliveryCost && input.deliveryCost > 0) {
+      prospectiveDeliveryStatus =
+        nextDeliveryStatus === DeliveryStatus.SENT ? DeliveryStatus.SENT : DeliveryStatus.PENDING;
+    } else {
+      prospectiveDeliveryStatus = null;
+    }
+
+    const finalStatus = resolveOrderStatus({
+      requestedStatus: nextStatus,
+      paymentStatus: nextPaymentStatus,
+      deliveryStatus: prospectiveDeliveryStatus,
+    });
+
+    if (finalStatus === OrderStatus.CANCELLED) {
+      const cancellableResult = assertOrderCancellable({
+        paymentStatus: nextPaymentStatus,
+        deliveryStatus: currentDelivery?.status ?? null,
+      });
+      if (cancellableResult.isFailure) {
+        return Result.fail(cancellableResult.getError());
+      }
     }
 
     const updated = makeOrder({
@@ -132,9 +162,13 @@ export const makeUpdateOrder = (
       clientId: input.clientId !== undefined ? input.clientId : existing.clientId,
       status: finalStatus,
       paymentStatus: nextPaymentStatus,
-      deliveryStatus: nextDeliveryStatus,
       sellerId: input.sellerId !== undefined ? input.sellerId : existing.sellerId,
-      contextId: input.contextId !== undefined ? input.contextId : (existing.contextId ? existing.contextId.toString() : undefined),
+      contextId:
+        input.contextId !== undefined
+          ? input.contextId
+          : existing.contextId
+            ? existing.contextId.toString()
+            : undefined,
       deliveryCost:
         input.deliveryCost !== undefined ? input.deliveryCost : (existing.deliveryCost as unknown as number),
       deliveryId: existing.deliveryId?.toString(),
@@ -147,9 +181,7 @@ export const makeUpdateOrder = (
               exchangeRate: p.exchangeRate,
             })),
       cancellationObservation:
-        input.cancellationObservation !== undefined
-          ? input.cancellationObservation
-          : existing.cancellationObservation,
+        input.cancellationObservation !== undefined ? input.cancellationObservation : existing.cancellationObservation,
     });
 
     const isOldActive = existing.status !== OrderStatus.CANCELLED && existing.paymentStatus !== PaymentStatus.REFUNDED;
@@ -202,26 +234,51 @@ export const makeUpdateOrder = (
     }
 
     // Handle delivery sync
-    if (existing.deliveryId && deliveryRepository) {
-      const deliveryRes = await deliveryRepository.getById(existing.deliveryId);
-      if (!deliveryRes.isFailure && deliveryRes.getValue()) {
-        const delivery = deliveryRes.getValue()!;
-        
-        // If delivery cost is explicitly set to 0, we delete the delivery completely (user removed delivery)
-        if (input.deliveryCost === 0) {
-          await deliveryRepository.deleteByIds([existing.deliveryId], IdVO.generateNil());
-          // Strip deliveryId from the updated order
-          updated.deliveryId = undefined;
-        } 
-        // If order is cancelled, cancel the delivery if it is not already completed
-        else if (finalStatus === OrderStatus.CANCELLED && delivery.status !== SharedDeliveryStatus.DELIVERED) {
-          delivery.status = SharedDeliveryStatus.CANCELLED;
-          await deliveryRepository.updateById(existing.deliveryId, delivery, IdVO.generateNil());
+    if (deliveryRepository) {
+      if (existing.deliveryId) {
+        if (currentDelivery) {
+          const delivery = currentDelivery;
+
+          // If delivery cost is explicitly set to 0, we delete the delivery completely (user removed delivery)
+          if (input.deliveryCost === 0) {
+            await deliveryRepository.deleteByIds([existing.deliveryId], IdVO.generateNil());
+            // Strip deliveryId from the updated order
+            updated.deliveryId = undefined;
+          } else if (finalStatus === OrderStatus.CANCELLED && delivery.status !== DeliveryStatus.DELIVERED) {
+            delivery.status = DeliveryStatus.CANCELLED;
+            await deliveryRepository.updateById(existing.deliveryId, delivery, IdVO.generateNil());
+          } else if (nextDeliveryStatus === DeliveryStatus.SENT && delivery.status !== DeliveryStatus.SENT) {
+            delivery.status = DeliveryStatus.SENT;
+            delivery.deliveryTime = DateTimeVO.toFormattedTime();
+            if (input.deliveryCost !== undefined && input.deliveryCost > 0) {
+              delivery.deliveryCost = NonNegativeNumberVO.create(input.deliveryCost);
+            }
+            await deliveryRepository.updateById(existing.deliveryId, delivery, IdVO.generateNil());
+          }
+          // If deliveryCost was updated but not to 0, sync the cost
+          else if (input.deliveryCost !== undefined && input.deliveryCost !== delivery.deliveryCost?.valueOf()) {
+            delivery.deliveryCost = NonNegativeNumberVO.create(input.deliveryCost);
+            await deliveryRepository.updateById(existing.deliveryId, delivery, IdVO.generateNil());
+          }
         }
-        // If deliveryCost was updated but not to 0, sync the cost
-        else if (input.deliveryCost !== undefined && input.deliveryCost !== delivery.deliveryCost?.valueOf()) {
-          delivery.deliveryCost = NonNegativeNumberVO.create(input.deliveryCost);
-          await deliveryRepository.updateById(existing.deliveryId, delivery, IdVO.generateNil());
+      } else if (input.deliveryCost && input.deliveryCost > 0) {
+        const initialStatus = nextDeliveryStatus === DeliveryStatus.SENT ? DeliveryStatus.SENT : DeliveryStatus.PENDING;
+
+        const deliveryResult = makeDelivery({
+          orderId: input.id,
+          scheduledDate: DateTimeVO.create(new Date()).toString(),
+          deliveryTime: initialStatus === DeliveryStatus.SENT ? DateTimeVO.toFormattedTime() : '',
+          address: existing.customDeliveryAddress?.toString() || 'No address provided',
+          status: initialStatus,
+          notes: 'Auto-created from order update',
+          deliveryCost: input.deliveryCost,
+        });
+
+        if (!deliveryResult.isFailure) {
+          const savedDeliveryRes = await deliveryRepository.create(deliveryResult.getValue(), IdVO.generateNil());
+          if (!savedDeliveryRes.isFailure && savedDeliveryRes.getValue().id) {
+            updated.deliveryId = IdVO.create(savedDeliveryRes.getValue().id!.toString());
+          }
         }
       }
     }
@@ -233,8 +290,9 @@ export const makeUpdateOrder = (
 
     // Handle financial transactions after order is saved
     if (recordOrderPayment && updated.payments && updated.payments.length > 0) {
-      const isPaymentTransition = existing.paymentStatus !== PaymentStatus.PAID && nextPaymentStatus === PaymentStatus.PAID;
-      
+      const isPaymentTransition =
+        existing.paymentStatus !== PaymentStatus.PAID && nextPaymentStatus === PaymentStatus.PAID;
+
       if (isPaymentTransition) {
         const txResult = await recordOrderPayment({
           orderId: input.id,
@@ -245,11 +303,12 @@ export const makeUpdateOrder = (
           // Log but don't fail - financial transactions are optional
           console.error('Failed to record order payment:', txResult.getError());
         }
-      } 
+      }
     }
-    
+
     if (reverseOrderPayment && existing.payments && existing.payments.length > 0) {
-      const isRefundTransition = existing.paymentStatus !== PaymentStatus.REFUNDED && nextPaymentStatus === PaymentStatus.REFUNDED;
+      const isRefundTransition =
+        existing.paymentStatus !== PaymentStatus.REFUNDED && nextPaymentStatus === PaymentStatus.REFUNDED;
 
       if (isRefundTransition) {
         // Reverse payments for refunds

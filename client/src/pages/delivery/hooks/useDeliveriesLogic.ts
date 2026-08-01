@@ -10,6 +10,11 @@ import { toDateOnlyString } from '@utils/period-utils';
 import { DeliveryStatus } from '@shared-domain/delivery/delivery.entity';
 import { DateTimeVO } from '@shared-domain/shared/value-objects/date-time.vo';
 
+const DEFAULT_QUERY_LIMIT = 1000;
+export const FILTER_ALL_DELIVERIES = 'ALL';
+const DEFAULT_CLIENT_NAME = 'General Client';
+const SUCCESS_MESSAGE_TIMEOUT_MS = 3000;
+
 export interface ClientShape {
   id: string;
   firstName: string;
@@ -35,7 +40,7 @@ export interface DeliveryShape {
 
 export const useDeliveriesLogic = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [statusFilter, setStatusFilter] = useState<string>(FILTER_ALL_DELIVERIES);
   const [selectedDate, setSelectedDate] = useState<string>(() => toDateOnlyString(DateTimeVO.create().toString()));
 
   const {
@@ -49,12 +54,14 @@ export const useDeliveriesLogic = () => {
   const deliveries: DeliveryShape[] = delData?.getAllDeliveries || [];
 
   const { data: ordersData } = useQuery(GET_ALL_ORDERS, {
-    variables: { limit: 1000 },
+    variables: { limit: DEFAULT_QUERY_LIMIT },
+    fetchPolicy: 'cache-and-network',
   });
 
   const orders: OrderShape[] = ordersData?.getAllOrders || [];
   const { data: clientsData } = useQuery(CLIENTS_QUERY, {
-    variables: { limit: 1000 },
+    variables: { limit: DEFAULT_QUERY_LIMIT },
+    fetchPolicy: 'cache-and-network',
   });
   const clients: ClientShape[] = clientsData?.getAllClients || [];
 
@@ -76,7 +83,7 @@ export const useDeliveriesLogic = () => {
         return false;
       }
 
-      if (statusFilter !== 'ALL' && d.status !== statusFilter) {
+      if (statusFilter !== FILTER_ALL_DELIVERIES && d.status !== statusFilter) {
         return false;
       }
 
@@ -99,7 +106,7 @@ export const useDeliveriesLogic = () => {
       });
       setSuccessMessage(`Delivery successfully updated to ${newStatus.toLowerCase()}.`);
       refetchDel();
-      setTimeout(() => setSuccessMessage(null), 3000);
+      setTimeout(() => setSuccessMessage(null), SUCCESS_MESSAGE_TIMEOUT_MS);
     } catch (err) {
       alert(getErrorMessage(err, 'Error updating status'));
     }
@@ -107,9 +114,9 @@ export const useDeliveriesLogic = () => {
 
   const getClientNameByOrder = (orderId: string) => {
     const order = orderMap.get(orderId);
-    if (!order) return 'General Client';
+    if (!order) return DEFAULT_CLIENT_NAME;
     const client = clientMap.get(order.clientId);
-    return getFullName(client, 'General Client');
+    return getFullName(client, DEFAULT_CLIENT_NAME);
   };
 
   return {

@@ -6,6 +6,7 @@ import { useOrdersPloc } from '@contexts/order-context';
 import { useCreateOrderDependencies } from './hooks/useCreateOrderDependencies';
 
 import { IProduct } from '@shared-domain/product/product.entity';
+import { calculateItemsSubtotal } from '@shared-domain/order/order-totals';
 
 import Spinkit from '../../components/Spinkit';
 import Alert from '../../components/Alert';
@@ -50,7 +51,9 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({ session }) => 
   const [selectedProducts, setSelectedProducts] = useState<Array<IProduct & { quantity: number }>>([]);
   const [deliveryFee, setDeliveryFee] = useState<number>(0);
 
-  const subtotal = selectedProducts.reduce((sum, p) => sum + Number(p.sellingPrice) * p.quantity, 0);
+  const subtotal = calculateItemsSubtotal(
+    selectedProducts.map((p) => ({ quantity: p.quantity, unitPrice: Number(p.sellingPrice) }))
+  );
   const total = subtotal + deliveryFee;
 
   const currentClientId = client?.id || clientIdFromParams;
@@ -88,6 +91,8 @@ export const CreateOrderPage: React.FC<CreateOrderPageProps> = ({ session }) => 
     const items = selectedProducts.map((p) => ({
       productId: String(p.id),
       quantity: p.quantity,
+      sellingPriceAtSale: Number(p.sellingPrice),
+      purchasePriceAtSale: Number(p.purchasePrice),
     }));
 
     try {

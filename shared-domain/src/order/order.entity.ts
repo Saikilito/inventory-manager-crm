@@ -3,8 +3,11 @@ import { NonNegativeNumber, NonNegativeNumberVO } from '../shared/value-objects/
 import { NonEmptyString, NonEmptyStringVO } from '../shared/value-objects/non-empty-string.vo.js';
 import { PositiveNumber, PositiveNumberVO } from '../shared/value-objects/positive-number.vo.js';
 import { DateTime, DateTimeVO } from '../shared/value-objects/date-time.vo.js';
-import { createValidationError } from '../shared/validation-error.js';
 import { validateCancellationObservationForStatus } from './cancellation-observation.vo.js';
+import { OrderStatus, PaymentStatus } from './order-status.js';
+import { assertOrderCancellable } from './order-status.rules.js';
+
+export { OrderStatus, PaymentStatus } from './order-status.js';
 
 export const PRICE_DECIMAL_PRECISION = 2;
 export const QUANTITY_DECIMAL_PRECISION = 4;
@@ -13,9 +16,9 @@ export const ORDER_DEFAULT_PRICE_FALLBACK = 0.01;
 
 export interface IOrderItem {
   productId: Id;
-  quantity: NonNegativeNumber; // Supports fractional quantities (rounded to 4 decimals)
-  purchasePriceAtSale: PositiveNumber; // Snapshot of purchase price at sale (rounded to 2 decimals)
-  sellingPriceAtSale: PositiveNumber; // Snapshot of selling price at sale (rounded to 2 decimals)
+  quantity: NonNegativeNumber;
+  purchasePriceAtSale: PositiveNumber;
+  sellingPriceAtSale: PositiveNumber;
 }
 
 export interface IOrderPayment {
@@ -24,50 +27,21 @@ export interface IOrderPayment {
   exchangeRate: PositiveNumber;
 }
 
-export const PaymentStatus = Object.freeze({
-  PENDING: 'PENDING',
-  PAID: 'PAID',
-  REFUNDED: 'REFUNDED',
-} as const);
-
-export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus];
-
-export const DeliveryStatus = Object.freeze({
-  PENDING: 'PENDING',
-  SENT: 'SENT',
-  DISPATCHED: 'SENT',
-  COMPLETE: 'COMPLETE',
-  DELIVERED: 'COMPLETE',
-  CANCELLED: 'CANCELLED',
-} as const);
-
-export type DeliveryStatus = (typeof DeliveryStatus)[keyof typeof DeliveryStatus];
-
-export const OrderStatus = Object.freeze({
-  PENDING: 'PENDING',
-  COMPLETED: 'COMPLETED',
-  ACTIVE: 'ACTIVE',
-  CANCELLED: 'CANCELLED',
-} as const);
-
-export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus];
-
 export interface IOrder {
   id?: Id;
   items: IOrderItem[];
-  total: NonNegativeNumber; // Rounded to 2 decimals
+  total: NonNegativeNumber;
   createdAt?: DateTime;
   clientId: Id;
   status: OrderStatus;
   paymentStatus: PaymentStatus;
-  deliveryStatus: DeliveryStatus;
   sellerId: Id;
   contextId?: Id | null;
-  deliveryId?: Id; // Reference to Delivery document
+  deliveryId?: Id;
   deliveryCost?: NonNegativeNumber;
   customDeliveryAddress?: NonEmptyString;
   payments?: IOrderPayment[];
-  cancellationObservation?: string; // Required when status is CANCELLED
+  cancellationObservation?: string;
 }
 
 export const makeOrder = (props: {
@@ -83,7 +57,6 @@ export const makeOrder = (props: {
   clientId: string;
   status: OrderStatus;
   paymentStatus?: PaymentStatus;
-  deliveryStatus?: DeliveryStatus;
   sellerId: string;
   contextId?: string;
   deliveryId?: string;
@@ -104,12 +77,9 @@ export const makeOrder = (props: {
 
   if (props.status === OrderStatus.CANCELLED) {
     const pStatus = props.paymentStatus || PaymentStatus.PENDING;
-    const dStatus = props.deliveryStatus || DeliveryStatus.PENDING;
-    if (
-      pStatus === PaymentStatus.PAID &&
-      (dStatus === DeliveryStatus.SENT || dStatus === DeliveryStatus.COMPLETE)
-    ) {
-      throw createValidationError('Cannot cancel an order that is PAID and SENT/COMPLETE');
+    const cancellableResult = assertOrderCancellable({ paymentStatus: pStatus, deliveryStatus: null });
+    if (cancellableResult.isFailure) {
+      throw cancellableResult.getError();
     }
 
     const obsValidation = validateCancellationObservationForStatus(props.cancellationObservation, props.status);
@@ -146,7 +116,6 @@ export const makeOrder = (props: {
     clientId: IdVO.create(props.clientId),
     status: props.status || OrderStatus.ACTIVE,
     paymentStatus: props.paymentStatus || PaymentStatus.PENDING,
-    deliveryStatus: props.deliveryStatus || DeliveryStatus.PENDING,
     sellerId: IdVO.create(props.sellerId),
     contextId:
       props.contextId !== undefined && props.contextId !== null
